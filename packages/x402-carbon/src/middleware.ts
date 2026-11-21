@@ -17,7 +17,7 @@ export type CarbonPaymentOptions = {
   /** METHOD + path pattern, e.g. "GET /v1/infer". */
   route: string;
   description: string;
-  payTo: Address; // must be the meter wallet: it forwards the surcharge to the pool
+  payTo: Address; // merchant wallet; the pool pulls surcharges from it (pool.surchargeFunder(meter))
   baseAmount: bigint; // price of the API call itself, token units
   meter: CarbonMeter;
   deployment?: Deployment;
@@ -62,8 +62,9 @@ function agentIdOf(get: (name: string) => string | undefined): bigint {
 /**
  * x402 paywall for one route with a carbon surcharge folded into the same payment:
  *   total = baseAmount + ceil(mgCO2e x pricePerTonne / 1e9)
- * After the facilitator settles, the surcharge and the estimate are reported to the
- * RetirementPool (paymentId = settlement tx hash), which auto-retires DCO2 per payer.
+ * After the facilitator settles, the accrual (paymentId = paymentIdOf(chain, token, payer, EIP-3009
+ * nonce)) is queued durably; the meter settles it into the RetirementPool, which pulls the surcharge
+ * from the payTo wallet and auto-retires DCO2 per payer.
  */
 export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ Variables: CarbonVariables }> {
   const d = opts.deployment ?? FUJI;
@@ -78,11 +79,12 @@ export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ V
     new HTTPFacilitatorClient({ url: opts.facilitatorUrl ?? PAYAI_FACILITATOR }),
   ).register(caip2, new ExactEvmScheme());
 
+  // Durable: the accrual is written to the meter's SQLite queue before the response goes out.
   server.onAfterSettle(async (ctx) => {
     const c = ctx.requirements.extra?.carbon as CarbonExtra | undefined;
     const auth = (ctx.paymentPayload.payload as { authorization?: { from: Address; nonce: Hex } }).authorization;
     if (!c || !ctx.result.success || !auth) return;
-    void opts.meter.accrue({
+    opts.meter.enqueue({
       paymentId: paymentIdOf(d.chainId, ctx.requirements.asset as Address, auth.from, auth.nonce),
       settlementTx: ctx.result.transaction as Hex,
       payer: auth.from,
@@ -120,6 +122,11 @@ export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ V
       c.set("carbon", quoteFor((n) => c.req.query(n)));
     } catch (e) {
       return c.json({ error: e instanceof Error ? e.message : "bad request" }, 400);
+    }
+    // Fail closed: never quote a carbon surcharge the pool cannot settle right now.
+    const health = await opts.meter.health();
+    if (!health.ok) {
+      return c.json({ error: "carbon settlement unavailable, try again later", reasons: health.reasons }, 503);
     }
     await next();
   };

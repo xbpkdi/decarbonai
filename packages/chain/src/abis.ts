@@ -15,6 +15,11 @@ export const retirementPoolAbi = [
             "internalType": "address"
           },
           {
+            "name": "adminDelay",
+            "type": "uint48",
+            "internalType": "uint48"
+          },
+          {
             "name": "paymentToken",
             "type": "address",
             "internalType": "contract IERC20"
@@ -30,7 +35,17 @@ export const retirementPoolAbi = [
             "internalType": "contract CarbonReceipt"
           },
           {
+            "name": "identityRegistry",
+            "type": "address",
+            "internalType": "contract IERC8004Identity"
+          },
+          {
             "name": "thresholdMg",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "minPricePerTonne",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -45,6 +60,11 @@ export const retirementPoolAbi = [
             "internalType": "uint256"
           },
           {
+            "name": "maxMgPerDay",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
             "name": "maxRetirementsPerCall",
             "type": "uint8",
             "internalType": "uint8"
@@ -53,6 +73,19 @@ export const retirementPoolAbi = [
       }
     ],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "DAY",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -82,7 +115,33 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "MG_PER_KG",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "MG_PER_TONNE",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "MIN_FEEDBACK_GAS",
     "inputs": [],
     "outputs": [
       {
@@ -118,6 +177,13 @@ export const retirementPoolAbi = [
       }
     ],
     "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acceptDefaultAdminTransfer",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -157,6 +223,11 @@ export const retirementPoolAbi = [
           },
           {
             "name": "surchargePaid",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "pendingSurcharge",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -225,6 +296,51 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "accrueBatch",
+    "inputs": [
+      {
+        "name": "items",
+        "type": "tuple[]",
+        "internalType": "struct RetirementPool.Accrual[]",
+        "components": [
+          {
+            "name": "paymentId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "payer",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
+            "name": "agentId",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "mgCO2e",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "surcharge",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "methodologyHash",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          }
+        ]
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "addLot",
     "inputs": [
       {
@@ -251,6 +367,52 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "beginDefaultAdminTransfer",
+    "inputs": [
+      {
+        "name": "newAdmin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "cancelDefaultAdminTransfer",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "changeDefaultAdminDelay",
+    "inputs": [
+      {
+        "name": "newDelay",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "dailyCapRemaining",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "dco2",
     "inputs": [],
     "outputs": [
@@ -258,6 +420,64 @@ export const retirementPoolAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract DCO2"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "defaultAdmin",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "defaultAdminDelay",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "defaultAdminDelayIncreaseWait",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "feedbackPending",
+    "inputs": [
+      {
+        "name": "receiptId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -325,6 +545,19 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "identityRegistry",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "contract IERC8004Identity"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "lotCursor",
     "inputs": [],
     "outputs": [
@@ -383,6 +616,19 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "maxMgPerDay",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "maxRetirementsPerCall",
     "inputs": [],
     "outputs": [
@@ -421,6 +667,19 @@ export const retirementPoolAbi = [
             "internalType": "string"
           }
         ]
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "minPricePerTonne",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
       }
     ],
     "stateMutability": "view"
@@ -505,6 +764,19 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "pause",
     "inputs": [],
     "outputs": [],
@@ -551,6 +823,42 @@ export const retirementPoolAbi = [
         "name": "",
         "type": "address",
         "internalType": "contract IERC20"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingDefaultAdmin",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "newAdmin",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "schedule",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingDefaultAdminDelay",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "newDelay",
+        "type": "uint48",
+        "internalType": "uint48"
+      },
+      {
+        "name": "schedule",
+        "type": "uint48",
+        "internalType": "uint48"
       }
     ],
     "stateMutability": "view"
@@ -610,7 +918,7 @@ export const retirementPoolAbi = [
         "internalType": "bytes32"
       },
       {
-        "name": "callerConfirmation",
+        "name": "account",
         "type": "address",
         "internalType": "address"
       }
@@ -633,6 +941,57 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "rescueERC1155",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "contract IERC1155"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "rescueERC20",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "contract IERC20"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "retire",
     "inputs": [
       {
@@ -648,6 +1007,19 @@ export const retirementPoolAbi = [
         "internalType": "uint256"
       }
     ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "retryFeedback",
+    "inputs": [
+      {
+        "name": "receiptId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
@@ -670,10 +1042,22 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "rollbackDefaultAdminDelay",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setLimits",
     "inputs": [
       {
         "name": "maxMgPerAccrual_",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxMgPerDay_",
         "type": "uint256",
         "internalType": "uint256"
       },
@@ -737,6 +1121,24 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "setSurchargeFunder",
+    "inputs": [
+      {
+        "name": "meter",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "setThreshold",
     "inputs": [
       {
@@ -763,6 +1165,25 @@ export const retirementPoolAbi = [
         "name": "",
         "type": "bool",
         "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "surchargeFunder",
+    "inputs": [
+      {
+        "name": "meter",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "stateMutability": "view"
@@ -854,6 +1275,32 @@ export const retirementPoolAbi = [
   },
   {
     "type": "function",
+    "name": "windowMg",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "windowStart",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "withdraw",
     "inputs": [
       {
@@ -869,6 +1316,38 @@ export const retirementPoolAbi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "event",
+    "name": "AccrualSkipped",
+    "inputs": [
+      {
+        "name": "paymentId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "AgentLinkRejected",
+    "inputs": [
+      {
+        "name": "payer",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "agentId",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
   },
   {
     "type": "event",
@@ -940,10 +1419,66 @@ export const retirementPoolAbi = [
   },
   {
     "type": "event",
+    "name": "DefaultAdminDelayChangeCanceled",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DefaultAdminDelayChangeScheduled",
+    "inputs": [
+      {
+        "name": "newDelay",
+        "type": "uint48",
+        "indexed": false,
+        "internalType": "uint48"
+      },
+      {
+        "name": "effectSchedule",
+        "type": "uint48",
+        "indexed": false,
+        "internalType": "uint48"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DefaultAdminTransferCanceled",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DefaultAdminTransferScheduled",
+    "inputs": [
+      {
+        "name": "newAdmin",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "acceptSchedule",
+        "type": "uint48",
+        "indexed": false,
+        "internalType": "uint48"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "LimitsSet",
     "inputs": [
       {
         "name": "maxMgPerAccrual",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxMgPerDay",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
@@ -1068,6 +1603,37 @@ export const retirementPoolAbi = [
         "type": "address",
         "indexed": true,
         "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "Rescued",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "id",
+        "type": "uint256",
+        "indexed": true,
+        "internalType": "uint256"
+      },
+      {
+        "name": "to",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "amount",
+        "type": "uint256",
+        "indexed": false,
+        "internalType": "uint256"
       }
     ],
     "anonymous": false
@@ -1211,6 +1777,25 @@ export const retirementPoolAbi = [
   },
   {
     "type": "event",
+    "name": "SurchargeFunderSet",
+    "inputs": [
+      {
+        "name": "meter",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "funder",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "ThresholdSet",
     "inputs": [
       {
@@ -1261,6 +1846,33 @@ export const retirementPoolAbi = [
   },
   {
     "type": "error",
+    "name": "AccessControlEnforcedDefaultAdminDelay",
+    "inputs": [
+      {
+        "name": "schedule",
+        "type": "uint48",
+        "internalType": "uint48"
+      }
+    ]
+  },
+  {
+    "type": "error",
+    "name": "AccessControlEnforcedDefaultAdminRules",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "AccessControlInvalidDefaultAdmin",
+    "inputs": [
+      {
+        "name": "defaultAdmin",
+        "type": "address",
+        "internalType": "address"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "AccessControlUnauthorizedAccount",
     "inputs": [
       {
@@ -1293,15 +1905,10 @@ export const retirementPoolAbi = [
   },
   {
     "type": "error",
-    "name": "AgentMismatch",
+    "name": "BadThreshold",
     "inputs": [
       {
-        "name": "linked",
-        "type": "uint256",
-        "internalType": "uint256"
-      },
-      {
-        "name": "provided",
+        "name": "thresholdMg",
         "type": "uint256",
         "internalType": "uint256"
       }
@@ -1325,6 +1932,22 @@ export const retirementPoolAbi = [
   },
   {
     "type": "error",
+    "name": "DailyCapExceeded",
+    "inputs": [
+      {
+        "name": "windowMg",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "maxMgPerDay",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "DuplicatePayment",
     "inputs": [
       {
@@ -1333,6 +1956,11 @@ export const retirementPoolAbi = [
         "internalType": "bytes32"
       }
     ]
+  },
+  {
+    "type": "error",
+    "name": "EmptyBatch",
+    "inputs": []
   },
   {
     "type": "error",
@@ -1357,13 +1985,61 @@ export const retirementPoolAbi = [
   },
   {
     "type": "error",
+    "name": "InsufficientGasForFeedback",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "NoPendingFeedback",
+    "inputs": [
+      {
+        "name": "receiptId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "NoSupply",
     "inputs": []
   },
   {
     "type": "error",
+    "name": "PriceBelowFloor",
+    "inputs": [
+      {
+        "name": "price",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "floor",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
+  },
+  {
+    "type": "error",
     "name": "ReentrancyGuardReentrantCall",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "SafeCastOverflowedUintDowncast",
+    "inputs": [
+      {
+        "name": "bits",
+        "type": "uint8",
+        "internalType": "uint8"
+      },
+      {
+        "name": "value",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ]
   },
   {
     "type": "error",
@@ -1405,6 +2081,11 @@ export const retirementPoolAbi = [
   },
   {
     "type": "error",
+    "name": "UsePaymentWithdraw",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "ZeroValue",
     "inputs": []
   }
@@ -1420,6 +2101,13 @@ export const carbonReceiptAbi = [
         "internalType": "address"
       }
     ],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
     "stateMutability": "nonpayable"
   },
   {
@@ -1551,7 +2239,7 @@ export const carbonReceiptAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "surchargePaid",
+            "name": "surcharge",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -1569,6 +2257,11 @@ export const carbonReceiptAbi = [
             "name": "methodologyHash",
             "type": "bytes32",
             "internalType": "bytes32"
+          },
+          {
+            "name": "backed",
+            "type": "bool",
+            "internalType": "bool"
           }
         ]
       }
@@ -1655,6 +2348,19 @@ export const carbonReceiptAbi = [
   },
   {
     "type": "function",
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
     "outputs": [],
@@ -1697,7 +2403,7 @@ export const carbonReceiptAbi = [
             "internalType": "uint256"
           },
           {
-            "name": "surchargePaid",
+            "name": "surcharge",
             "type": "uint256",
             "internalType": "uint256"
           },
@@ -1715,6 +2421,11 @@ export const carbonReceiptAbi = [
             "name": "methodologyHash",
             "type": "bytes32",
             "internalType": "bytes32"
+          },
+          {
+            "name": "backed",
+            "type": "bool",
+            "internalType": "bool"
           }
         ]
       }
@@ -1968,6 +2679,25 @@ export const carbonReceiptAbi = [
   },
   {
     "type": "event",
+    "name": "OwnershipTransferStarted",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "OwnershipTransferred",
     "inputs": [
       {
@@ -2128,6 +2858,11 @@ export const carbonReceiptAbi = [
   },
   {
     "type": "error",
+    "name": "MinterAlreadySet",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "NotMinter",
     "inputs": []
   },
@@ -2189,19 +2924,54 @@ export const dCO2Abi = [
         "name": "owner_",
         "type": "address",
         "internalType": "address"
+      },
+      {
+        "name": "name_",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "symbol_",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "backed_",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "nonpayable"
   },
   {
     "type": "function",
-    "name": "MG_PER_TONNE",
+    "name": "MG_PER_KG",
     "inputs": [],
     "outputs": [
       {
         "name": "",
         "type": "uint256",
         "internalType": "uint256"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "backedToken",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
       }
     ],
     "stateMutability": "view"
@@ -2280,6 +3050,25 @@ export const dCO2Abi = [
   },
   {
     "type": "function",
+    "name": "isBacked",
+    "inputs": [
+      {
+        "name": "lotId",
+        "type": "uint256",
+        "internalType": "uint256"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "lot",
     "inputs": [
       {
@@ -2300,7 +3089,7 @@ export const dCO2Abi = [
             "internalType": "string"
           },
           {
-            "name": "serial",
+            "name": "projectId",
             "type": "string",
             "internalType": "string"
           },
@@ -2310,19 +3099,34 @@ export const dCO2Abi = [
             "internalType": "string"
           },
           {
+            "name": "serial",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
             "name": "vintage",
             "type": "uint16",
             "internalType": "uint16"
           },
           {
-            "name": "retirementProofURI",
+            "name": "certificateURI",
             "type": "string",
             "internalType": "string"
           },
           {
-            "name": "tonnes",
+            "name": "retirementTx",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "quantityKg",
             "type": "uint256",
             "internalType": "uint256"
+          },
+          {
+            "name": "backed",
+            "type": "bool",
+            "internalType": "bool"
           },
           {
             "name": "mintedAt",
@@ -2354,7 +3158,7 @@ export const dCO2Abi = [
             "internalType": "string"
           },
           {
-            "name": "serial",
+            "name": "projectId",
             "type": "string",
             "internalType": "string"
           },
@@ -2364,19 +3168,34 @@ export const dCO2Abi = [
             "internalType": "string"
           },
           {
+            "name": "serial",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
             "name": "vintage",
             "type": "uint16",
             "internalType": "uint16"
           },
           {
-            "name": "retirementProofURI",
+            "name": "certificateURI",
             "type": "string",
             "internalType": "string"
           },
           {
-            "name": "tonnes",
+            "name": "retirementTx",
+            "type": "string",
+            "internalType": "string"
+          },
+          {
+            "name": "quantityKg",
             "type": "uint256",
             "internalType": "uint256"
+          },
+          {
+            "name": "backed",
+            "type": "bool",
+            "internalType": "bool"
           },
           {
             "name": "mintedAt",
@@ -2436,6 +3255,19 @@ export const dCO2Abi = [
   },
   {
     "type": "function",
+    "name": "pendingOwner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "renounceOwnership",
     "inputs": [],
     "outputs": [],
@@ -2463,6 +3295,25 @@ export const dCO2Abi = [
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
+    "name": "retirementUsed",
+    "inputs": [
+      {
+        "name": "retirementHash",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "",
+        "type": "bool",
+        "internalType": "bool"
+      }
+    ],
+    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -2692,34 +3543,41 @@ export const dCO2Abi = [
         "internalType": "address"
       },
       {
-        "name": "registry",
-        "type": "string",
-        "indexed": false,
-        "internalType": "string"
-      },
-      {
         "name": "serial",
         "type": "string",
         "indexed": false,
         "internalType": "string"
       },
       {
-        "name": "vintage",
-        "type": "uint16",
-        "indexed": false,
-        "internalType": "uint16"
-      },
-      {
-        "name": "tonnes",
+        "name": "quantityKg",
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
       },
       {
-        "name": "retirementProofURI",
-        "type": "string",
+        "name": "backed",
+        "type": "bool",
         "indexed": false,
-        "internalType": "string"
+        "internalType": "bool"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferStarted",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -2992,6 +3850,11 @@ export const dCO2Abi = [
   },
   {
     "type": "error",
+    "name": "RetirementAlreadyUsed",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "SerialAlreadyMinted",
     "inputs": []
   },
@@ -3002,7 +3865,7 @@ export const dCO2Abi = [
   },
   {
     "type": "error",
-    "name": "ZeroTonnes",
+    "name": "ZeroQuantity",
     "inputs": []
   }
 ] as const;
@@ -3775,7 +4638,27 @@ export const eRC8004ReputationAdapterAbi = [
   },
   {
     "type": "function",
+    "name": "acceptOwnership",
+    "inputs": [],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "owner",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
+    "name": "pendingOwner",
     "inputs": [],
     "outputs": [
       {
@@ -3920,6 +4803,25 @@ export const eRC8004ReputationAdapterAbi = [
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "OwnershipTransferStarted",
+    "inputs": [
+      {
+        "name": "previousOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "newOwner",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false

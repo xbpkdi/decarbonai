@@ -9,7 +9,7 @@
     "./client": "./src/client.ts"
   },
   "scripts": {
-    "test": "node --test test/*.test.ts"
+    "test": "node --test --no-warnings=ExperimentalWarning test/*.test.ts"
   },
   "dependencies": {
     "@decarbonai/chain": "*",

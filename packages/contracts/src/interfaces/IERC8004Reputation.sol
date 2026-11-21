@@ -22,3 +22,9 @@ interface IERC8004Reputation {
 interface ICarbonReputation {
     function recordCarbonSettled(uint256 agentId, uint256 receiptId, uint256 mgCO2e, bytes32 feedbackHash) external;
 }
+
+/// @notice Subset of the ERC-8004 IdentityRegistry used to check that a payer controls an agent.
+interface IERC8004Identity {
+    function ownerOf(uint256 agentId) external view returns (address);
+    function getAgentWallet(uint256 agentId) external view returns (address);
+}

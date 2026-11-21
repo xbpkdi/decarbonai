@@ -61,14 +61,3 @@ test("paymentIdOf is unique per authorization nonce, not per settlement tx", () 
   assert.notEqual(a, paymentIdOf(43114, FUJI.paymentToken, payer, n1));
   assert.match(a, /^0x[0-9a-f]{64}$/);
 });
-
-test("accrue gas limit follows predicted retirements", async () => {
-  const { accrueGasLimit, predictRetirements, ACCRUE_BASE_GAS, RETIREMENT_GAS } = await import("../src/meter.ts");
-  const KG = 1_000_000n;
-  assert.deepEqual(predictRetirements(0n, 22_000n, KG), { retirements: 0n, pendingAfter: 22_000n });
-  assert.deepEqual(predictRetirements(990_000n, 22_000n, KG), { retirements: 1n, pendingAfter: 12_000n });
-  assert.deepEqual(predictRetirements(0n, 7n * KG + 5n, KG), { retirements: 5n, pendingAfter: 2n * KG + 5n });
-  assert.equal(accrueGasLimit(0n), ACCRUE_BASE_GAS);
-  assert.equal(accrueGasLimit(1n), ACCRUE_BASE_GAS + RETIREMENT_GAS);
-  assert.equal(accrueGasLimit(9n), ACCRUE_BASE_GAS + 5n * RETIREMENT_GAS);
-});

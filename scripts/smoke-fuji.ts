@@ -6,7 +6,7 @@
 //   node --env-file=.env scripts/smoke-fuji.ts [--no-pay]
 import { serve } from "@hono/node-server";
 import type { AddressInfo } from "node:net";
-import { erc20Abi, formatEther, type Address, type Hex } from "viem";
+import { erc20Abi, formatEther, type Address } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import {
   carbonReceiptAbi,
@@ -17,13 +17,14 @@ import {
   network,
   retirementPoolAbi,
 } from "@decarbonai/chain";
-import { clientFor, loadDeployment } from "@decarbonai/chain/node";
+import { clientFor } from "@decarbonai/chain/node";
+import { need, scriptEnv } from "./env.ts";
 import { PAYAI_FACILITATOR } from "@decarbonai/x402-carbon";
 import { createPayingFetch, settlementFrom } from "@decarbonai/x402-carbon/client";
 import { createApp } from "../apps/paid-api/src/app.ts";
 
-const d = loadDeployment();
-const mainnet = d.chainId === 43114;
+const env = scriptEnv();
+const { d } = env;
 const explorer = explorerFor(d.chainId);
 const client = clientFor(d);
 let failures = 0;
@@ -62,39 +63,55 @@ check(methodology.active, "methodology registered", methodology.version);
 check(!state.paused, "pool not paused");
 check(state.availableSupplyMg >= state.thresholdMg, "DCO2 supply >= one retirement", `${Number(state.availableSupplyMg) / 1e6} kg left`);
 
-const meterKey = (process.env.METER_PRIVATE_KEY ?? (mainnet ? process.env.MAINNET_PRIVATE_KEY : process.env.FUJI_PRIVATE_KEY)) as Hex | undefined;
-const agentKey = (mainnet ? process.env.MAINNET_AGENT_PRIVATE_KEY : process.env.AGENT_PRIVATE_KEY) as Hex | undefined;
-if (!meterKey || !agentKey) throw new Error("FUJI_PRIVATE_KEY (or METER_PRIVATE_KEY) and AGENT_PRIVATE_KEY required");
+const meterKey = need(env.meterKey, "meter key");
+const agentKey = need(env.agentKey, "agent key");
+const payTo = need(env.payTo, "payTo");
 const meterAddr = privateKeyToAccount(meterKey).address;
 const agentAddr = privateKeyToAccount(agentKey).address;
-const [hasRole, meterAvax, agentUsdc] = await Promise.all([
+const [hasRole, meterIsTreasury, meterIsPauser, admin, funder, meterAvax, agentUsdc, payToAllowance] = await Promise.all([
   client.readContract({ ...pool, functionName: "hasRole", args: [meterRole, meterAddr] }),
+  client.readContract({ ...pool, functionName: "hasRole", args: [await client.readContract({ ...pool, functionName: "TREASURY_ROLE" }), meterAddr] }),
+  client.readContract({ ...pool, functionName: "hasRole", args: [await client.readContract({ ...pool, functionName: "PAUSER_ROLE" }), meterAddr] }),
+  client.readContract({ ...pool, functionName: "defaultAdmin" }),
+  client.readContract({ ...pool, functionName: "surchargeFunder", args: [meterAddr] }),
   client.getBalance({ address: meterAddr }),
   client.readContract({ address: d.paymentToken, abi: erc20Abi, functionName: "balanceOf", args: [agentAddr] }),
+  client.readContract({ address: d.paymentToken, abi: erc20Abi, functionName: "allowance", args: [payTo, d.retirementPool] }),
 ]);
 check(hasRole, "meter has METER_ROLE", meterAddr);
+check(!meterIsTreasury && !meterIsPauser && !eq(admin, meterAddr), "meter holds no admin/treasury/pauser rights");
+check(!eq(payTo, meterAddr), "payTo is a separate wallet", payTo);
+check(eq(funder, payTo), "pool pulls surcharges from payTo");
+check(payToAllowance > 10_000_000n, "payTo approved the pool");
 check(meterAvax > 10n ** 17n, "meter has gas", `${formatEther(meterAvax)} AVAX`);
-check(agentUsdc >= 2_000_000n, "agent can pay ~100 calls", `${Number(agentUsdc) / 1e6} tUSDC`);
+check(agentUsdc >= 2_000_000n, "agent can pay ~100 calls", `${Number(agentUsdc) / 1e6} USDC`);
 
 const supported = (await (await fetch(`${PAYAI_FACILITATOR}/supported`)).json()) as { kinds: { network: string }[] };
 const caip2 = network(d.chainId).caip2;
 check(supported.kinds.some((k) => k.network === caip2), `PayAI facilitator supports ${caip2}`);
 
 if (!process.argv.includes("--no-pay")) {
-  const { app, meter } = createApp({ meterKey, deployment: d });
-  await meter.ensureAllowance();
+  const { app, meter, preflight } = createApp({
+    meterKey,
+    payTo,
+    dbPath: process.env.ACCRUAL_DB ?? `.data/smoke-${d.chainId}.sqlite`,
+    deployment: d,
+  });
+  await preflight();
   const server = serve({ fetch: app.fetch, port: 0 });
   await new Promise((r) => server.once("listening", r));
   const port = (server.address() as AddressInfo).port;
   const before = await getAccount(client, agentAddr, d);
-  const agentId = (mainnet ? process.env.MAINNET_AGENT_ID : process.env.AGENT_ID) ? BigInt((mainnet ? process.env.MAINNET_AGENT_ID : process.env.AGENT_ID)!) : undefined;
-  const res = await createPayingFetch({ privateKey: agentKey, agentId, deployment: d }).fetch(
+  const res = await createPayingFetch({ privateKey: agentKey, agentId: env.agentId, deployment: d }).fetch(
     `http://localhost:${port}/v1/infer?model=claude-sonnet&maxOutputTokens=200&prompt=smoke`,
   );
   const s = settlementFrom(res);
   check(res.ok && !!s?.transaction, "x402 paid call settled", s?.transaction ? explorer.tx(s.transaction) : `HTTP ${res.status}`);
-  const [record] = await meter.drain();
-  check(record?.status === "confirmed", "pool accrual confirmed", record?.txHash ? explorer.tx(record.txHash) : record?.error);
+  const settled = await meter.drain(90_000);
+  const record = s?.transaction ? meter.get(s.transaction as `0x${string}`) : undefined;
+  check(settled && record?.status === "confirmed", "pool accrual confirmed", record?.txHash ? explorer.tx(record.txHash) : record?.status);
+  const health = await meter.health(true);
+  check(health.ok, "API health (fail-closed checks)", health.reasons.join(", "));
   let after = await getAccount(client, agentAddr, d);
   for (let i = 0; i < 5 && after.calls === before.calls; i++) {
     await new Promise((r) => setTimeout(r, 2000));

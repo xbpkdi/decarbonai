@@ -10,19 +10,29 @@ import {CarbonReceipt} from "../src/CarbonReceipt.sol";
 import {TestUSDC} from "../src/TestUSDC.sol";
 import {ERC8004ReputationAdapter} from "../src/ERC8004ReputationAdapter.sol";
 import {IERC5192} from "../src/interfaces/IERC5192.sol";
+import {Json} from "../src/lib/Json.sol";
 
 contract DCO2Test is BaseTest {
     function test_mintLot_storesMetadataAndMints1to1() public view {
         DCO2.Lot memory l = dco2.lot(1);
-        assertEq(l.registry, "TGO T-VER");
+        assertEq(l.registry, "Universal Carbon Registry");
+        assertEq(l.projectId, "UCR-419");
         assertEq(l.serial, "SERIAL-1");
-        assertEq(l.vintage, 2024);
-        assertEq(l.tonnes, 1);
+        assertEq(l.vintage, 2023);
+        assertEq(l.quantityKg, 1000);
+        assertEq(l.certificateURI, "https://app.carbonmark.com/retirements/id/SERIAL-1");
+        assertEq(l.retirementTx, "eip155:8453:SERIAL-1");
+        assertTrue(l.backed);
+        assertTrue(dco2.isBacked(1));
         assertGt(l.mintedAt, 0);
         assertEq(dco2.balanceOf(address(pool), 1), 1e9);
         assertEq(dco2.totalSupply(1), 1e9);
         assertEq(dco2.nextLotId(), 2);
-        assertTrue(dco2.serialUsed(keccak256(abi.encode("TGO T-VER", "SERIAL-1"))));
+        assertTrue(dco2.serialUsed(keccak256(abi.encode("Universal Carbon Registry", "SERIAL-1"))));
+        assertTrue(dco2.retirementUsed(keccak256(bytes("eip155:8453:SERIAL-1"))));
+        assertTrue(dco2.backedToken());
+        assertEq(dco2.name(), "DecarbonAI Carbon Tonne (custodial v0)");
+        assertEq(dco2.symbol(), "DCO2");
     }
 
     function test_mintLot_onlyOwner() public {
@@ -36,7 +46,7 @@ contract DCO2Test is BaseTest {
         vm.startPrank(admin);
         vm.expectRevert(DCO2.SerialAlreadyMinted.selector);
         dco2.mintLot(admin, _lot("SERIAL-1", 1));
-        vm.expectRevert(DCO2.ZeroTonnes.selector);
+        vm.expectRevert(DCO2.ZeroQuantity.selector);
         dco2.mintLot(admin, _lot("S2", 0));
         DCO2.Lot memory l = _lot("", 1);
         vm.expectRevert(DCO2.EmptyField.selector);
@@ -45,11 +55,46 @@ contract DCO2Test is BaseTest {
         l.registry = "";
         vm.expectRevert(DCO2.EmptyField.selector);
         dco2.mintLot(admin, l);
+        // a backed deployment needs the certificate and the source retirement tx
         l = _lot("S2", 1);
-        l.retirementProofURI = "";
+        l.certificateURI = "";
         vm.expectRevert(DCO2.EmptyField.selector);
         dco2.mintLot(admin, l);
+        l = _lot("S2", 1);
+        l.retirementTx = "";
+        vm.expectRevert(DCO2.EmptyField.selector);
+        dco2.mintLot(admin, l);
+        // the same off-chain retirement cannot back two lots, even under another serial
+        l = _lot("S2", 1);
+        l.retirementTx = "eip155:8453:SERIAL-1";
+        vm.expectRevert(DCO2.RetirementAlreadyUsed.selector);
+        dco2.mintLot(admin, l);
         vm.stopPrank();
+    }
+
+    function test_mockToken_lotsAreUnbacked() public {
+        DCO2 mock = new DCO2(admin, "DecarbonAI DCO2 (testnet mock, not backed by a real tonne)", "mockDCO2", false);
+        DCO2.Lot memory l = _lot("MOCK-1", 5);
+        l.certificateURI = "";
+        l.retirementTx = "";
+        vm.prank(admin);
+        uint256 id = mock.mintLot(admin, l);
+        assertFalse(mock.isBacked(id));
+        assertFalse(mock.lot(id).backed);
+        assertFalse(mock.backedToken());
+        assertEq(mock.symbol(), "mockDCO2");
+        assertGt(bytes(mock.uri(id)).length, 29);
+    }
+
+    function test_ownable2Step() public {
+        address safe = makeAddr("safe");
+        vm.prank(admin);
+        dco2.transferOwnership(safe);
+        assertEq(dco2.owner(), admin);
+        assertEq(dco2.pendingOwner(), safe);
+        vm.prank(safe);
+        dco2.acceptOwnership();
+        assertEq(dco2.owner(), safe);
     }
 
     function test_retire_requiresHolderOrOperator() public {
@@ -65,16 +110,20 @@ contract DCO2Test is BaseTest {
         dco2.retire(agent, id, 5);
         vm.prank(agent);
         dco2.retire(agent, id, 5);
-        assertEq(dco2.totalSupply(id), 2e9 - 10);
+        assertEq(dco2.totalSupply(id), 2e6 - 10);
     }
 
-    function test_uri() public {
-        string memory u = dco2.uri(1);
+    function test_uri_escapesOwnerStrings() public {
+        DCO2.Lot memory l = _lot("S\"2", 1);
+        l.projectName = "Quote \" back\\slash\nnewline";
+        vm.prank(admin);
+        uint256 id = dco2.mintLot(admin, l);
+        string memory u = dco2.uri(id);
         assertEq(_prefix(u, 29), "data:application/json;base64,");
         vm.expectRevert(DCO2.UnknownLot.selector);
-        dco2.uri(9);
+        dco2.uri(99);
         vm.expectRevert(DCO2.UnknownLot.selector);
-        dco2.lot(9);
+        dco2.lot(99);
     }
 
     function _prefix(string memory s, uint256 n) internal pure returns (string memory) {
@@ -82,6 +131,16 @@ contract DCO2Test is BaseTest {
         bytes memory out = new bytes(n);
         for (uint256 i; i < n; ++i) out[i] = b[i];
         return string(out);
+    }
+}
+
+contract JsonTest is BaseTest {
+    function test_escape() public pure {
+        assertEq(Json.escape("plain"), "plain");
+        assertEq(Json.escape("a\"b"), "a\\\"b");
+        assertEq(Json.escape("a\\b"), "a\\\\b");
+        assertEq(Json.escape("a\nb"), "a\\u000ab");
+        assertEq(Json.escape(string(abi.encodePacked("x", bytes1(0x1f)))), "x\\u001f");
     }
 }
 
@@ -129,6 +188,10 @@ contract CarbonReceiptTest is BaseTest {
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, agent));
         vm.prank(agent);
         receipt.setMinter(agent);
+        // the minter is set once and can never be re-pointed, even by the owner
+        vm.expectRevert(CarbonReceipt.MinterAlreadySet.selector);
+        vm.prank(admin);
+        receipt.setMinter(admin);
     }
 
     function test_mintToContractWithoutReceiverStillWorks() public {
@@ -263,12 +326,5 @@ contract ZeroAddressTest is BaseTest {
         vm.expectRevert(ERC8004ReputationAdapter.ZeroAddress.selector);
         adapter.setPool(address(0));
         vm.stopPrank();
-    }
-}
-
-contract DCO2LabelTest is BaseTest {
-    function test_labelledAsMock() public view {
-        assertEq(dco2.symbol(), "mockDCO2");
-        assertEq(dco2.name(), "DecarbonAI DCO2 (testnet mock, not backed by a real tonne)");
     }
 }

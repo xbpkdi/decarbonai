@@ -1,228 +1,354 @@
-import {
-  createWalletClient,
-  erc20Abi,
-  http,
-  maxUint256,
-  type Address,
-  type Hex,
-  type PublicClient,
-} from "viem";
-import { nonceManager, privateKeyToAccount } from "viem/accounts";
+import { createWalletClient, erc20Abi, http, type Address, type Hex, type PublicClient } from "viem";
+import { privateKeyToAccount } from "viem/accounts";
 import { FUJI, network, retirementPoolAbi, type Deployment } from "@decarbonai/chain";
-
-const identityAbi = [
-  {
-    type: "function",
-    name: "ownerOf",
-    stateMutability: "view",
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    outputs: [{ name: "", type: "address" }],
-  },
-  {
-    type: "function",
-    name: "getAgentWallet",
-    stateMutability: "view",
-    inputs: [{ name: "agentId", type: "uint256" }],
-    outputs: [{ name: "", type: "address" }],
-  },
-] as const;
+import { METHODOLOGY_HASH } from "@decarbonai/core";
+import type { AccrualStore, AccrualRow, NewAccrual } from "./store.ts";
 
 /**
- * Gas limit per accrue, sized from the retirements it will trigger. We don't use eth_estimateGas:
- * against `latest` it misses retirements caused by earlier accruals still pending. And the limit
- * must stay tight because Avalanche C-Chain bills at least half of the gas limit (a flat 3M limit
- * cost 1.5M gas per call on Fuji). Measured on Fuji: plain accrue ~125k, each retirement with
- * receipt mint + ERC-8004 feedback ~525k more.
+ * Gas limit per accrueBatch, sized from the items and the retirements they will trigger. We avoid
+ * eth_estimateGas (against `latest` it misses retirements caused by earlier pending txs), and keep
+ * the limit tight because Avalanche C-Chain bills at least half of the gas limit.
+ * Traced on Fuji: ~110k base, ~35k per accrual, ~220k extra for a payer's first accrual, ~320k per
+ * mock retirement. A backed retirement also writes ERC-8004 feedback and must leave
+ * MIN_FEEDBACK_GAS (400k) available, so it gets 800k.
  */
-export const ACCRUE_BASE_GAS = 200_000n;
-export const RETIREMENT_GAS = 700_000n;
-export const MAX_RETIREMENTS_PER_CALL = 5n;
+export const BATCH_BASE_GAS = 150_000n;
+export const ITEM_GAS = 40_000n;
+export const NEW_PAYER_GAS = 230_000n;
+export const RETIREMENT_GAS_MOCK = 400_000n;
+export const RETIREMENT_GAS_BACKED = 800_000n;
 
-export function accrueGasLimit(retirements: bigint): bigint {
-  const r = retirements > MAX_RETIREMENTS_PER_CALL ? MAX_RETIREMENTS_PER_CALL : retirements;
-  return ACCRUE_BASE_GAS + r * RETIREMENT_GAS;
+export function batchGasLimit(items: number, retirements: bigint, newPayers = 0, backed = false): bigint {
+  return (
+    BATCH_BASE_GAS +
+    BigInt(items) * ITEM_GAS +
+    BigInt(newPayers) * NEW_PAYER_GAS +
+    retirements * (backed ? RETIREMENT_GAS_BACKED : RETIREMENT_GAS_MOCK)
+  );
 }
 
-/** Local model of a payer's pending accrual: returns retirements this accrual triggers. */
-export function predictRetirements(pendingMg: bigint, mgCO2e: bigint, thresholdMg: bigint): { retirements: bigint; pendingAfter: bigint } {
-  let pending = pendingMg + mgCO2e;
-  let retirements = pending / thresholdMg;
-  if (retirements > MAX_RETIREMENTS_PER_CALL) retirements = MAX_RETIREMENTS_PER_CALL;
-  pending -= retirements * thresholdMg;
-  return { retirements, pendingAfter: pending };
+/** Retirements a batch triggers, given each payer's on-chain pendingMg, capped by the pool's budget. */
+export function predictRetirements(
+  items: { payer: Address; mgCO2e: bigint }[],
+  pendingByPayer: Map<string, bigint>,
+  thresholdMg: bigint,
+  maxPerTx: bigint,
+): bigint {
+  const pending = new Map(pendingByPayer);
+  let total = 0n;
+  for (const it of items) {
+    const key = it.payer.toLowerCase();
+    let p = (pending.get(key) ?? 0n) + it.mgCO2e;
+    while (p >= thresholdMg && total < maxPerTx) {
+      p -= thresholdMg;
+      total += 1n;
+    }
+    pending.set(key, p);
+  }
+  return total;
 }
 
-export type AccrualRequest = {
-  paymentId: Hex; // paymentIdOf(chainId, asset, payer, eip3009Nonce)
-  settlementTx: Hex; // x402 settlement tx (may batch several payments)
-  payer: Address;
-  agentId: bigint; // claimed ERC-8004 id, 0n if none
-  mgCO2e: bigint;
-  surcharge: bigint;
-  methodologyHash: Hex;
-};
+/** Short, non-sensitive error code (never the raw error: viem messages embed the RPC URL). */
+export function errorCode(e: unknown): string {
+  if (e && typeof e === "object") {
+    const name = (e as { name?: string }).name;
+    const cause = (e as { cause?: { name?: string; data?: { errorName?: string } } }).cause;
+    if (cause?.data?.errorName) return `REVERT_${cause.data.errorName}`;
+    if (name) return name.replace(/Error$/, "").toUpperCase();
+  }
+  return "UNKNOWN";
+}
 
-export type AccrualRecord = AccrualRequest & {
-  status: "queued" | "sent" | "confirmed" | "failed";
-  linkedAgentId: bigint;
-  txHash?: Hex;
-  error?: string;
+export type AccrualRequest = NewAccrual;
+
+export type PublicAccrual = Pick<AccrualRow, "paymentId" | "settlementTx" | "status" | "txHash" | "attempts">;
+
+export type Health = { ok: boolean; reasons: string[]; checkedAt: number };
+
+export type MeterOptions = {
+  store: AccrualStore;
+  batchSize?: number; // default 25
+  flushMs?: number; // worker interval, default 2000
+  minMeterBalanceWei?: bigint; // fail closed below this (default 0.02 AVAX)
+  minFunderAllowance?: bigint; // fail closed below this (default 10 USDC)
+  maxBacklog?: number; // fail closed above this many unsettled rows (default 500)
+  rpcUrl?: string;
 };
 
 /**
- * Reports settled x402 calls to the RetirementPool from the merchant wallet (METER_ROLE).
- * Sends are serialized so nonces stay ordered during bursts; callers don't wait for mining.
+ * Settles queued x402 carbon surcharges into the RetirementPool from the meter wallet (METER_ROLE
+ * only). Surcharges are pulled by the pool from the merchant payTo wallet (pool.surchargeFunder).
  */
 export class CarbonMeter {
   readonly address: Address;
-  private readonly wallet;
-  private chain: Promise<unknown> = Promise.resolve();
-  private readonly records = new Map<Hex, AccrualRecord>();
-  private readonly agentCheck = new Map<string, boolean>();
-  private readonly pending = new Map<string, bigint>(); // payer -> predicted pendingMg
-  private threshold?: bigint;
+  readonly store: AccrualStore;
   private readonly client: PublicClient;
   private readonly d: Deployment;
+  private readonly wallet;
+  private readonly batchSize: number;
+  private readonly flushMs: number;
+  private readonly minMeterBalance: bigint;
+  private readonly minFunderAllowance: bigint;
+  private readonly maxBacklog: number;
+  private timer?: ReturnType<typeof setInterval>;
+  private busy: Promise<void> = Promise.resolve();
+  private params?: { at: number; threshold: bigint; maxPerTx: bigint; paused: boolean; activeMethods: Set<string> };
+  private healthCache?: Health;
 
-  constructor(client: PublicClient, privateKey: Hex, d: Deployment = FUJI, rpcUrl?: string) {
+  constructor(client: PublicClient, privateKey: Hex, d: Deployment = FUJI, opts: MeterOptions) {
+    const account = privateKeyToAccount(privateKey);
+    this.address = account.address;
     this.client = client;
     this.d = d;
-    const account = privateKeyToAccount(privateKey, { nonceManager });
-    this.address = account.address;
-    this.wallet = createWalletClient({ account, chain: network(d.chainId).chain, transport: http(rpcUrl) });
+    this.store = opts.store;
+    this.wallet = createWalletClient({ account, chain: network(d.chainId).chain, transport: http(opts.rpcUrl) });
+    this.batchSize = opts.batchSize ?? 25;
+    this.flushMs = opts.flushMs ?? 2000;
+    this.minMeterBalance = opts.minMeterBalanceWei ?? 20_000_000_000_000_000n;
+    this.minFunderAllowance = opts.minFunderAllowance ?? 10_000_000n;
+    this.maxBacklog = opts.maxBacklog ?? 500;
   }
 
-  /** One-time: let the pool pull surcharges from the merchant wallet. */
-  async ensureAllowance(): Promise<Hex | null> {
-    const current = await this.client.readContract({
-      address: this.d.paymentToken,
-      abi: erc20Abi,
-      functionName: "allowance",
-      args: [this.address, this.d.retirementPool],
-    });
-    if (current > 10n ** 30n) return null;
-    const hash = await this.wallet.writeContract({
-      address: this.d.paymentToken,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [this.d.retirementPool, maxUint256],
-    });
-    await this.client.waitForTransactionReceipt({ hash });
-    return hash;
+  /** Durably record a settled payment (sync). Safe to call twice for the same payment. */
+  enqueue(req: AccrualRequest): boolean {
+    return this.store.insert(req);
   }
 
-  /** Only link an ERC-8004 agent the payer actually controls (owner or registered agent wallet). */
-  async verifyAgent(agentId: bigint, payer: Address): Promise<boolean> {
-    if (agentId === 0n) return false;
-    const key = `${agentId}:${payer.toLowerCase()}`;
-    const cached = this.agentCheck.get(key);
-    if (cached !== undefined) return cached;
-    let ok = false;
-    try {
-      const [owner, wallet] = await Promise.all([
-        this.client.readContract({ address: network(this.d.chainId).erc8004Identity, abi: identityAbi, functionName: "ownerOf", args: [agentId] }),
-        this.client
-          .readContract({ address: network(this.d.chainId).erc8004Identity, abi: identityAbi, functionName: "getAgentWallet", args: [agentId] })
-          .catch(() => "0x0000000000000000000000000000000000000000" as Address),
-      ]);
-      ok = owner.toLowerCase() === payer.toLowerCase() || wallet.toLowerCase() === payer.toLowerCase();
-    } catch {
-      ok = false;
-    }
-    this.agentCheck.set(key, ok);
-    return ok;
+  get(id: Hex): PublicAccrual | undefined {
+    const r = this.store.get(id);
+    return r && { paymentId: r.paymentId, settlementTx: r.settlementTx, status: r.status, txHash: r.txHash, attempts: r.attempts };
   }
 
-  get(paymentId: Hex): AccrualRecord | undefined {
-    return this.records.get(paymentId.toLowerCase() as Hex);
+  start() {
+    if (this.timer) return;
+    this.timer = setInterval(() => void this.flush(), this.flushMs);
+    void this.flush();
   }
 
-  list(): AccrualRecord[] {
-    return [...this.records.values()];
+  stop() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = undefined;
   }
 
-  /** Queue an accrual. Resolves once the tx is broadcast (not mined). Duplicate ids are ignored. */
-  accrue(req: AccrualRequest): Promise<AccrualRecord> {
-    const id = req.paymentId.toLowerCase() as Hex;
-    const existing = this.records.get(id);
-    if (existing) return Promise.resolve(existing);
-    const record: AccrualRecord = { ...req, paymentId: id, status: "queued", linkedAgentId: 0n };
-    this.records.set(id, record);
-
+  /** One worker pass: recover stale in-flight txs, then settle the next due batch. Serialized. */
+  flush(): Promise<void> {
     const run = async () => {
       try {
-        record.linkedAgentId = (await this.verifyAgent(req.agentId, req.payer)) ? req.agentId : 0n;
-        const gas = await this.gasFor(req.payer, req.mgCO2e);
-        const send = (limit: bigint) =>
-          this.wallet.writeContract({
-            address: this.d.retirementPool,
-            abi: retirementPoolAbi,
-            functionName: "accrue",
-            args: [id, req.payer, record.linkedAgentId, req.mgCO2e, req.surcharge, req.methodologyHash],
-            gas: limit,
-          });
-        record.txHash = await send(gas);
-        record.status = "sent";
-        void this.client
-          .waitForTransactionReceipt({ hash: record.txHash })
-          .then(async (r) => {
-            if (r.status === "success") {
-              record.status = "confirmed";
-              return;
-            }
-            // Most likely out of gas because our pending model drifted: resync and retry once
-            // at the maximum limit (the revert left paymentId unseen, so this is safe).
-            this.pending.delete(req.payer.toLowerCase());
-            const retry = await send(accrueGasLimit(MAX_RETIREMENTS_PER_CALL));
-            record.txHash = retry;
-            const r2 = await this.client.waitForTransactionReceipt({ hash: retry });
-            record.status = r2.status === "success" ? "confirmed" : "failed";
-            if (r2.status !== "success") record.error = "reverted";
-          })
-          .catch((e: unknown) => {
-            record.status = "failed";
-            record.error = String(e);
-          });
-      } catch (e) {
-        record.status = "failed";
-        record.error = e instanceof Error ? e.message.split("\n")[0] : String(e);
+        await this.recoverSent();
+        await this.settleNext();
+      } catch {
+        // per-row errors are recorded in the store; a pass-level failure (RPC down) just waits for the next tick
       }
-      return record;
     };
-    const p = this.chain.then(run, run);
-    this.chain = p;
-    return p;
+    this.busy = this.busy.then(run, run);
+    return this.busy;
   }
 
-  private async gasFor(payer: Address, mgCO2e: bigint): Promise<bigint> {
-    const key = payer.toLowerCase();
-    this.threshold ??= await this.client.readContract({
-      address: this.d.retirementPool,
-      abi: retirementPoolAbi,
-      functionName: "thresholdMg",
-    });
-    let pending = this.pending.get(key);
-    if (pending === undefined) {
-      const a = await this.client.readContract({
+  /** Flush until nothing is pending or in flight (or timeout). Returns true if fully settled. */
+  async drain(timeoutMs = 120_000): Promise<boolean> {
+    const end = Date.now() + timeoutMs;
+    while (Date.now() < end) {
+      const c = this.store.counts();
+      if (c.pending.n === 0 && c.sent.n === 0) return true;
+      await this.flush();
+      if (this.store.counts().pending.n > 0) await new Promise((r) => setTimeout(r, 1000));
+    }
+    return false;
+  }
+
+  private async refreshParams(force = false) {
+    if (!force && this.params && Date.now() - this.params.at < 30_000) return this.params;
+    const pool = { address: this.d.retirementPool, abi: retirementPoolAbi } as const;
+    const [threshold, maxPerTx, paused, method] = await Promise.all([
+      this.client.readContract({ ...pool, functionName: "thresholdMg" }),
+      this.client.readContract({ ...pool, functionName: "maxRetirementsPerCall" }),
+      this.client.readContract({ ...pool, functionName: "paused" }),
+      this.client.readContract({ ...pool, functionName: "methodology", args: [METHODOLOGY_HASH] }),
+    ]);
+    this.params = {
+      at: Date.now(),
+      threshold,
+      maxPerTx: BigInt(maxPerTx),
+      paused,
+      activeMethods: new Set(method.active ? [METHODOLOGY_HASH.toLowerCase()] : []),
+    };
+    return this.params;
+  }
+
+  private async settleNext() {
+    let rows = this.store.due(this.batchSize);
+    if (rows.length === 0) return;
+    // a row that already reverted is retried alone, so one bad accrual can't block the others
+    if (rows[0].errorCode?.startsWith("REVERT")) rows = rows.slice(0, 1);
+    else rows = rows.filter((r) => !r.errorCode?.startsWith("REVERT"));
+    const ids = rows.map((r) => r.paymentId);
+
+    const p = await this.refreshParams(true);
+    if (p.paused) return this.store.markRetry(ids, "POOL_PAUSED");
+    const inactive = rows.filter((r) => !p.activeMethods.has(r.methodologyHash.toLowerCase()));
+    if (inactive.length) this.store.markRetry(inactive.map((r) => r.paymentId), "METHODOLOGY_INACTIVE");
+    rows = rows.filter((r) => p.activeMethods.has(r.methodologyHash.toLowerCase()));
+    if (rows.length === 0) return;
+
+    const payers = [...new Set(rows.map((r) => r.payer.toLowerCase()))] as Address[];
+    const accounts = await Promise.all(
+      payers.map((payer) =>
+        this.client.readContract({
+          address: this.d.retirementPool,
+          abi: retirementPoolAbi,
+          functionName: "account",
+          args: [payer],
+        }),
+      ),
+    );
+    const pending = new Map(payers.map((payer, i) => [payer, accounts[i].pendingMg]));
+    const newPayers = accounts.filter((a) => a.calls === 0n).length;
+    const retry = rows.some((r) => r.attempts > 0);
+    // retries get the full retirement budget and new-payer allowance, in case our model was wrong
+    const retirements = retry ? p.maxPerTx : predictRetirements(rows, pending, p.threshold, p.maxPerTx);
+    const gas = batchGasLimit(rows.length, retirements, retry ? rows.length : newPayers, this.d.dco2Backed);
+
+    const items = rows.map((r) => ({
+      paymentId: r.paymentId,
+      payer: r.payer,
+      agentId: r.agentId, // the pool links it only if the payer controls the ERC-8004 agent
+      mgCO2e: r.mgCO2e,
+      surcharge: r.surcharge,
+      methodologyHash: r.methodologyHash,
+    }));
+    const sentIds = rows.map((r) => r.paymentId);
+    let hash: Hex;
+    try {
+      hash = await this.wallet.writeContract({
         address: this.d.retirementPool,
         abi: retirementPoolAbi,
-        functionName: "account",
-        args: [payer],
+        functionName: "accrueBatch",
+        args: [items],
+        gas,
       });
-      pending = a.pendingMg;
+    } catch (e) {
+      return this.store.markRetry(sentIds, errorCode(e));
     }
-    const { retirements, pendingAfter } = predictRetirements(pending, mgCO2e, this.threshold);
-    this.pending.set(key, pendingAfter);
-    return accrueGasLimit(retirements);
+    this.store.markSent(sentIds, hash);
+    await this.settleReceipt(hash, sentIds);
   }
 
-  /** Wait until every queued accrual is mined (or failed). */
-  async drain(): Promise<AccrualRecord[]> {
-    await this.chain;
-    // receipts (and any out-of-gas retry) are tracked in the background; wait for them to settle
-    for (let i = 0; i < 240 && [...this.records.values()].some((r) => r.status === "sent"); i++) {
-      await new Promise((r) => setTimeout(r, 500));
+  private async settleReceipt(hash: Hex, ids: Hex[]) {
+    try {
+      const r = await this.client.waitForTransactionReceipt({ hash, timeout: 60_000 });
+      if (r.status === "success") this.store.markConfirmed(ids);
+      else this.store.markRetry(ids, "REVERTED");
+    } catch {
+      // still in flight or RPC hiccup: recoverSent() resolves it on a later pass
     }
-    return this.list();
+  }
+
+  /** Resolve rows stuck in 'sent' (crash, restart, receipt timeout) against the chain. */
+  private async recoverSent(minAgeMs = 90_000) {
+    const stale = this.store.byStatus("sent").filter((r) => Date.now() - r.updatedAt >= minAgeMs);
+    const byTx = new Map<Hex, AccrualRow[]>();
+    for (const r of stale) {
+      const k = (r.txHash ?? "0x") as Hex;
+      byTx.set(k, [...(byTx.get(k) ?? []), r]);
+    }
+    for (const [hash, rows] of byTx) {
+      const receipt = hash !== "0x" ? await this.client.getTransactionReceipt({ hash }).catch(() => null) : null;
+      if (receipt?.status === "success") {
+        this.store.markConfirmed(rows.map((r) => r.paymentId));
+        continue;
+      }
+      await this.resolveByChain(rows, receipt ? "REVERTED" : "DROPPED");
+    }
+  }
+
+  /** Confirm rows the pool already counted (paymentSeen); retry the rest. */
+  private async resolveByChain(rows: AccrualRow[], code: string) {
+    const seen = await Promise.all(
+      rows.map((r) =>
+        this.client.readContract({
+          address: this.d.retirementPool,
+          abi: retirementPoolAbi,
+          functionName: "paymentSeen",
+          args: [r.paymentId],
+        }),
+      ),
+    );
+    this.store.markConfirmed(rows.filter((_, i) => seen[i]).map((r) => r.paymentId));
+    const missing = rows.filter((_, i) => !seen[i]).map((r) => r.paymentId);
+    if (missing.length) this.store.markRetry(missing, code);
+  }
+
+  /** Recover all in-flight rows immediately (call once at startup). */
+  recover(): Promise<void> {
+    const run = () => this.recoverSent(0);
+    this.busy = this.busy.then(run, run);
+    return this.busy;
+  }
+
+  /**
+   * Reconciliation: every surcharge we took must be on-chain. Confirmed rows are checked against
+   * pool.paymentSeen (re-queued if missing); pending/sent rows already seen are marked confirmed.
+   */
+  async reconcile() {
+    for (const status of ["confirmed", "pending", "sent"] as const) {
+      const rows = this.store.byStatus(status);
+      for (let i = 0; i < rows.length; i += 50) {
+        const chunk = rows.slice(i, i + 50);
+        if (status === "confirmed") {
+          const seen = await Promise.all(
+            chunk.map((r) =>
+              this.client.readContract({
+                address: this.d.retirementPool,
+                abi: retirementPoolAbi,
+                functionName: "paymentSeen",
+                args: [r.paymentId],
+              }),
+            ),
+          );
+          const missing = chunk.filter((_, j) => !seen[j]).map((r) => r.paymentId);
+          if (missing.length) this.store.markRetry(missing, "RECONCILE_MISSING");
+        } else {
+          await this.resolveByChain(chunk, status === "sent" ? "DROPPED" : "PENDING");
+        }
+      }
+    }
+    return this.store.counts();
+  }
+
+  /**
+   * Fail-closed check for the API: do not quote a surcharge we cannot settle. Cached for 10 s.
+   */
+  async health(force = false): Promise<Health> {
+    if (!force && this.healthCache && Date.now() - this.healthCache.checkedAt < 10_000) return this.healthCache;
+    const reasons: string[] = [];
+    try {
+      const p = await this.refreshParams(true);
+      if (p.paused) reasons.push("pool paused");
+      if (!p.activeMethods.has(METHODOLOGY_HASH.toLowerCase())) reasons.push("methodology inactive");
+      const funder = await this.client.readContract({
+        address: this.d.retirementPool,
+        abi: retirementPoolAbi,
+        functionName: "surchargeFunder",
+        args: [this.address],
+      });
+      const payer = funder === "0x0000000000000000000000000000000000000000" ? this.address : funder;
+      const [balance, allowance] = await Promise.all([
+        this.client.getBalance({ address: this.address }),
+        this.client.readContract({
+          address: this.d.paymentToken,
+          abi: erc20Abi,
+          functionName: "allowance",
+          args: [payer, this.d.retirementPool],
+        }),
+      ]);
+      if (balance < this.minMeterBalance) reasons.push("meter low on gas");
+      if (allowance < this.minFunderAllowance) reasons.push("surcharge funder allowance too low");
+    } catch {
+      reasons.push("chain unreachable");
+    }
+    const c = this.store.counts();
+    if (c.pending.n + c.sent.n > this.maxBacklog) reasons.push("settlement backlog");
+    this.healthCache = { ok: reasons.length === 0, reasons, checkedAt: Date.now() };
+    return this.healthCache;
   }
 }

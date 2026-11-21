@@ -9,13 +9,16 @@ dist
 out
 coverage
 cache
-broadcast
 *.log
 apps/web/.next
 apps/web/.data
 .data
 packages/contracts/out
 packages/contracts/cache
-packages/contracts/broadcast
 .vercel
 deployments/anvil.json
+# Foundry broadcasts: keep only the latest Fuji deploy record, on purpose (review N2)
+packages/contracts/broadcast/**
+!packages/contracts/broadcast/Deploy.s.sol/
+!packages/contracts/broadcast/Deploy.s.sol/43113/
+!packages/contracts/broadcast/Deploy.s.sol/43113/run-latest.json

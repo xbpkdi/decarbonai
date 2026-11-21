@@ -4,7 +4,8 @@
 // agent pays for, and retires, its own emissions with no human in the loop.
 //
 // Env: DECARBONAI_NETWORK (fuji | avalanche), AGENT_PRIVATE_KEY (required), AGENT_ID (ERC-8004 id, optional), API_URL (default
-// http://localhost:4021), FUJI_RPC_URL, MAX_PAYMENT_UNITS (default 100000 = $0.10 per call).
+// http://localhost:4021; https required for non-local hosts), FUJI_RPC_URL, MAX_PAYMENT_UNITS (default
+// 100000 = $0.10 per call), MAX_SESSION_UNITS (default 1000000 = $1), MAX_SESSION_CALLS (default 200).
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { Hex } from "viem";
@@ -21,17 +22,36 @@ if (!key) {
   process.exit(1);
 }
 const apiUrl = process.env.API_URL ?? "http://localhost:4021";
+const api = new URL(apiUrl);
+// Over plain HTTP a man-in-the-middle could rewrite payTo in the 402; only allow it for localhost.
+if (api.protocol !== "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(api.hostname)) {
+  console.error(`API_URL must use https for non-local hosts (got ${api.origin})`);
+  process.exit(1);
+}
+// Session spend controls on top of the per-call cap: a prompt-injected agent cannot loop forever.
+const maxSessionUnits = BigInt(process.env.MAX_SESSION_UNITS ?? "1000000"); // $1.00
+const maxSessionCalls = Number(process.env.MAX_SESSION_CALLS ?? "200");
+let spentUnits = 0n;
+let paidCalls = 0;
 const agentId = process.env.AGENT_ID ? BigInt(process.env.AGENT_ID) : undefined;
 const d = loadDeployment();
 const net = network(d.chainId);
 const client = clientFor(d);
 const explorer = explorerFor(d.chainId);
+const maxPerCall = BigInt(process.env.MAX_PAYMENT_UNITS ?? "100000");
 const agent = createPayingFetch({
   deployment: d,
   privateKey: key,
   agentId,
-  maxAmountPerPayment: BigInt(process.env.MAX_PAYMENT_UNITS ?? "100000"),
+  maxAmountPerPayment: maxPerCall,
+  onPayment: (_carbon, amount) => {
+    spentUnits += BigInt(amount);
+    paidCalls += 1;
+  },
 });
+const creditNote = d.dco2Backed
+  ? "DCO2 is a custodial v0 credit, minted 1:1 against credits retired off-chain."
+  : "TESTNET: DCO2 is a mock credit, not backed by a real tonne; receipts prove the settlement path only.";
 
 const text = (v: unknown) => ({
   content: [
@@ -49,8 +69,9 @@ server.registerTool(
     description:
       "Call the paid inference API. Pays automatically over x402 on Avalanche from the agent wallet " +
       "(USDC on mainnet, test USDC on Fuji). The price includes a carbon surcharge for the call's estimated gCO2e, which is " +
-      "settled into the DecarbonAI RetirementPool; every 1 kg the pool retires credits and mints a " +
-      "soulbound receipt to this agent. Returns the completion, the carbon breakdown and Snowtrace links.",
+      "settled into the DecarbonAI RetirementPool; every 1 kg the pool retires DCO2 and mints a " +
+      "soulbound receipt to this agent. Returns the completion, the carbon breakdown and Snowtrace links. " +
+      `Session budget: ${maxSessionCalls} calls / ${Number(maxSessionUnits) / 1e6} USD. ${creditNote}`,
     inputSchema: {
       prompt: z.string().min(1).max(4000),
       model: z.enum(models).default("claude-sonnet"),
@@ -58,6 +79,12 @@ server.registerTool(
     },
   },
   async ({ prompt, model, maxOutputTokens }) => {
+    if (paidCalls >= maxSessionCalls || spentUnits + maxPerCall > maxSessionUnits) {
+      return {
+        isError: true,
+        ...text({ error: "session budget exhausted", paidCalls, spentUsd: Number(spentUnits) / 1e6 }),
+      };
+    }
     const url = new URL("/v1/infer", apiUrl);
     url.search = new URLSearchParams({ prompt, model, maxOutputTokens: String(maxOutputTokens) }).toString();
     const res = await agent.fetch(url);
@@ -112,7 +139,7 @@ server.registerTool(
         totalAccruedKg: mgToKg(pool.totalAccruedMg),
         totalRetiredKg: mgToKg(pool.totalRetiredMg),
         retirements: pool.totalRetirements,
-        note: "DCO2 credits are a mock, not backed by a real tonne.",
+        note: creditNote,
       },
     });
   },

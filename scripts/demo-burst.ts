@@ -6,32 +6,38 @@
 //   API_URL=http://localhost:4021 ... to use an already running paid-api instead of an in-process one.
 import { serve } from "@hono/node-server";
 import type { AddressInfo } from "node:net";
-import type { Hex } from "viem";
 import { explorerFor, getAgentBadge, getPoolState, listRetirements, mgToKg } from "@decarbonai/chain";
-import { clientFor, loadDeployment } from "@decarbonai/chain/node";
+import { clientFor } from "@decarbonai/chain/node";
+import { need, scriptEnv } from "./env.ts";
 import { createPayingFetch, settlementFrom } from "@decarbonai/x402-carbon/client";
 import { createApp } from "../apps/paid-api/src/app.ts";
 
-const d = loadDeployment();
-const mainnet = d.chainId === 43114;
+const env = scriptEnv();
+const { d } = env;
 const explorer = explorerFor(d.chainId);
 const client = clientFor(d);
 const calls = Number(process.argv[2] ?? 100);
 const concurrency = Number(process.argv[3] ?? 5);
 const model = process.env.DEMO_MODEL ?? "reasoning-heavy";
 const maxOutputTokens = Number(process.env.DEMO_MAX_OUTPUT_TOKENS ?? 1000);
-const agentKey = (mainnet ? process.env.MAINNET_AGENT_PRIVATE_KEY : process.env.AGENT_PRIVATE_KEY) as Hex;
-const agentId = (mainnet ? process.env.MAINNET_AGENT_ID : process.env.AGENT_ID) ? BigInt((mainnet ? process.env.MAINNET_AGENT_ID : process.env.AGENT_ID)!) : undefined;
-if (!agentKey) throw new Error("AGENT_PRIVATE_KEY (or MAINNET_AGENT_PRIVATE_KEY) missing (run scripts/setup-agent.ts)");
+const agentKey = need(env.agentKey, "agent key");
+const agentId = env.agentId;
 
 let apiUrl = process.env.API_URL;
 let meter: ReturnType<typeof createApp>["meter"] | undefined;
 let server: ReturnType<typeof serve> | undefined;
 if (!apiUrl) {
-  const meterKey = (process.env.METER_PRIVATE_KEY ?? (mainnet ? process.env.MAINNET_PRIVATE_KEY : process.env.FUJI_PRIVATE_KEY)) as Hex;
-  const created = createApp({ meterKey, deployment: d });
+  const created = createApp({
+    meterKey: need(env.meterKey, "meter key"),
+    payTo: need(env.payTo, "payTo"),
+    dbPath: process.env.ACCRUAL_DB ?? `.data/demo-${d.chainId}.sqlite`,
+    deployment: d,
+    rateLimitPerMinute: 100_000,
+  });
   meter = created.meter;
-  await meter.ensureAllowance();
+  await created.preflight();
+  await meter.recover();
+  meter.start();
   server = serve({ fetch: created.app.fetch, port: 0 });
   await new Promise((r) => server!.once("listening", r));
   apiUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
@@ -87,10 +93,10 @@ await Promise.all(
 console.log(`\n${done} paid, ${failed} failed in ${((Date.now() - t0) / 1000).toFixed(1)}s; waiting for pool accruals to land...`);
 
 if (meter) {
-  const records = await meter.drain();
-  const bad = records.filter((r) => r.status === "failed");
-  if (process.env.DEBUG) console.log(`  meter records: ${records.length}`, records.map((r) => r.status).join(","));
-  if (bad.length) console.log(`  ${bad.length} accruals failed: ${bad[0].error}`);
+  const settled = await meter.drain();
+  const c = meter.store.counts();
+  console.log(`  queue: ${c.confirmed.n} confirmed, ${c.pending.n} pending, ${c.sent.n} in flight${settled ? "" : " (timed out)"}`);
+  meter.stop();
 } else {
   const target = before.badge.calls + BigInt(done);
   for (let i = 0; i < 60 && (await getAgentBadge(client, agent.address, d)).calls < target; i++) await new Promise((r) => setTimeout(r, 2000));

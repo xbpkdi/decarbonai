@@ -21,7 +21,17 @@ export type Deployment = {
   chainId: number;
   deployBlock: number;
   deployer: Address;
+  admin: Address;
+  adminTransferPending: boolean;
+  treasury: Address;
+  pauser: Address;
   meter: Address;
+  payTo: Address;
+  dco2Backed: boolean;
+  dco2Name: string;
+  erc8004IdentityRegistry: Address;
+  minPricePerTonne: number;
+  maxMgPerDay: number;
   paymentToken: Address;
   dco2: Address;
   carbonReceipt: Address;
@@ -62,6 +72,8 @@ export type PoolState = {
   availableSupplyMg: bigint;
   surchargeBalance: bigint;
   paused: boolean;
+  dailyCapRemainingMg: bigint;
+  maxRetirementsPerCall: number;
 };
 
 export async function getPoolState(client: PublicClient, d: Deployment = FUJI): Promise<PoolState> {
@@ -77,6 +89,8 @@ export async function getPoolState(client: PublicClient, d: Deployment = FUJI): 
     availableSupplyMg,
     paused,
     surchargeBalance,
+    dailyCapRemainingMg,
+    maxRetirementsPerCall,
   ] = await Promise.all([
     client.readContract({ ...pool, functionName: "thresholdMg" }),
     client.readContract({ ...pool, functionName: "pricePerTonne" }),
@@ -101,6 +115,8 @@ export async function getPoolState(client: PublicClient, d: Deployment = FUJI): 
       functionName: "balanceOf",
       args: [d.retirementPool],
     }),
+    client.readContract({ ...pool, functionName: "dailyCapRemaining" }),
+    client.readContract({ ...pool, functionName: "maxRetirementsPerCall" }),
   ]);
   return {
     thresholdMg,
@@ -113,6 +129,8 @@ export async function getPoolState(client: PublicClient, d: Deployment = FUJI): 
     availableSupplyMg,
     surchargeBalance,
     paused,
+    dailyCapRemainingMg,
+    maxRetirementsPerCall: Number(maxRetirementsPerCall),
   };
 }
 
@@ -122,6 +140,7 @@ export type AccountState = {
   totalMg: bigint;
   retiredMg: bigint;
   surchargePaid: bigint;
+  pendingSurcharge: bigint;
   calls: bigint;
   pendingCalls: bigint;
   receipts: bigint;
@@ -176,10 +195,11 @@ export type Receipt = {
   agentId: bigint;
   lotId: bigint;
   mgCO2e: bigint;
-  surchargePaid: bigint;
+  surcharge: bigint; // surcharge accrued since the previous retirement (0 on follow-on receipts)
   accrualCount: number;
   retiredAt: number;
   methodologyHash: Hex;
+  backed: boolean; // false = the burned DCO2 lot was a mock
   tokenURI: string;
 };
 

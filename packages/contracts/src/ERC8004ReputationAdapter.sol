@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable2Step} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IERC8004Reputation, ICarbonReputation} from "./interfaces/IERC8004Reputation.sol";
 
@@ -11,7 +12,7 @@ import {IERC8004Reputation, ICarbonReputation} from "./interfaces/IERC8004Reputa
 ///         feedback from the agent's own owner/operators, so the adapter must not own any agent.
 /// @dev value = kilograms CO2e retired with 3 decimals (i.e. grams), tag1 = "carbon-settled",
 ///      tag2 = "dco2-retired", feedbackURI = "<receiptPrefix><receiptId>".
-contract ERC8004ReputationAdapter is ICarbonReputation, Ownable {
+contract ERC8004ReputationAdapter is ICarbonReputation, Ownable2Step {
     using Strings for uint256;
 
     string public constant TAG1 = "carbon-settled";
