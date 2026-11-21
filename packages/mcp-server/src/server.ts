@@ -3,14 +3,15 @@
 // Every paid call carries a carbon surcharge that settles into the DecarbonAI RetirementPool, so the
 // agent pays for, and retires, its own emissions with no human in the loop.
 //
-// Env: AGENT_PRIVATE_KEY (required), AGENT_ID (ERC-8004 id, optional), API_URL (default
+// Env: DECARBONAI_NETWORK (fuji | avalanche), AGENT_PRIVATE_KEY (required), AGENT_ID (ERC-8004 id, optional), API_URL (default
 // http://localhost:4021), FUJI_RPC_URL, MAX_PAYMENT_UNITS (default 100000 = $0.10 per call).
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { Hex } from "viem";
 import { z } from "zod";
 import { MODEL_IDS, METHODOLOGY_VERSION, estimateCallMgCO2e, type ModelId } from "@decarbonai/core";
-import { FUJI, explorer, fujiClient, getAgentBadge, getPoolState, listRetirements, mgToKg } from "@decarbonai/chain";
+import { explorerFor, getAgentBadge, getPoolState, listRetirements, mgToKg, network } from "@decarbonai/chain";
+import { clientFor, loadDeployment } from "@decarbonai/chain/node";
 import { createPayingFetch, settlementFrom } from "@decarbonai/x402-carbon/client";
 import { quoteSurcharge } from "@decarbonai/x402-carbon";
 
@@ -21,8 +22,12 @@ if (!key) {
 }
 const apiUrl = process.env.API_URL ?? "http://localhost:4021";
 const agentId = process.env.AGENT_ID ? BigInt(process.env.AGENT_ID) : undefined;
-const client = fujiClient();
+const d = loadDeployment();
+const net = network(d.chainId);
+const client = clientFor(d);
+const explorer = explorerFor(d.chainId);
 const agent = createPayingFetch({
+  deployment: d,
   privateKey: key,
   agentId,
   maxAmountPerPayment: BigInt(process.env.MAX_PAYMENT_UNITS ?? "100000"),
@@ -42,8 +47,8 @@ server.registerTool(
   {
     title: "Paid inference (x402 on Avalanche, carbon-settled)",
     description:
-      "Call the paid inference API. Pays automatically over x402 on Avalanche Fuji from the agent wallet " +
-      "(test USDC). The price includes a carbon surcharge for the call's estimated gCO2e, which is " +
+      "Call the paid inference API. Pays automatically over x402 on Avalanche from the agent wallet " +
+      "(USDC on mainnet, test USDC on Fuji). The price includes a carbon surcharge for the call's estimated gCO2e, which is " +
       "settled into the DecarbonAI RetirementPool; every 1 kg the pool retires credits and mints a " +
       "soulbound receipt to this agent. Returns the completion, the carbon breakdown and Snowtrace links.",
     inputSchema: {
@@ -66,7 +71,7 @@ server.registerTool(
       payment: {
         payer: agent.address,
         settlementTx: s?.transaction ? explorer.tx(s.transaction) : null,
-        network: "avalanche-fuji (eip155:43113)",
+        network: `${net.name} (${net.caip2})`,
       },
     });
   },
@@ -77,15 +82,15 @@ server.registerTool(
   {
     title: "Agent carbon status",
     description:
-      "Read this agent's carbon account from the RetirementPool on Avalanche Fuji: calls, gCO2e accrued, " +
+      "Read this agent's carbon account from the RetirementPool on Avalanche: calls, gCO2e accrued, " +
       "kg retired, progress to the next retirement, soulbound receipts and the ERC-8004 carbon-settled reputation.",
     inputSchema: {},
   },
   async () => {
     const [badge, pool, retirements] = await Promise.all([
-      getAgentBadge(client, agent.address),
-      getPoolState(client),
-      listRetirements(client, { payer: agent.address }).catch(() => []),
+      getAgentBadge(client, agent.address, d),
+      getPoolState(client, d),
+      listRetirements(client, { payer: agent.address }, d).catch(() => []),
     ]);
     return text({
       agent: agent.address,
@@ -103,11 +108,11 @@ server.registerTool(
         tx: explorer.tx(r.txHash),
       })),
       pool: {
-        address: explorer.address(FUJI.retirementPool),
+        address: explorer.address(d.retirementPool),
         totalAccruedKg: mgToKg(pool.totalAccruedMg),
         totalRetiredKg: mgToKg(pool.totalRetiredMg),
         retirements: pool.totalRetirements,
-        note: "DCO2 credits are a testnet mock, not backed by a real tonne.",
+        note: "DCO2 credits are a mock, not backed by a real tonne.",
       },
     });
   },
@@ -126,11 +131,11 @@ server.registerTool(
   },
   async ({ model, inputTokens, outputTokens }) => {
     const mg = BigInt(estimateCallMgCO2e(model, inputTokens, outputTokens));
-    const surcharge = quoteSurcharge(mg, BigInt(FUJI.pricePerTonne));
+    const surcharge = quoteSurcharge(mg, BigInt(d.pricePerTonne));
     return text({
       gCO2e: Number(mg) / 1000,
       surchargeUsd: Number(surcharge) / 1e6,
-      pricePerTonneUsd: FUJI.pricePerTonne / 1e6,
+      pricePerTonneUsd: d.pricePerTonne / 1e6,
       methodology: METHODOLOGY_VERSION,
     });
   },

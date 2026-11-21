@@ -7,25 +7,29 @@
 import { serve } from "@hono/node-server";
 import type { AddressInfo } from "node:net";
 import type { Hex } from "viem";
-import { FUJI, explorer, fujiClient, getAgentBadge, getPoolState, listRetirements, mgToKg } from "@decarbonai/chain";
+import { explorerFor, getAgentBadge, getPoolState, listRetirements, mgToKg } from "@decarbonai/chain";
+import { clientFor, loadDeployment } from "@decarbonai/chain/node";
 import { createPayingFetch, settlementFrom } from "@decarbonai/x402-carbon/client";
 import { createApp } from "../apps/paid-api/src/app.ts";
 
+const d = loadDeployment();
+const mainnet = d.chainId === 43114;
+const explorer = explorerFor(d.chainId);
+const client = clientFor(d);
 const calls = Number(process.argv[2] ?? 100);
 const concurrency = Number(process.argv[3] ?? 5);
 const model = process.env.DEMO_MODEL ?? "reasoning-heavy";
 const maxOutputTokens = Number(process.env.DEMO_MAX_OUTPUT_TOKENS ?? 1000);
-const agentKey = process.env.AGENT_PRIVATE_KEY as Hex;
-const agentId = process.env.AGENT_ID ? BigInt(process.env.AGENT_ID) : undefined;
-if (!agentKey) throw new Error("AGENT_PRIVATE_KEY missing (run scripts/setup-agent.ts)");
+const agentKey = (mainnet ? process.env.MAINNET_AGENT_PRIVATE_KEY : process.env.AGENT_PRIVATE_KEY) as Hex;
+const agentId = (mainnet ? process.env.MAINNET_AGENT_ID : process.env.AGENT_ID) ? BigInt((mainnet ? process.env.MAINNET_AGENT_ID : process.env.AGENT_ID)!) : undefined;
+if (!agentKey) throw new Error("AGENT_PRIVATE_KEY (or MAINNET_AGENT_PRIVATE_KEY) missing (run scripts/setup-agent.ts)");
 
-const client = fujiClient();
 let apiUrl = process.env.API_URL;
 let meter: ReturnType<typeof createApp>["meter"] | undefined;
 let server: ReturnType<typeof serve> | undefined;
 if (!apiUrl) {
-  const meterKey = (process.env.METER_PRIVATE_KEY ?? process.env.FUJI_PRIVATE_KEY) as Hex;
-  const created = createApp({ meterKey, rpcUrl: process.env.FUJI_RPC_URL });
+  const meterKey = (process.env.METER_PRIVATE_KEY ?? (mainnet ? process.env.MAINNET_PRIVATE_KEY : process.env.FUJI_PRIVATE_KEY)) as Hex;
+  const created = createApp({ meterKey, deployment: d });
   meter = created.meter;
   await meter.ensureAllowance();
   server = serve({ fetch: created.app.fetch, port: 0 });
@@ -33,11 +37,11 @@ if (!apiUrl) {
   apiUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
 }
 
-const agent = createPayingFetch({ privateKey: agentKey, agentId });
+const agent = createPayingFetch({ privateKey: agentKey, agentId, deployment: d });
 const bar = (p: number) => `[${"#".repeat(Math.round(Math.min(p, 1) * 30)).padEnd(30, ".")}]`;
 
 async function show(label: string) {
-  const [pool, badge] = await Promise.all([getPoolState(client), getAgentBadge(client, agent.address)]);
+  const [pool, badge] = await Promise.all([getPoolState(client, d), getAgentBadge(client, agent.address, d)]);
   console.log(
     `${label}  pool: ${mgToKg(pool.totalAccruedMg).toFixed(3)} kg accrued, ${mgToKg(pool.totalRetiredMg).toFixed(0)} kg retired, ` +
       `${pool.totalRetirements} receipts | agent #${badge.agentId}: ${badge.calls} calls, ${mgToKg(badge.retiredMg)} kg retired, ` +
@@ -48,7 +52,7 @@ async function show(label: string) {
 }
 
 console.log(`DecarbonAI x402 burst: ${calls} calls of ${model} (${maxOutputTokens} out tokens) via ${apiUrl}`);
-console.log(`pool ${explorer.address(FUJI.retirementPool)}\nagent ${agent.address}${agentId ? ` (ERC-8004 #${agentId})` : ""}\n`);
+console.log(`pool ${explorer.address(d.retirementPool)}\nagent ${agent.address}${agentId ? ` (ERC-8004 #${agentId})` : ""}\n`);
 const before = await show("before");
 const startReceipts = before.badge.receipts;
 
@@ -89,7 +93,7 @@ if (meter) {
   if (bad.length) console.log(`  ${bad.length} accruals failed: ${bad[0].error}`);
 } else {
   const target = before.badge.calls + BigInt(done);
-  for (let i = 0; i < 60 && (await getAgentBadge(client, agent.address)).calls < target; i++) await new Promise((r) => setTimeout(r, 2000));
+  for (let i = 0; i < 60 && (await getAgentBadge(client, agent.address, d)).calls < target; i++) await new Promise((r) => setTimeout(r, 2000));
 }
 
 let after = await show("after ");
@@ -107,7 +111,7 @@ const newCount = Number(after.badge.receipts - startReceipts);
 let fresh: Awaited<ReturnType<typeof listRetirements>> = [];
 for (let i = 0; i < 15 && newCount > 0; i++) {
   // Routescan indexes a few seconds behind the chain
-  fresh = (await listRetirements(client, { payer: agent.address })).slice(-newCount);
+  fresh = (await listRetirements(client, { payer: agent.address }, d)).slice(-newCount);
   if (fresh.length >= newCount) break;
   await new Promise((r) => setTimeout(r, 2000));
 }

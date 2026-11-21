@@ -11,9 +11,11 @@ import { avalancheFuji } from "viem/chains";
 import fuji from "../../../deployments/fuji.json" with { type: "json" };
 import { carbonReceiptAbi, dCO2Abi, retirementPoolAbi } from "./abis.ts";
 import { reputationRegistryAbi } from "./erc8004.ts";
+import { network } from "./networks.ts";
 
 export * from "./abis.ts";
 export * from "./erc8004.ts";
+export * from "./networks.ts";
 
 export type Deployment = {
   chainId: number;
@@ -206,7 +208,6 @@ export async function getLot(client: PublicClient, lotId: bigint, d: Deployment 
  * logs come from the Routescan (Snowtrace) etherscan-compatible API, which indexes Fuji with a few
  * seconds of lag. Pass { source: "rpc" } to read straight from a node in 100-block chunks.
  */
-export const ROUTESCAN_FUJI_API = "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api";
 
 export type LogFilter = { payer?: Address; fromBlock?: bigint; source?: "routescan" | "rpc" };
 
@@ -230,7 +231,7 @@ async function rpcLogs(client: PublicClient, address: Address, topics: (Hex | nu
   return out;
 }
 
-async function routescanLogs(address: Address, topics: (Hex | null)[], fromBlock: bigint): Promise<RawLog[]> {
+async function routescanLogs(api: string, address: Address, topics: (Hex | null)[], fromBlock: bigint): Promise<RawLog[]> {
   const out: RawLog[] = [];
   const params = new URLSearchParams({ module: "logs", action: "getLogs", address, fromBlock: fromBlock.toString(), toBlock: "latest", offset: "1000" });
   topics.forEach((t, i) => {
@@ -240,7 +241,7 @@ async function routescanLogs(address: Address, topics: (Hex | null)[], fromBlock
   });
   for (let page = 1; page < 100; page++) {
     params.set("page", String(page));
-    const res = await fetch(`${ROUTESCAN_FUJI_API}?${params}`);
+    const res = await fetch(`${api}?${params}`);
     const json = (await res.json()) as { status: string; message: string; result: unknown };
     if (json.status !== "1") {
       if (json.message?.toLowerCase().includes("no records")) break;
@@ -265,7 +266,7 @@ async function poolEvents<N extends "CarbonAccrued" | "Retired">(client: PublicC
   const raw =
     f.source === "rpc"
       ? await rpcLogs(client, d.retirementPool, topics, fromBlock)
-      : await routescanLogs(d.retirementPool, topics, fromBlock);
+      : await routescanLogs(network(d.chainId).routescanApi, d.retirementPool, topics, fromBlock);
   raw.sort((a, b) => (a.blockNumber === b.blockNumber ? a.logIndex - b.logIndex : a.blockNumber < b.blockNumber ? -1 : 1));
   return raw.map((l) => ({
     args: decodeEventLog({ abi: retirementPoolAbi, eventName, topics: l.topics as [Hex, ...Hex[]], data: l.data }).args,

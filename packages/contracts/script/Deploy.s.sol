@@ -13,16 +13,19 @@ import {IERC8004Reputation} from "../src/interfaces/IERC8004Reputation.sol";
 /// @notice Deploys and wires the DecarbonAI v2 stack, mints lot #1 into the pool and writes
 ///         ../../deployments/<chain>.json.
 /// Env:
-///   FUJI_PRIVATE_KEY      deployer = admin, treasury, pauser, DCO2/receipt owner
+///   DEPLOYER_PRIVATE_KEY  deployer = admin, treasury, pauser, DCO2/receipt owner (falls back to FUJI_PRIVATE_KEY)
 ///   METHODOLOGY_HASH      keccak256 of the packages/core factor set (see npm run contracts:deploy)
 ///   METHODOLOGY_VERSION   human label of that factor set
-///   PAYMENT_TOKEN         optional; empty => deploy TestUSDC (EIP-3009)
+///   PAYMENT_TOKEN         Fuji: optional, empty => deploy TestUSDC (EIP-3009). Mainnet: required (USDC)
 ///   METER_ADDRESS         optional; defaults to deployer
-///   REPUTATION_REGISTRY   optional; defaults to ERC-8004 ReputationRegistry on Fuji
+///   REPUTATION_REGISTRY   optional; defaults to the ERC-8004 ReputationRegistry of the chain
 ///   THRESHOLD_MG          optional; default 1e6 (1 kg)
 ///   PRICE_PER_TONNE       optional; default 25e6 ($25 / t in 6-decimal units)
 contract Deploy is Script {
     address internal constant FUJI_8004_REPUTATION = 0x8004B663056A597Dffe9eCcC1965A193B7388713;
+    address internal constant MAINNET_8004_REPUTATION = 0x8004BAa17C55a88189AE136b182e5fdA19dE9b63;
+
+    error PaymentTokenRequiredOnMainnet();
 
     struct Params {
         uint256 pk;
@@ -49,14 +52,17 @@ contract Deploy is Script {
 
     function run() external {
         Params memory p;
-        p.pk = vm.envUint("FUJI_PRIVATE_KEY");
+        p.pk = vm.envOr("DEPLOYER_PRIVATE_KEY", uint256(0));
+        if (p.pk == 0) p.pk = vm.envUint("FUJI_PRIVATE_KEY");
         p.deployer = vm.addr(p.pk);
         p.methodologyHash = vm.envBytes32("METHODOLOGY_HASH");
         p.methodologyVersion = vm.envString("METHODOLOGY_VERSION");
         p.paymentToken = vm.envOr("PAYMENT_TOKEN", address(0));
         p.deployTestUSDC = p.paymentToken == address(0);
+        if (p.deployTestUSDC && block.chainid == 43114) revert PaymentTokenRequiredOnMainnet();
         p.meter = vm.envOr("METER_ADDRESS", p.deployer);
-        p.registry = vm.envOr("REPUTATION_REGISTRY", FUJI_8004_REPUTATION);
+        p.registry =
+            vm.envOr("REPUTATION_REGISTRY", block.chainid == 43114 ? MAINNET_8004_REPUTATION : FUJI_8004_REPUTATION);
         p.threshold = vm.envOr("THRESHOLD_MG", uint256(1e6));
         p.price = vm.envOr("PRICE_PER_TONNE", uint256(25e6));
 
@@ -93,7 +99,7 @@ contract Deploy is Script {
         d.pool.grantRole(d.pool.METER_ROLE(), p.meter);
         d.pool.setMethodology(p.methodologyHash, p.methodologyVersion, true);
 
-        // Lot #1: TESTNET MOCK inventory, not backed by a real tonne (see README "Credit supply").
+        // Lot #1: MOCK inventory, not backed by a real tonne, on every chain (see README "Credit supply").
         d.lotId = d.dco2
             .mintLot(
                 address(d.pool),
@@ -136,6 +142,7 @@ contract Deploy is Script {
 
     function _chainName() internal view returns (string memory) {
         if (block.chainid == 43113) return "fuji";
+        if (block.chainid == 43114) return "avalanche";
         if (block.chainid == 31337) return "anvil";
         return vm.toString(block.chainid);
     }

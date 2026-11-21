@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Address, Hex } from "viem";
-import { FUJI, explorer, fujiClient } from "@decarbonai/chain";
+import { explorerFor, network, type Deployment } from "@decarbonai/chain";
+import { clientFor, loadDeployment, rpcUrlFor } from "@decarbonai/chain/node";
 import { CarbonMeter, carbonPayment, type CarbonVariables } from "@decarbonai/x402-carbon";
 
 export type AppConfig = {
@@ -8,6 +9,7 @@ export type AppConfig = {
   baseAmount?: bigint; // default 10_000 = $0.01
   facilitatorUrl?: string;
   rpcUrl?: string;
+  deployment?: Deployment; // default: DECARBONAI_NETWORK (fuji)
 };
 
 const json = (v: unknown) => JSON.parse(JSON.stringify(v, (_k, x) => (typeof x === "bigint" ? x.toString() : x)));
@@ -20,22 +22,26 @@ function simulatedCompletion(model: string, prompt: string, maxOutputTokens: num
 }
 
 export function createApp(cfg: AppConfig) {
-  const client = fujiClient(cfg.rpcUrl);
-  const meter = new CarbonMeter(client, cfg.meterKey, FUJI, cfg.rpcUrl);
+  const d = cfg.deployment ?? loadDeployment();
+  const rpcUrl = cfg.rpcUrl ?? rpcUrlFor(d);
+  const client = clientFor(d, rpcUrl);
+  const meter = new CarbonMeter(client, cfg.meterKey, d, rpcUrl);
+  const explorer = explorerFor(d.chainId);
   const app = new Hono<{ Variables: CarbonVariables }>();
 
   app.get("/health", (c) =>
-    c.json({ ok: true, network: "avalanche-fuji", pool: FUJI.retirementPool, payTo: meter.address }),
+    c.json({ ok: true, network: network(d.chainId).caip2, pool: d.retirementPool, payTo: meter.address }),
   );
 
   app.use(
     "/v1/infer",
     carbonPayment({
       route: "GET /v1/infer",
-      description: "Paid LLM inference with a carbon surcharge settled into the DecarbonAI pool on Avalanche Fuji",
+      description: "Paid LLM inference with a carbon surcharge settled into the DecarbonAI pool on Avalanche",
       payTo: meter.address,
       baseAmount: cfg.baseAmount ?? 10_000n,
       meter,
+      deployment: d,
       facilitatorUrl: cfg.facilitatorUrl,
     }),
   );
@@ -53,7 +59,7 @@ export function createApp(cfg: AppConfig) {
           baseUnits: q.baseAmount,
           totalUnits: q.total,
           methodology: { version: q.methodologyVersion, hash: q.methodologyHash },
-          pool: explorer.address(FUJI.retirementPool),
+          pool: explorer.address(d.retirementPool),
         },
       }),
     );

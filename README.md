@@ -65,6 +65,10 @@ Superseded: a first deployment (pool `0x4c6cccf978689B463749E8b0d97E69cC47fA7252
 
 Circle's Fuji USDC (`0x5425…Bc65`) is only available from a captcha faucet, so the live path uses **TestUSDC**: a faucet ERC-20 with EIP-3009 `transferWithAuthorization`/`receiveWithAuthorization`. PayAI settles it on Fuji exactly like USDC (checked live). To switch to real USDC, deploy with `PAYMENT_TOKEN=0x5425890298aed601595a70AB815c96711a31Bc65` and pass `asset: { name: "USD Coin", version: "2" }` to the middleware.
 
+## Mainnet
+
+Prepared but **not deployed**: config, cost estimate and runbook are in [`docs/MAINNET.md`](docs/MAINNET.md). Every TS entry point selects the network with `DECARBONAI_NETWORK=fuji|avalanche`.
+
 ## Repo layout
 
 | Path | What |
@@ -100,7 +104,7 @@ Contracts:
 
 ```bash
 cd packages/contracts
-forge test                               # 56 tests incl. fuzz, 100% line/branch coverage of src
+forge test                               # 57 tests incl. fuzz, 100% line/branch coverage of src
 forge coverage --report summary --no-match-coverage '(test|script)/'
 # deploy (writes deployments/fuji.json); METHODOLOGY_HASH from packages/core
 METHODOLOGY_HASH=0x50316f9e7beab6cf0a7448d957b7df5f08b46b2625cb05a270208de18de3e677 METHODOLOGY_VERSION=v0-2026-08-anchored \

@@ -2,8 +2,8 @@ import type { Hex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { FUJI, type Deployment } from "@decarbonai/chain";
-import { AGENT_ID_HEADER, FUJI_NETWORK, type CarbonExtra } from "./middleware.ts";
+import { FUJI, network, type Deployment } from "@decarbonai/chain";
+import { AGENT_ID_HEADER, type CarbonExtra } from "./middleware.ts";
 
 export type PayingFetchOptions = {
   privateKey: Hex;
@@ -14,15 +14,16 @@ export type PayingFetchOptions = {
   onPayment?: (carbon: CarbonExtra | undefined, amount: string) => void;
 };
 
-/** fetch() that pays x402 challenges on Fuji with the agent's key, only for the configured token. */
+/** fetch() that pays x402 challenges on the deployment's chain (Fuji by default) with the agent's key, only for the configured token. */
 export function createPayingFetch(opts: PayingFetchOptions) {
   const d = opts.deployment ?? FUJI;
   const account = privateKeyToAccount(opts.privateKey);
+  const caip2 = network(d.chainId).caip2;
   const client = x402Client.fromConfig({
-    schemes: [{ network: FUJI_NETWORK, client: new ExactEvmScheme(account) }],
+    schemes: [{ network: caip2, client: new ExactEvmScheme(account) }],
     spendControls: {
       allowedAssets: [
-        { network: FUJI_NETWORK, asset: d.paymentToken, maxAmountPerPayment: (opts.maxAmountPerPayment ?? 100_000n).toString() },
+        { network: caip2, asset: d.paymentToken, maxAmountPerPayment: (opts.maxAmountPerPayment ?? 100_000n).toString() },
       ],
     },
   });

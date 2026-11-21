@@ -18,3 +18,16 @@ contract DeployScriptTest is Test {
         assertTrue(vm.parseJsonAddress(json, ".paymentToken").code.length > 0);
     }
 }
+
+contract DeployMainnetGuardTest is Test {
+    function test_mainnetRequiresPaymentToken() public {
+        vm.chainId(43114);
+        vm.setEnv("DEPLOYER_PRIVATE_KEY", vm.toString(uint256(0xBEEF)));
+        vm.setEnv("METHODOLOGY_HASH", vm.toString(keccak256("m")));
+        vm.setEnv("METHODOLOGY_VERSION", "test");
+        vm.setEnv("PAYMENT_TOKEN", vm.toString(address(0)));
+        Deploy d = new Deploy();
+        vm.expectRevert(Deploy.PaymentTokenRequiredOnMainnet.selector);
+        d.run();
+    }
+}

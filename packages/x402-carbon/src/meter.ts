@@ -8,8 +8,7 @@ import {
   type PublicClient,
 } from "viem";
 import { nonceManager, privateKeyToAccount } from "viem/accounts";
-import { avalancheFuji } from "viem/chains";
-import { ERC8004_IDENTITY_FUJI, FUJI, retirementPoolAbi, type Deployment } from "@decarbonai/chain";
+import { FUJI, network, retirementPoolAbi, type Deployment } from "@decarbonai/chain";
 
 const identityAbi = [
   {
@@ -28,9 +27,30 @@ const identityAbi = [
   },
 ] as const;
 
-/** Fixed gas: estimation against `latest` can miss a retirement that happens once earlier
- *  pending accruals land, so we never rely on it. Covers maxRetirementsPerCall = 5. */
-const ACCRUE_GAS = 3_000_000n;
+/**
+ * Gas limit per accrue, sized from the retirements it will trigger. We don't use eth_estimateGas:
+ * against `latest` it misses retirements caused by earlier accruals still pending. And the limit
+ * must stay tight because Avalanche C-Chain bills at least half of the gas limit (a flat 3M limit
+ * cost 1.5M gas per call on Fuji). Measured on Fuji: plain accrue ~125k, each retirement with
+ * receipt mint + ERC-8004 feedback ~525k more.
+ */
+export const ACCRUE_BASE_GAS = 200_000n;
+export const RETIREMENT_GAS = 700_000n;
+export const MAX_RETIREMENTS_PER_CALL = 5n;
+
+export function accrueGasLimit(retirements: bigint): bigint {
+  const r = retirements > MAX_RETIREMENTS_PER_CALL ? MAX_RETIREMENTS_PER_CALL : retirements;
+  return ACCRUE_BASE_GAS + r * RETIREMENT_GAS;
+}
+
+/** Local model of a payer's pending accrual: returns retirements this accrual triggers. */
+export function predictRetirements(pendingMg: bigint, mgCO2e: bigint, thresholdMg: bigint): { retirements: bigint; pendingAfter: bigint } {
+  let pending = pendingMg + mgCO2e;
+  let retirements = pending / thresholdMg;
+  if (retirements > MAX_RETIREMENTS_PER_CALL) retirements = MAX_RETIREMENTS_PER_CALL;
+  pending -= retirements * thresholdMg;
+  return { retirements, pendingAfter: pending };
+}
 
 export type AccrualRequest = {
   paymentId: Hex; // paymentIdOf(chainId, asset, payer, eip3009Nonce)
@@ -59,6 +79,8 @@ export class CarbonMeter {
   private chain: Promise<unknown> = Promise.resolve();
   private readonly records = new Map<Hex, AccrualRecord>();
   private readonly agentCheck = new Map<string, boolean>();
+  private readonly pending = new Map<string, bigint>(); // payer -> predicted pendingMg
+  private threshold?: bigint;
   private readonly client: PublicClient;
   private readonly d: Deployment;
 
@@ -67,7 +89,7 @@ export class CarbonMeter {
     this.d = d;
     const account = privateKeyToAccount(privateKey, { nonceManager });
     this.address = account.address;
-    this.wallet = createWalletClient({ account, chain: avalancheFuji, transport: http(rpcUrl) });
+    this.wallet = createWalletClient({ account, chain: network(d.chainId).chain, transport: http(rpcUrl) });
   }
 
   /** One-time: let the pool pull surcharges from the merchant wallet. */
@@ -98,9 +120,9 @@ export class CarbonMeter {
     let ok = false;
     try {
       const [owner, wallet] = await Promise.all([
-        this.client.readContract({ address: ERC8004_IDENTITY_FUJI, abi: identityAbi, functionName: "ownerOf", args: [agentId] }),
+        this.client.readContract({ address: network(this.d.chainId).erc8004Identity, abi: identityAbi, functionName: "ownerOf", args: [agentId] }),
         this.client
-          .readContract({ address: ERC8004_IDENTITY_FUJI, abi: identityAbi, functionName: "getAgentWallet", args: [agentId] })
+          .readContract({ address: network(this.d.chainId).erc8004Identity, abi: identityAbi, functionName: "getAgentWallet", args: [agentId] })
           .catch(() => "0x0000000000000000000000000000000000000000" as Address),
       ]);
       ok = owner.toLowerCase() === payer.toLowerCase() || wallet.toLowerCase() === payer.toLowerCase();
@@ -130,21 +152,35 @@ export class CarbonMeter {
     const run = async () => {
       try {
         record.linkedAgentId = (await this.verifyAgent(req.agentId, req.payer)) ? req.agentId : 0n;
-        record.txHash = await this.wallet.writeContract({
-          address: this.d.retirementPool,
-          abi: retirementPoolAbi,
-          functionName: "accrue",
-          args: [id, req.payer, record.linkedAgentId, req.mgCO2e, req.surcharge, req.methodologyHash],
-          gas: ACCRUE_GAS,
-        });
+        const gas = await this.gasFor(req.payer, req.mgCO2e);
+        const send = (limit: bigint) =>
+          this.wallet.writeContract({
+            address: this.d.retirementPool,
+            abi: retirementPoolAbi,
+            functionName: "accrue",
+            args: [id, req.payer, record.linkedAgentId, req.mgCO2e, req.surcharge, req.methodologyHash],
+            gas: limit,
+          });
+        record.txHash = await send(gas);
         record.status = "sent";
         void this.client
           .waitForTransactionReceipt({ hash: record.txHash })
-          .then((r) => {
-            record.status = r.status === "success" ? "confirmed" : "failed";
-            if (r.status !== "success") record.error = "reverted";
+          .then(async (r) => {
+            if (r.status === "success") {
+              record.status = "confirmed";
+              return;
+            }
+            // Most likely out of gas because our pending model drifted: resync and retry once
+            // at the maximum limit (the revert left paymentId unseen, so this is safe).
+            this.pending.delete(req.payer.toLowerCase());
+            const retry = await send(accrueGasLimit(MAX_RETIREMENTS_PER_CALL));
+            record.txHash = retry;
+            const r2 = await this.client.waitForTransactionReceipt({ hash: retry });
+            record.status = r2.status === "success" ? "confirmed" : "failed";
+            if (r2.status !== "success") record.error = "reverted";
           })
           .catch((e: unknown) => {
+            record.status = "failed";
             record.error = String(e);
           });
       } catch (e) {
@@ -158,14 +194,34 @@ export class CarbonMeter {
     return p;
   }
 
+  private async gasFor(payer: Address, mgCO2e: bigint): Promise<bigint> {
+    const key = payer.toLowerCase();
+    this.threshold ??= await this.client.readContract({
+      address: this.d.retirementPool,
+      abi: retirementPoolAbi,
+      functionName: "thresholdMg",
+    });
+    let pending = this.pending.get(key);
+    if (pending === undefined) {
+      const a = await this.client.readContract({
+        address: this.d.retirementPool,
+        abi: retirementPoolAbi,
+        functionName: "account",
+        args: [payer],
+      });
+      pending = a.pendingMg;
+    }
+    const { retirements, pendingAfter } = predictRetirements(pending, mgCO2e, this.threshold);
+    this.pending.set(key, pendingAfter);
+    return accrueGasLimit(retirements);
+  }
+
   /** Wait until every queued accrual is mined (or failed). */
   async drain(): Promise<AccrualRecord[]> {
     await this.chain;
-    for (const r of this.records.values()) {
-      if (r.status === "sent" && r.txHash) {
-        const receipt = await this.client.waitForTransactionReceipt({ hash: r.txHash });
-        r.status = receipt.status === "success" ? "confirmed" : "failed";
-      }
+    // receipts (and any out-of-gas retry) are tracked in the background; wait for them to settle
+    for (let i = 0; i < 240 && [...this.records.values()].some((r) => r.status === "sent"); i++) {
+      await new Promise((r) => setTimeout(r, 500));
     }
     return this.list();
   }

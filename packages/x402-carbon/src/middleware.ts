@@ -4,11 +4,12 @@ import { encodeAbiParameters, keccak256, type Address, type Hex } from "viem";
 import { HTTPFacilitatorClient, x402ResourceServer, type HTTPRequestContext } from "@x402/core/server";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { paymentMiddleware } from "@x402/hono";
-import { FUJI, type Deployment } from "@decarbonai/chain";
+import { FUJI, network, tokenDomain, type Deployment } from "@decarbonai/chain";
 import { carbonQuote, usageFromQuery, type CarbonQuote, type Usage } from "./pricing.ts";
 import type { CarbonMeter } from "./meter.ts";
 
 export const FUJI_NETWORK = "eip155:43113" as const;
+export const AVALANCHE_NETWORK = "eip155:43114" as const;
 export const PAYAI_FACILITATOR = "https://facilitator.payai.network";
 export const AGENT_ID_HEADER = "x-agent-id";
 
@@ -66,7 +67,8 @@ function agentIdOf(get: (name: string) => string | undefined): bigint {
  */
 export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ Variables: CarbonVariables }> {
   const d = opts.deployment ?? FUJI;
-  const asset = opts.asset ?? { address: d.paymentToken, name: "DecarbonAI Test USDC", version: "2" };
+  const caip2 = network(d.chainId).caip2;
+  const asset = opts.asset ?? { address: d.paymentToken, ...tokenDomain(d.chainId, d.paymentToken) };
   const pricePerTonne = BigInt(d.pricePerTonne);
   const parseUsage = opts.usage ?? usageFromQuery;
 
@@ -74,7 +76,7 @@ export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ V
 
   const server = new x402ResourceServer(
     new HTTPFacilitatorClient({ url: opts.facilitatorUrl ?? PAYAI_FACILITATOR }),
-  ).register(FUJI_NETWORK, new ExactEvmScheme());
+  ).register(caip2, new ExactEvmScheme());
 
   server.onAfterSettle(async (ctx) => {
     const c = ctx.requirements.extra?.carbon as CarbonExtra | undefined;
@@ -125,7 +127,7 @@ export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ V
   const pay = paymentMiddleware(
     {
       [opts.route]: {
-        accepts: { scheme: "exact", network: FUJI_NETWORK, payTo: opts.payTo, price, maxTimeoutSeconds: 120 },
+        accepts: { scheme: "exact", network: caip2, payTo: opts.payTo, price, maxTimeoutSeconds: 120 },
         description: opts.description,
         mimeType: "application/json",
       },
