@@ -1,0 +1,13 @@
+{
+  "name": "@decarbonai/chain",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "ABIs, Fuji deployment and typed read/write helpers for the DecarbonAI v2 contracts.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "viem": "^2.33.2"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "carbonReceipt": "0x17009c640325acc731D7C5a40C749BC91a186748",
+  "chainId": 43113,
+  "dco2": "0xC2802F1d5c8e32C6DaC94136686c22D2426Accf2",
+  "deployBlock": 61402282,
+  "deployer": "0xc2bbC763Fb7Cd6d6EFb37cafc0A4C59c52D6c04b",
+  "erc8004ReputationRegistry": "0x8004B663056A597Dffe9eCcC1965A193B7388713",
+  "initialLotId": 1,
+  "meter": "0xc2bbC763Fb7Cd6d6EFb37cafc0A4C59c52D6c04b",
+  "methodologyHash": "0x50316f9e7beab6cf0a7448d957b7df5f08b46b2625cb05a270208de18de3e677",
+  "methodologyVersion": "v0-2026-08-anchored",
+  "paymentToken": "0xEe3aF37B5af84cDd20e7488F30Ea0b691bA20252",
+  "pricePerTonne": 25000000,
+  "reputationAdapter": "0x3f672742dB74baEAD1716E81C82132d3d3F64CE9",
+  "retirementPool": "0x78186bd742263b0dfDAAAB0149991ef85803Eef0",
+  "thresholdMg": 1000000
+}

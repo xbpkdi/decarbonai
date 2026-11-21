@@ -1,0 +1,13 @@
+{
+  "name": "@decarbonai/core",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./emissions": "./src/emissions.ts"
+  },
+  "dependencies": {
+    "viem": "^2.33.2"
+  }
+}

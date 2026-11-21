@@ -1,0 +1,19 @@
+{
+  "name": "@decarbonai/mcp-server",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server that lets Claude pay for an x402 API on Avalanche Fuji and settle its own carbon.",
+  "bin": { "decarbonai-mcp": "./src/server.ts" },
+  "scripts": {
+    "start": "node --env-file-if-exists=../../.env src/server.ts"
+  },
+  "dependencies": {
+    "@decarbonai/chain": "*",
+    "@decarbonai/core": "*",
+    "@decarbonai/x402-carbon": "*",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "viem": "^2.33.2",
+    "zod": "^4.1.12"
+  }
+}
