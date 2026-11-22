@@ -26,3 +26,4 @@ packages/contracts/broadcast/**
 # Playwright
 test-results/
 playwright-report/
+*.tsbuildinfo
