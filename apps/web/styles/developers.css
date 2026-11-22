@@ -3,6 +3,7 @@
   .install .dollar { font-family: var(--f-mono); color: var(--text-3); }
   .copy.ok { background: var(--mint) !important; color: var(--mint-ink) !important; border-color: var(--mint) !important; }
 
+  .two > *, .tools > * { min-width: 0; }
   .two { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 20px; align-items: stretch; }
   .tabs { display: flex; gap: 2px; padding: 6px; border-bottom: 1px solid var(--line); }
   .tab { height: 32px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; font-family: var(--f-mono); font-size: 13px; color: var(--text-3); }

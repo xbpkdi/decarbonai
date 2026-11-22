@@ -239,7 +239,7 @@ html { overflow-x: clip; }
 
 /* ---------- 2. carbon tape ---------- */
 .tape { display: none; }
-.fx-rich .tape { display: block; position: sticky; top: var(--nav-h); z-index: 45; height: var(--tape-h); overflow: hidden; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--ink) 88%, transparent); font-family: var(--f-mono); font-size: 12.5px; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
+.fx-rich .tape { display: block; position: sticky; top: var(--nav-h); z-index: 45; height: var(--tape-h); overflow: hidden; border-bottom: 1px solid var(--line); background: var(--ink); font-family: var(--f-mono); font-size: 12.5px; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
 .tape-track { display: flex; width: max-content; height: 100%; align-items: center; animation: tape 70s linear infinite; }
 .tape:hover .tape-track { animation-play-state: paused; }
 .tape-item { display: inline-flex; align-items: center; gap: 10px; padding: 0 22px; white-space: nowrap; color: var(--text-2); border-right: 1px solid var(--line); }
@@ -301,7 +301,9 @@ html { overflow-x: clip; }
 .fx-rich .btn { position: relative; overflow: hidden; }
 .fx-rich .btn:hover::after { transform: translateX(120%); transition: transform 0.7s var(--ease); }
 .fx-rich .page-head::before { opacity: 0; }
-.fx-rich .nav { background: color-mix(in srgb, var(--ink) 66%, transparent); }
+.fx-rich .nav { background: color-mix(in srgb, var(--ink) 94%, transparent); }
+/* Anchors and focus land below the sticky nav + tape. */
+html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
 
 /* ---------- 6. reveal on scroll ---------- */
 .fx-rich .rv { opacity: 0; transform: translateY(18px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); transition-delay: var(--d, 0ms); }

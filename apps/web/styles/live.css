@@ -1,5 +1,6 @@
 .stage { max-width: 1680px; margin: 0 auto; padding: min(28px, 2.6vh) var(--gutter) 24px; display: grid; gap: min(20px, 1.9vh); grid-template-columns: repeat(12, minmax(0, 1fr)); }
-  @media (min-width: 1024px) { .stage { height: calc(100dvh - var(--nav-h) - var(--tape-h)); grid-template-rows: auto minmax(0, 1fr) minmax(0, 1.05fr); } }
+  /* One-screen stage only where it really fits (desktop/projector); tablets and laptops use normal flow. */
+  @media (min-width: 1600px) and (min-height: 900px) { .stage { height: calc(100dvh - var(--nav-h) - var(--tape-h)); grid-template-rows: auto minmax(0, 1fr) minmax(0, 1.05fr); } }
 
   .hero { grid-column: span 7; display: flex; flex-direction: column; min-width: 0; }
   .hero .eyebrow-row { display: flex; align-items: center; gap: 12px; }
@@ -48,6 +49,13 @@
   .latest .acts { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
   .latest h2 { font-family: var(--f-display); font-size: 30px; font-weight: 400; letter-spacing: 0.01em; }
 
+  /* Normal flow (no one-screen stage): give the scene room for its labels, feed and receipt the full width. */
+  @media (max-width: 1599px), (max-height: 899px) {
+    .scene { min-height: 320px; }
+    .feed, .latest { grid-column: 1 / -1; }
+    .latest { grid-template-columns: minmax(0, 260px) minmax(0, 1fr); }
+    .feed tbody tr:nth-child(n + 9) { display: none; }
+  }
   @media (max-width: 1023px) {
     .hero, .pool, .scene, .feed, .latest { grid-column: 1 / -1; }
     .scene { min-height: 300px; }
