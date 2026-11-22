@@ -28,7 +28,8 @@
     "demo:burst": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/demo-burst.ts",
     "smoke:fuji": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/smoke-fuji.ts",
     "setup:merchant": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/setup-merchant.ts",
-    "reconcile": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/reconcile.ts"
+    "reconcile": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/reconcile.ts",
+    "retire:lot1": "node --env-file=.env scripts/klima-retire.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",

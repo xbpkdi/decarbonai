@@ -27,7 +27,7 @@ import {IERC8004Reputation, IERC8004Identity} from "../src/interfaces/IERC8004Re
 ///   TREASURY_ADDRESS, PAUSER_ADDRESS          default ADMIN_ADDRESS
 ///   PAYMENT_TOKEN                             Fuji: optional (empty => TestUSDC). Mainnet: required (USDC)
 ///   DCO2_NAME, DCO2_SYMBOL, DCO2_BACKED       default per chain (Fuji: testnet mock; mainnet: backed)
-///   LOT_*                                     backed deployments only: the first real lot, see _firstLot
+///   LOT_FILE or LOT_*                         backed deployments only: the first real lot, see _firstLot
 ///   THRESHOLD_MG (1e6), PRICE_PER_TONNE (25e6), MIN_PRICE_PER_TONNE (1e6),
 ///   MAX_MG_PER_ACCRUAL (100e6), MAX_MG_PER_DAY (1e9), ADMIN_DELAY (0)
 contract Deploy is Script {
@@ -188,6 +188,8 @@ contract Deploy is Script {
             });
             return (true, lot);
         }
+        string memory lotFile = vm.envOr("LOT_FILE", string(""));
+        if (bytes(lotFile).length != 0) return (true, _lotFromFile(lotFile));
         string memory serial = vm.envOr("LOT_SERIAL", string(""));
         if (bytes(serial).length == 0) return (false, lot);
         lot = DCO2.Lot({
@@ -203,6 +205,23 @@ contract Deploy is Script {
             mintedAt: 0
         });
         return (true, lot);
+    }
+
+    /// @dev Lot written by scripts/klima-retire.ts --execute (deployments/avalanche-lot1.json).
+    function _lotFromFile(string memory path) internal view returns (DCO2.Lot memory) {
+        string memory j = vm.readFile(path);
+        return DCO2.Lot({
+            registry: vm.parseJsonString(j, ".registry"),
+            projectId: vm.parseJsonString(j, ".projectId"),
+            projectName: vm.parseJsonString(j, ".projectName"),
+            serial: vm.parseJsonString(j, ".serial"),
+            vintage: uint16(vm.parseJsonUint(j, ".vintage")),
+            certificateURI: vm.parseJsonString(j, ".certificateURI"),
+            retirementTx: vm.parseJsonString(j, ".retirementTx"),
+            quantityKg: vm.parseJsonUint(j, ".quantityKg"),
+            backed: true,
+            mintedAt: 0
+        });
     }
 
     /// @dev Grants operational roles, then starts the 2-step admin/ownership transfer. Until ADMIN

@@ -21,6 +21,7 @@ contract DeployScriptTest is Test {
         vm.setEnv("PAYMENT_TOKEN", vm.toString(address(0)));
         vm.setEnv("DCO2_BACKED", "false");
         vm.setEnv("LOT_SERIAL", "");
+        vm.setEnv("LOT_FILE", "");
     }
 
     /// @dev forge runs tests in parallel and vm.setEnv is process-wide, so every scenario runs here, in order.
@@ -28,6 +29,7 @@ contract DeployScriptTest is Test {
         _deploy_mockTestnet_separatedRolesAndHandoff();
         _deploy_backedWithoutLotMintsNothing();
         _deploy_backedWithRealLot();
+        _deploy_backedWithLotFile();
         _deploy_rejectsSharedKeys();
         _deploy_mainnetGuards();
     }
@@ -98,6 +100,24 @@ contract DeployScriptTest is Test {
         assertEq(vm.parseJsonUint(json, ".initialLotId"), 1);
         assertTrue(dco2.isBacked(1));
         assertEq(dco2.lot(1).quantityKg, 100);
+    }
+
+    function _deploy_backedWithLotFile() internal {
+        _env(makeAddr("safe"));
+        vm.setEnv("DCO2_BACKED", "true");
+        string memory path = string.concat(vm.projectRoot(), "/../../deployments/anvil-lot1.json");
+        vm.writeFile(
+            path,
+            '{"registry":"UCR","projectId":"UCR-164","projectName":"Wind","serial":"UCR-164-2022","vintage":2022,'
+            '"certificateURI":"https://app.carbonmark.com/retirements/id/x","retirementTx":"eip155:8453:0xfeed","quantityKg":1000}'
+        );
+        vm.setEnv("LOT_FILE", path);
+        new Deploy().run();
+        DCO2 dco2 = DCO2(vm.parseJsonAddress(_read(), ".dco2"));
+        assertEq(dco2.lot(1).serial, "UCR-164-2022");
+        assertEq(dco2.lot(1).quantityKg, 1000);
+        assertTrue(dco2.isBacked(1));
+        vm.setEnv("LOT_FILE", "");
     }
 
     function _deploy_rejectsSharedKeys() internal {
