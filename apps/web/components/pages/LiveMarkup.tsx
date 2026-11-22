@@ -32,7 +32,7 @@ export function LiveMarkup() {
     </section>
 
     <section className="feed card" aria-labelledby="h-feed">
-      <div className="card-h"><h2 id="h-feed">Paid calls, as they settle</h2><span className="dim" style={{ fontSize: "13px" }}>Each row is one CarbonAccrued event</span></div>
+      <div className="card-h"><h2 id="h-feed">Paid calls, as they settle</h2><span className="dim" style={{ fontSize: "13px" }}>Each row is one on-chain settlement; ×n marks calls the meter batched together</span></div>
       <div className="scroll">
         <table className="tbl">
           <thead><tr><th className="c-time">Time</th><th>Agent</th><th className="c-res">Paid for</th><th className="r c-price">Price</th><th className="r">Carbon</th><th className="r c-sur">Surcharge</th><th className="r">Tx</th></tr></thead>

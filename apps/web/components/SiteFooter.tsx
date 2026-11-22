@@ -61,7 +61,7 @@ export function SiteFooter() {
             <ul>
               <li><a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a></li>
               <li><span>Team1 Demo Day, Bangkok</span></li>
-              <li><a href="mailto:hello@decarbonai.dev">Contact</a></li>
+              <li><a href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer">Contact</a></li>
             </ul>
           </div>
         </div>

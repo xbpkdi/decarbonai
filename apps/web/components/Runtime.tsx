@@ -28,8 +28,14 @@ function pickSource(): "live" | "mock" {
 
 let booted = false;
 
+/** The server marks <html data-demo="1"> when the demo payment env vars are set. */
+function useDemoReady() {
+  return typeof document !== "undefined" && document.documentElement.dataset.demo === "1";
+}
+
 /** Boots the page's vanilla runtime once the server-rendered markup is hydrated. */
 export function Runtime({ page, snapshot }: { page: PageKey; snapshot: Snapshot | null }) {
+  const demoReady = useDemoReady();
   useEffect(() => {
     if (booted) return; // React dev mode runs effects twice; the runtime owns the DOM after the first.
     booted = true;
@@ -58,16 +64,24 @@ export function Runtime({ page, snapshot }: { page: PageKey; snapshot: Snapshot 
         featured: Number(process.env.NEXT_PUBLIC_FEATURED_AGENT_ID || 0) || DEMO_AGENT_ID,
         demoAgentId: DEMO_AGENT_ID,
         creditNote: CREDIT_NOTE,
+        demoReady,
       });
       Object.assign(DC, { CONTRACT_LIST });
       if (source === "live" && !snap) DC.toast(`Could not read ${NETWORK.name} right now. Retrying…`);
-      if (source === "mock") document.documentElement.dataset.source = "mock";
+      if (source === "mock") {
+        document.documentElement.dataset.source = "mock";
+        const banner = document.createElement("div");
+        banner.className = "sim-banner";
+        banner.setAttribute("role", "status");
+        banner.innerHTML = `Simulated data · rehearsal only <a href="${location.pathname}?source=live">Back to live chain data</a>`;
+        document.body.appendChild(banner);
+      }
       pageMod.default(DC);
       bindChrome(DC);
       rich.default(DC);
       extras.default(DC);
       DC.startStream();
     })();
-  }, [page, snapshot]);
+  }, [page, snapshot, demoReady]);
   return null;
 }

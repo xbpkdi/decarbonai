@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { CloseIcon, Mark, MenuIcon } from "@/components/Icons";
 import { WalletButton } from "@/components/WalletButton";
-import { NETWORK } from "@/lib/config";
+import { DEPLOYMENT, NETWORK } from "@/lib/config";
 
 const PAGES = [
   ["/", "Live"],
@@ -41,11 +41,11 @@ export function SiteHeader() {
             <span className="nav-underline" aria-hidden="true" />
           </nav>
           <div className="nav-right">
-            <span className="chip-net" title="Network">
+            <a className="chip-net" title="Open the RetirementPool on the explorer" href={`${NETWORK.explorer}/address/${DEPLOYMENT.retirementPool}`} target="_blank" rel="noreferrer">
               <span className="dot-live" />
               {NETWORK.name}
               <span className="blk tnum" data-block />
-            </span>
+            </a>
             <span className="ticker" title="Total CO₂e captured, all agents">
               <span className="odo" data-ticker />
               <span className="unit">g CO₂e captured</span>

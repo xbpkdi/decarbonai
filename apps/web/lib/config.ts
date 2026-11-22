@@ -71,7 +71,13 @@ export const agentName = (id: number | string) => AGENT_NAMES[String(id)] || `Ag
 /** The agent the server-side demo key pays as (Developers "Run", Agent "Pay one call"). */
 export const DEMO_AGENT_ID = Number(process.env.NEXT_PUBLIC_DEMO_AGENT_ID || 0) || null;
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://decarbonai.vercel.app").replace(/\/$/, "");
+/** Canonical origin for OG/metadata: explicit env, else this Vercel deployment, else production. */
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "") ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "") ||
+  "https://decarbonai.vercel.app"
+).replace(/\/$/, "");
 
 export const REPO_URL = "https://github.com/xbpkdi/decarbonai";
 

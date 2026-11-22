@@ -111,6 +111,14 @@ h1, h2, h3, p { margin: 0; }
 .pill-live { background: var(--avax); color: #fff; letter-spacing: 0.06em; font-family: var(--f-mono); font-size: 11px; }
 .pill-mock { border: 1px solid color-mix(in srgb, var(--warn) 70%, transparent); color: var(--warn); }
 .pill-smoke { background: var(--tile); color: var(--text-2); }
+.pill-sim { background: var(--warn); color: #1a1204; letter-spacing: 0.06em; font-family: var(--f-mono); font-size: 11px; font-weight: 600; }
+.pill-idle { letter-spacing: 0.06em; font-family: var(--f-mono); font-size: 11px; }
+.batch { font-family: var(--f-mono); font-size: 11px; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 0 6px; margin-left: 6px; }
+.demo-off { font-size: 13px; color: var(--text-3); }
+a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
+/* Simulated stream: a fixed banner with a one-click way back to chain data. */
+.sim-banner { position: fixed; z-index: 70; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-radius: 999px; background: var(--warn); color: #1a1204; font: 600 13px var(--f-ui); box-shadow: 0 10px 30px rgba(0,0,0,.45); white-space: nowrap; }
+.sim-banner a { background: #1a1204; color: var(--warn); border-radius: 999px; padding: 4px 12px; }
 .pill-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 .hash { display: inline-flex; align-items: center; gap: 4px; font-family: var(--f-mono); font-size: 13px; color: var(--avax); border-radius: 6px; padding: 1px 4px; margin: -1px -4px; transition: background 0.2s, color 0.2s; }
@@ -162,7 +170,7 @@ h1, h2, h3, p { margin: 0; }
 /* Display-size counters: clip each column to the glyph itself, so the digits above and below
    never show, not even mid-roll. --clip-t/--clip-b trim the empty leading of the line box. */
 .odo .d { clip-path: inset(var(--clip-t, 0) 0 var(--clip-b, 0) 0); -webkit-mask-image: linear-gradient(transparent, #000 var(--fade, 0%), #000 calc(100% - var(--fade, 0%)), transparent); mask-image: linear-gradient(transparent, #000 var(--fade, 0%), #000 calc(100% - var(--fade, 0%)), transparent); }
-.odo .d > span { display: flex; flex-direction: column; transition: transform 0.8s var(--ease); }
+.odo .d > span { display: flex; flex-direction: column; transition: transform 0.5s var(--ease); }
 .odo .d > span > b { display: block; height: var(--cell); line-height: var(--cell); font-weight: inherit; text-align: center; }
 .odo .s { display: inline-block; }
 

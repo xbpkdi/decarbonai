@@ -91,9 +91,8 @@ export default function init(DC) {
   QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#080a09", light: "#ffffff" } }).then((svg) => { $("#qr").innerHTML = svg; });
   $("#share").addEventListener("click", async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: `DecarbonAI receipt ${fmt.no(r.n)}`, text: `${fmt.mass(r.mg)} CO₂e retired on ${NET.name}`, url }); return; } catch { /* fall back to copy */ }
+      try { await navigator.share({ title: `DecarbonAI receipt ${fmt.no(r.n)}`, text: `${fmt.mass(r.mg)} CO₂e retired on ${NET.name}`, url }); return; } catch (e) { if (e?.name === "AbortError") return; }
     }
-    navigator.clipboard?.writeText(url).catch(() => {});
-    DC.toast("Receipt link copied");
+    try { await navigator.clipboard.writeText(url); DC.toast("Receipt link copied"); } catch { DC.toast(`Copy failed. Link: ${url}`); }
   });
 }

@@ -20,7 +20,7 @@ export default function init(DC) {
   let retiring = false;
 
   function paintHero() {
-    $("#line").innerHTML = `captured from <b>${fmt.count(state.calls)}</b> paid x402 calls · <b class="mint">${fmt.mass(state.retiredMg)}</b> retired · <b>${fmt.usd(state.surcharge, 2)}</b> carbon surcharge`;
+    $("#line").innerHTML = `captured from <b>${fmt.count(state.calls)}</b> paid x402 calls · <b class="mint">${fmt.mass(state.retiredMg)}</b> retired · <b>${fmt.usd(state.surcharge, 3)}</b> carbon surcharge`;
   }
   function paintPool() {
     const p = Math.min(pending(), THRESHOLD_MG);
@@ -34,18 +34,35 @@ export default function init(DC) {
   function queueHero() {
     if (heroQueued) return;
     heroQueued = true;
-    setTimeout(() => { heroQueued = false; big.set(state.totalMg / 1000); paintHero(); paintPool(); }, 600);
+    setTimeout(() => { heroQueued = false; big.set(state.totalMg / 1000); paintHero(); paintPool(); paintStatus(); }, 1000);
   }
   paintHero(); paintPool();
 
+  // ---------- status: LIVE / IDLE / SIMULATED ----------
+  const pill = $(".hero .pill-live");
+  function paintStatus() {
+    const eb = $("#h-metered");
+    if (DC.mock) { pill.textContent = "SIMULATED"; pill.className = "pill pill-sim"; eb.textContent = "Simulated stream · rehearsal only, not on-chain"; return; }
+    const last = state.feed[0];
+    const fresh = DC.isFresh();
+    pill.textContent = fresh ? "LIVE" : "IDLE";
+    pill.className = fresh ? "pill pill-live" : "pill pill-smoke pill-idle";
+    eb.textContent = `x402 carbon meter · ${DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t)}` : ""}`;
+  }
+  paintStatus();
+  setInterval(paintStatus, 30_000);
+
   // ---------- feed ----------
   const feed = $("#feed");
+  const today = new Date().toDateString();
+  const when = (t) => (new Date(t).toDateString() === today ? fmt.time(t) : `${new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${fmt.time(t).slice(0, 5)}`);
   function row(c, fresh) {
     const a = agentById(c.agent);
+    const batch = c.n > 1 ? ` <span class="batch" title="${c.n} calls settled in one meter batch">×${c.n}</span>` : "";
     const tr = document.createElement("tr");
     if (fresh) tr.className = "new";
-    tr.innerHTML = `<td class="c-time mono dim"><span class="tick${fresh ? " hot" : ""}"></span>${fmt.time(c.t)}</td>
-      <td class="agent">${a.name} <span class="dim mono">#${a.id}</span></td>
+    tr.innerHTML = `<td class="c-time mono dim"><span class="tick${fresh ? " hot" : ""}"></span>${when(c.t)}</td>
+      <td class="agent">${a.name} <span class="dim mono">#${a.id}</span>${batch}</td>
       <td class="c-res mono dim">${DC.mock ? c.res : DC.short(c.payer)}</td>
       <td class="r c-price">${DC.mock ? fmt.usd(c.price, 3) : `<span class="mono dim">${fmt.count(c.block)}</span>`}</td>
       <td class="r"><b style="font-weight:600">${(c.mg / 1000).toFixed(2)}</b> <span class="dim">g</span></td>
@@ -53,9 +70,17 @@ export default function init(DC) {
       <td class="r">${hashLink(c.tx, 6, 4)}</td>`;
     return tr;
   }
-  state.feed.slice(0, 14).forEach((c) => feed.appendChild(row(c, false)));
+  DC.groupByTx(state.feed).slice(0, 14).forEach((c) => feed.appendChild(row(c, false)));
+  let top = null;
   function pushRow(c) {
-    const tr = row(c, true);
+    // Calls from the same meter batch fold into the row above.
+    if (top && top.tx === c.tx && top.agent === c.agent && feed.firstChild) {
+      top.n++; top.mg += c.mg; top.sur += c.sur;
+      feed.firstChild.replaceWith(row(top, true));
+      return;
+    }
+    top = { ...c, n: 1 };
+    const tr = row(top, true);
     feed.prepend(tr);
     // red tick cools to grey
     requestAnimationFrame(() => requestAnimationFrame(() => tr.querySelector(".tick").classList.remove("hot")));
@@ -126,8 +151,10 @@ export default function init(DC) {
     document.querySelectorAll(".node-label").forEach((el) => {
       const i = Number(el.dataset.node), n = nodes[i];
       const off = i === 2 ? R + 14 : 34;
-      el.style.left = n.x + "px"; el.style.top = n.y + off + "px";
-      el.style.width = narrow ? "150px" : "220px";
+      const w = narrow ? 150 : 220;
+      // Keep edge labels inside the panel.
+      el.style.left = `${Math.max(w / 2 + 8, Math.min(W - w / 2 - 8, n.x))}px`; el.style.top = n.y + off + "px";
+      el.style.width = `${w}px`;
     });
   }
 

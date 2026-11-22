@@ -40,3 +40,15 @@ export async function overlaps(page: Page) {
   });
 }
 
+
+/** Scroll through the page so every scroll-reveal has run, then return to the top. */
+export async function revealAll(page: Page) {
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 500) {
+      window.scrollTo(0, y);
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    window.scrollTo(0, 0);
+  });
+  await page.waitForTimeout(1000);
+}

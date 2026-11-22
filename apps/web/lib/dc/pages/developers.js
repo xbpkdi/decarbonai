@@ -4,6 +4,7 @@ export default function init(DC) {
   const main = document.querySelector("main");
   const API = main.dataset.api;
   const REPO_DIR = "/path/to/decarbonai";
+  const AGENT = DC.demoAgentId || 42;
   const CODE = {
     server: `<span class="k">import</span> { Hono } <span class="k">from</span> <span class="s">"hono"</span>;
 <span class="k">import</span> { CarbonMeter, carbonPayment, AccrualStore } <span class="k">from</span> <span class="s">"@decarbonai/x402-carbon"</span>;
@@ -33,7 +34,7 @@ app.get(<span class="s">"/v1/infer"</span>, (c) => {
 
 <span class="k">const</span> agent = <span class="f">createPayingFetch</span>({
   privateKey: process.env.AGENT_PRIVATE_KEY,
-  agentId: <span class="n">42n</span>,                 <span class="c">// ERC-8004 id, sent as x-agent-id</span>
+  agentId: <span class="n">${AGENT}n</span>,${" ".repeat(Math.max(1, 18 - String(AGENT).length))}<span class="c">// ERC-8004 id, sent as x-agent-id</span>
   maxAmountPerPayment: <span class="n">100_000n</span>, <span class="c">// never pay more than $0.10</span>
 });
 
@@ -48,7 +49,7 @@ app.get(<span class="s">"/v1/infer"</span>, (c) => {
     code: `<span class="c"># from the cloned repo</span>
 claude mcp add decarbonai \\
   --env AGENT_PRIVATE_KEY=0x… \\
-  --env AGENT_ID=42 \\
+  --env AGENT_ID=${AGENT} \\
   --env API_URL=${API} \\
   -- node "$PWD/packages/mcp-server/src/server.ts"`,
     desktop: `{
@@ -56,7 +57,7 @@ claude mcp add decarbonai \\
     <span class="s">"decarbonai"</span>: {
       <span class="s">"command"</span>: <span class="s">"node"</span>,
       <span class="s">"args"</span>: [<span class="s">"${SERVER}"</span>],
-      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"AGENT_ID"</span>: <span class="s">"42"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API}"</span> }
+      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"AGENT_ID"</span>: <span class="s">"${AGENT}"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API}"</span> }
     }
   }
 }`,
@@ -91,6 +92,12 @@ claude mcp add decarbonai \\
   // Run: live pays the demo API on Fuji for real (server-side test wallet); mock simulates the round trip.
   const runBtn = $("#run");
   runBtn.innerHTML = `${I.play}<span>Run</span>`;
+  if (!DC.mock && !DC.demoReady) {
+    // Not configured: say so up front instead of failing on click.
+    runBtn.disabled = true;
+    runBtn.title = "Live demo payments are switched off on this deployment";
+    $("#out").innerHTML = `<div class="empty">Live demo payments are switched off on this deployment, so Run is paused.<br>You can still pay from your own agent with the MCP setup below, or watch real Fuji payments on <a href="/" style="color:var(--mint)">Live</a>.</div>`;
+  }
   let busy = false;
   const show = (lines, delays) => {
     $("#out").innerHTML = lines.map((l) => `<div class="l">${l}</div>`).join("");

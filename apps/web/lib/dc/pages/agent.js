@@ -20,7 +20,7 @@ export default function init(DC) {
     $("#repN").textContent = rs.length;
     $("#stats").innerHTML = [
       ["Paid calls", fmt.count(ac.calls), "", "metered through x402", ""],
-      ["Carbon metered", fmt.g(ac.mg, 0), "g", "CO₂e, mid estimate", ""],
+      ["Carbon metered", fmt.g(ac.mg, 1), "g", "CO₂e, mid estimate", ""],
       ["Retired", fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
       ["Surcharge paid", fmt.usd(ac.sur, 3), "", "USDC into the pool", ""],
     ].map(([k, v, u, n, c]) => `<div class="card stat ${c}"><div class="k">${k}</div><div class="v tnum">${v}${u ? `<span class="u">${u}</span>` : ""}</div><div class="n">${n}</div></div>`).join("");
@@ -63,7 +63,7 @@ export default function init(DC) {
       requestAnimationFrame(draw);
       return;
     }
-    ctx.fillStyle = colors["--text-3"]; ctx.textAlign = "left"; ctx.fillText(`first call · ${fmt.date(pts[0].c.t)}`, 20, H - 2); ctx.textAlign = "right"; ctx.fillText(`call ${fmt.count(pts.length)} · now`, W - 20, H - 2);
+    ctx.fillStyle = colors["--text-3"]; ctx.textAlign = "left"; ctx.fillText(`first call · ${fmt.date(pts[0].c.t)}`, 20, H - 2); ctx.textAlign = "right"; ctx.fillText(`call ${fmt.count(pts.length)} · ${DC.isFresh() ? "now" : `last ${DC.ago(pts[pts.length - 1].c.t)}`}`, W - 20, H - 2);
     const now = performance.now();
     pts.forEach((p) => {
       const f = fresh.get(p.c.tx);

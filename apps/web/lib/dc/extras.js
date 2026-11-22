@@ -182,7 +182,7 @@ export default function init(DC) {
       wrap.classList.add("hero-split");
       terminal(wrap);
     }
-    if (["agent", "receipts", "methodology"].includes(page)) {
+    if (["receipts", "methodology"].includes(page)) {
       statsStrip(document.querySelector(".page-head"));
     }
     if (page === "methodology") {
@@ -198,6 +198,10 @@ export default function init(DC) {
       // Live: only the demo agent's page can pay, with the server-side test wallet. Mock: any agent.
       if (!DC.mock && DC.demoAgentId !== id) return;
       const title = document.querySelector("#h-tl")?.parentElement;
+      if (!DC.mock && !DC.demoReady) {
+        title?.insertAdjacentHTML("beforeend", `<span class="demo-off">Live payments from this page are switched off on this deployment.</span>`);
+        return;
+      }
       title?.insertAdjacentHTML("beforeend", `<button class="btn btn-primary btn-sm" id="payOne" type="button">Pay one call as #${id}</button>`);
       const btn = document.getElementById("payOne");
       btn?.addEventListener("click", async () => {

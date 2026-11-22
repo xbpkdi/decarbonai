@@ -3,6 +3,7 @@ import { OUT, overlaps, PAGES, watchConsole } from "./helpers";
 
 // Runs in the "ipad-webkit" project (Safari engine, touch).
 const IPADS = [
+  ["laptop-1440x900", 1440, 900],
   ["ipad-1180x820", 1180, 820],
   ["ipad-1366x1024", 1366, 1024],
   ["ipad-portrait-820x1180", 820, 1180],

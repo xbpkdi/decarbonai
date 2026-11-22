@@ -25,9 +25,9 @@ export default function init(DC) {
     const t = document.querySelector(".tape");
     if (!t) return;
     const items = [];
-    const acc = (c) => `<span class="tape-item"><span class="rd"></span><span class="h">${short(c.tx, 6, 4)}</span><span class="g">+${(c.mg / 1000).toFixed(2)} g</span><span>${agentById(c.agent).title}</span></span>`;
+    const acc = (c) => `<span class="tape-item"><span class="rd"></span><span class="h">${short(c.tx, 6, 4)}</span><span class="g">+${(c.mg / 1000).toFixed(2)} g</span>${c.n > 1 ? `<span class="dim">${c.n} calls</span>` : ""}<span>${agentById(c.agent).title}</span></span>`;
     const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} sealed<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span></span>`;
-    state.feed.slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
+    DC.groupByTx(state.feed).slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
     const track = t.querySelector(".tape-track");
     const render = (fresh) => {
       const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>Waiting for the next paid call on ${DC.NET.name}</span>`;
@@ -35,7 +35,12 @@ export default function init(DC) {
       if (fresh) track.querySelector(".tape-item")?.classList.add("fresh");
     };
     render(false);
-    DC.on("accrual", (c) => { items.unshift(acc(c)); items.length = Math.min(items.length, 40); render(true); });
+    let last = null;
+    DC.on("accrual", (c) => {
+      if (last && last.tx === c.tx) { last.n++; last.mg += c.mg; items[0] = acc(last); }
+      else { last = { ...c, n: 1 }; items.unshift(acc(last)); }
+      items.length = Math.min(items.length, 40); render(true);
+    });
     DC.on("retired", (r) => { items.unshift(ret(r)); render(true); });
   }
 

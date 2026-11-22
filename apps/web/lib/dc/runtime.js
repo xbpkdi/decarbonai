@@ -80,7 +80,9 @@ function odometer(el, { decimals = 0, value = 0 } = {}) {
       });
     }
     cur = str;
+    el.setAttribute("role", "img");
     el.setAttribute("aria-label", str);
+    for (const d of el.querySelectorAll(".d")) d.setAttribute("aria-hidden", "true");
   }
   render(value);
   return { set: render };
@@ -112,6 +114,26 @@ function sealSVG(n, cls = "") {
     <text x="60" y="56" text-anchor="middle" style="font-family:var(--f-mono)" font-size="8" fill="currentColor">No.</text>
     <text x="60" y="72" text-anchor="middle" style="font-family:var(--f-display)" font-size="19" fill="currentColor">${String(n).padStart(4, "0")}</text>
   </svg>`;
+}
+
+/** "just now", "5 min ago", "3 h ago", "2 d ago". */
+function ago(t) {
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
+  return `${Math.floor(s / 86400)} d ago`;
+}
+
+/** The meter settles many calls in one tx: fold consecutive same-tx calls into one row. */
+function groupByTx(calls) {
+  const out = [];
+  for (const c of calls) {
+    const last = out[out.length - 1];
+    if (last && last.tx === c.tx && last.agent === c.agent) { last.n++; last.mg += c.mg; last.sur += c.sur; }
+    else out.push({ ...c, n: 1 });
+  }
+  return out;
 }
 
 const reduced = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -300,7 +322,10 @@ export function createDC(cfg) {
 
   const DC = {
     source: mock ? "mock" : "live", mock, state, AGENTS, agentById, CONTRACTS, METHOD, NET, FACTORS, THRESHOLD_MG, PRICE_PER_TONNE,
-    gramsPerCall, surchargeFor, fmt, short, hex, rand, on, emit, odometer, I, hashLink, addrLink, toast, sealSVG, coinHTML, reduced,
+    gramsPerCall, surchargeFor, fmt, short, hex, rand, on, emit, odometer, I, hashLink, addrLink, toast, sealSVG, coinHTML, reduced, ago, groupByTx,
+    // Live data counts as "live" only if the chain moved in the last 15 minutes.
+    isFresh: () => mock || (state.feed[0] && Date.now() - state.feed[0].t < 15 * 60_000),
+    demoReady: cfg.demoReady,
     scaleBar: (el, mg) => scaleBar(el, mg, THRESHOLD_MG), creditNote: cfg.creditNote, demoAgentId: cfg.demoAgentId,
     FEATURED: featuredId(), startStream: () => controls.start(), burst: (n) => controls.burst(n), forceRetire: (id) => controls.forceRetire(id),
     payOnce: (id) => controls.payOnce(id), pause: () => (paused = !paused),
@@ -347,8 +372,11 @@ export function bindChrome(DC) {
     nl.addEventListener("mouseleave", () => place(active));
   }
   const tickers = [...document.querySelectorAll("[data-ticker]")].map((el) => odometer(el, { decimals: 1, value: state.totalMg / 1000 }));
-  on("accrual", () => tickers.forEach((t) => t.set(state.totalMg / 1000)));
-  const paintBlock = (b) => document.querySelectorAll("[data-block]").forEach((el) => (el.textContent = b ? `#${fmt.count(b)}` : ""));
+  // Roll at most once a second so digits settle between updates during a burst.
+  let tq = false;
+  on("accrual", () => { if (tq) return; tq = true; setTimeout(() => { tq = false; tickers.forEach((t) => t.set(state.totalMg / 1000)); }, 1000); });
+  // The simulated stream has no real block height: show none.
+  const paintBlock = (b) => document.querySelectorAll("[data-block]").forEach((el) => (el.textContent = b && !DC.mock ? `#${fmt.count(b)}` : ""));
   paintBlock(state.block);
   on("block", paintBlock);
 

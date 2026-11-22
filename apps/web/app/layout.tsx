@@ -4,6 +4,9 @@ import { Providers } from "@/components/Providers";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NETWORK, SITE_URL } from "@/lib/config";
+
+// Developers "Run" / Agent "Pay one call" need these server-only vars (see apps/web/README.md).
+const DEMO_READY = Boolean(process.env.DEMO_AGENT_PRIVATE_KEY && process.env.DEMO_API_URL && process.env.NEXT_PUBLIC_DEMO_AGENT_ID);
 import "./globals.css";
 
 const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton", display: "swap" });
@@ -25,7 +28,7 @@ export const viewport: Viewport = { themeColor: "#080a09", colorScheme: "dark" }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`fx-rich ${anton.variable} ${archivo.variable} ${mono.variable} ${thai.variable}`}>
+    <html lang="en" data-demo={DEMO_READY ? "1" : undefined} className={`fx-rich ${anton.variable} ${archivo.variable} ${mono.variable} ${thai.variable}`}>
       <body>
         <Providers>
           <div className="atmo" aria-hidden="true">

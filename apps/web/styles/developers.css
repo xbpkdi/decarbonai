@@ -28,5 +28,5 @@
   .tool code { font-family: var(--f-mono); font-weight: 600; font-size: 14px; color: var(--mint); }
   .tool p { margin-top: 8px; font-size: 14px; color: var(--text-2); line-height: 1.55; }
   @media (max-width: 900px) { .two, .tools { grid-template-columns: 1fr; } .sur { grid-template-columns: 1fr; } .sur > div { border-left: 0; border-top: 1px solid var(--line); } .install code { font-size: 14px; } }
-.install code { font-size: 15px; }
+.install code { font-size: 15px; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
 .install-note { font-size: 13px; margin-top: 10px; }
