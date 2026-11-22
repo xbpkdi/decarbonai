@@ -1,0 +1,15 @@
+export default function NotFound() {
+  return (
+    <main className="wrap" style={{ padding: "96px var(--gutter)" }}>
+      <span className="eyebrow">404</span>
+      <h1 className="display" style={{ fontSize: "clamp(56px, 8vw, 120px)", marginTop: 12 }}>
+        Nothing settled here.
+      </h1>
+      <p className="lead" style={{ marginTop: 18 }}>
+        <a className="btn btn-primary" href="/">
+          Back to Live
+        </a>
+      </p>
+    </main>
+  );
+}

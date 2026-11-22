@@ -1,15 +1,45 @@
 {
   "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
   "files": {
-    "includes": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "scripts/**", "apps/paid-api/src/**/*.ts", "!packages/chain/src/abis.ts"]
+    "includes": [
+      "packages/*/src/**/*.ts",
+      "packages/*/test/**/*.ts",
+      "scripts/**",
+      "apps/paid-api/src/**/*.ts",
+      "apps/web/**/*.ts",
+      "apps/web/**/*.tsx",
+      "!packages/chain/src/abis.ts",
+      "!apps/web/.next",
+      "!apps/web/next-env.d.ts"
+    ]
   },
-  "formatter": { "enabled": false },
-  "assist": { "enabled": false },
+  "formatter": {
+    "enabled": false
+  },
+  "assist": {
+    "enabled": false
+  },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
-      "style": { "noNonNullAssertion": "off" }
+      "style": {
+        "noNonNullAssertion": "off"
+      }
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "apps/web/**"
+      ],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "useUniqueElementIds": "off"
+          }
+        }
+      }
+    }
+  ]
 }

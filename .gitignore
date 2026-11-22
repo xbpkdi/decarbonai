@@ -22,3 +22,7 @@ packages/contracts/broadcast/**
 !packages/contracts/broadcast/Deploy.s.sol/
 !packages/contracts/broadcast/Deploy.s.sol/43113/
 !packages/contracts/broadcast/Deploy.s.sol/43113/run-latest.json
+
+# Playwright
+test-results/
+playwright-report/

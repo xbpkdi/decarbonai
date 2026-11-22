@@ -1,0 +1,87 @@
+import { avalanche, avalancheFuji } from "viem/chains";
+
+/**
+ * Network config. NEXT_PUBLIC_NETWORK picks Avalanche Fuji (default) or C-Chain mainnet; contract
+ * addresses come from deployments/<network>.json at build time (see next.config.ts).
+ */
+const NETWORKS = {
+  fuji: {
+    id: "fuji",
+    chain: avalancheFuji,
+    name: "Avalanche Fuji",
+    short: "Fuji",
+    testnet: true,
+    explorer: "https://testnet.snowtrace.io",
+    rpc: "https://api.avax-test.network/ext/bc/C/rpc",
+    logsApi: "https://api.routescan.io/v2/network/testnet/evm/43113/etherscan/api",
+  },
+  mainnet: {
+    id: "mainnet",
+    chain: avalanche,
+    name: "Avalanche C-Chain",
+    short: "C-Chain",
+    testnet: false,
+    explorer: "https://snowtrace.io",
+    rpc: "https://api.avax.network/ext/bc/C/rpc",
+    logsApi: "https://api.routescan.io/v2/network/mainnet/evm/43114/etherscan/api",
+  },
+} as const;
+
+export const NETWORK = NETWORKS[process.env.NEXT_PUBLIC_NETWORK === "mainnet" ? "mainnet" : "fuji"];
+
+type Hex = `0x${string}`;
+
+export type DeploymentInfo = {
+  chainId: number;
+  deployBlock: number;
+  retirementPool: Hex;
+  carbonReceipt: Hex;
+  dco2: Hex;
+  reputationAdapter: Hex;
+  erc8004IdentityRegistry: Hex;
+  erc8004ReputationRegistry: Hex;
+  paymentToken: Hex;
+  methodologyHash: Hex;
+  methodologyVersion: string;
+  thresholdMg: number;
+  pricePerTonne: number;
+  dco2Backed: boolean;
+};
+
+export const DEPLOYMENT = JSON.parse(process.env.NEXT_PUBLIC_DEPLOYMENT || "{}") as DeploymentInfo;
+
+export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || NETWORK.rpc;
+
+/** Footer and receipts follow the network: Fuji burns a mock credit, mainnet burns backed lots. */
+export const CREDIT_NOTE = DEPLOYMENT.dco2Backed
+  ? "DCO2 lots are minted 1:1 against credits retired off-chain"
+  : "DCO2 is a testnet mock credit";
+
+/** ERC-8004 id -> display name, from NEXT_PUBLIC_AGENT_NAMES ({"42":"Claude research agent"}). */
+export const AGENT_NAMES: Record<string, string> = (() => {
+  try {
+    return JSON.parse(process.env.NEXT_PUBLIC_AGENT_NAMES || "{}");
+  } catch {
+    return {};
+  }
+})();
+
+export const agentName = (id: number | string) => AGENT_NAMES[String(id)] || `Agent #${id}`;
+
+/** The agent the server-side demo key pays as (Developers "Run", Agent "Pay one call"). */
+export const DEMO_AGENT_ID = Number(process.env.NEXT_PUBLIC_DEMO_AGENT_ID || 0) || null;
+
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://decarbonai.vercel.app").replace(/\/$/, "");
+
+export const REPO_URL = "https://github.com/xbpkdi/decarbonai";
+
+export const CONTRACT_LIST = [
+  ["RetirementPool", DEPLOYMENT.retirementPool, "Takes the surcharge, emits CarbonAccrued, retires per payer at 1 kg."],
+  ["CarbonReceipt", DEPLOYMENT.carbonReceipt, "ERC-721 + ERC-5192 soulbound receipts."],
+  [DEPLOYMENT.dco2Backed ? "DCO2" : "DCO2 (mock)", DEPLOYMENT.dco2, "ERC-1155 credit lots, burned on retirement."],
+  ["ERC-8004 adapter", DEPLOYMENT.reputationAdapter, "Writes carbon-settled feedback to the agent's reputation."],
+] as const;
+
+export function short(hex: string, head = 6, tail = 4) {
+  return hex.length <= head + tail + 1 ? hex : `${hex.slice(0, head)}…${hex.slice(-tail)}`;
+}

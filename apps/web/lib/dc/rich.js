@@ -1,0 +1,135 @@
+/* Rich layer: atmosphere, carbon tape, big type, one solid block per page, key-card border,
+   scroll reveals and counters. Always on. */
+export default function init(DC) {
+  const page = document.querySelector("main")?.dataset.page || "index";
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const PAGES = {
+    index: { word: "Captured", solid: "#latest", key: ".pool" },
+    agent: { word: "Footprint", solid: ".rep", key: "#tl" },
+    receipts: { word: "Sealed", solid: ".wall .spec", key: ".bar" },
+    receipt: { word: null, solid: null, key: "#checks" },
+    developers: { word: "One line", solid: ".install", key: ".run" },
+    methodology: { word: "The math", solid: ".calc .res", key: ".calc" },
+  };
+
+  function atmosphere() {
+    // On Live the haze clears up as more carbon is retired.
+    const haze = () => document.documentElement.style.setProperty("--haze", page === "index" ? Math.min(0.85, 0.32 + (DC.state.retiredMg / 1e6) * 0.06).toFixed(2) : "0.5");
+    haze();
+    DC.on("retired", haze);
+  }
+
+  function tape() {
+    const { state, fmt, agentById, short } = DC;
+    const t = document.querySelector(".tape");
+    if (!t) return;
+    const items = [];
+    const acc = (c) => `<span class="tape-item"><span class="rd"></span><span class="h">${short(c.tx, 6, 4)}</span><span class="g">+${(c.mg / 1000).toFixed(2)} g</span><span>${agentById(c.agent).title}</span></span>`;
+    const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} sealed<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span></span>`;
+    state.feed.slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
+    const track = t.querySelector(".tape-track");
+    const render = (fresh) => {
+      const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>Waiting for the next paid call on ${DC.NET.name}</span>`;
+      track.innerHTML = html + html;
+      if (fresh) track.querySelector(".tape-item")?.classList.add("fresh");
+    };
+    render(false);
+    DC.on("accrual", (c) => { items.unshift(acc(c)); items.length = Math.min(items.length, 40); render(true); });
+    DC.on("retired", (r) => { items.unshift(ret(r)); render(true); });
+  }
+
+  function bigType(cfg) {
+    if (page === "receipt") {
+      const h = document.querySelector("#rt");
+      if (h) { h.classList.add("mega"); h.style.fontSize = "clamp(72px, 7.4vw, 150px)"; h.innerHTML = `${h.textContent}<span class="dot red">.</span>`; }
+      return;
+    }
+    if (!cfg.word) return;
+    const mega = `<div class="mega${page === "index" ? " mega-live" : ""}" aria-hidden="true">${cfg.word}<span class="dot">.</span></div>`;
+    if (page === "index") {
+      const row = document.querySelector(".hero .eyebrow-row");
+      row.style.alignItems = "flex-end";
+      row.querySelector(".pill").insertAdjacentHTML("afterend", mega);
+      row.querySelector(".eyebrow").style.paddingBottom = "8px";
+    } else {
+      const head = document.querySelector(".page-head .eyebrow");
+      head?.insertAdjacentHTML("afterend", mega);
+    }
+  }
+
+  function solidAndKey(cfg) {
+    if (cfg.solid) document.querySelector(cfg.solid)?.classList.add("solid");
+    const key = cfg.key && document.querySelector(cfg.key);
+    if (key) (key.classList.contains("card") ? key : key.closest(".card"))?.classList.add("key");
+    if (page === "receipts") {
+      // the newest coin stays the solid block, also after a new one drops in
+      DC.on("retired", () => setTimeout(() => { document.querySelectorAll(".wall .spec.solid").forEach((s) => s.classList.remove("solid")); document.querySelector(".wall .spec")?.classList.add("solid"); }, 50));
+    }
+    if (page === "receipt") {
+      // When every check has resolved, a solid mint banner confirms it.
+      const box = document.querySelector("#checks");
+      const banner = document.createElement("div");
+      banner.className = "verified";
+      banner.innerHTML = `<span>${DC.I.check}</span><div><b>Verified on ${DC.NET.name}.</b> <span data-verified-note>Event, soulbound lock and methodology hash all match.</span></div>`;
+      banner.style.cssText = "display:none;align-items:center;gap:14px;margin:0 16px 16px;padding:16px 18px;border-radius:12px;font-size:15px;";
+      box.after(banner);
+      const check = () => {
+        const done = [...box.querySelectorAll("li")].every((li) => li.dataset.s === "ok" || li.dataset.s === "warn");
+        banner.style.display = done ? "flex" : "none";
+        banner.classList.toggle("solid", done);
+        banner.querySelector("span").style.cssText = "width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--mint-ink);color:var(--mint);flex-shrink:0";
+        banner.querySelector("svg").style.cssText = "width:16px;height:16px";
+      };
+      new MutationObserver(check).observe(box, { subtree: true, attributes: true, attributeFilter: ["data-s"], childList: true });
+    }
+  }
+
+  function reveal() {
+    if (page === "index") return; // the stage is live; it does not wait for scroll
+    const els = [...document.querySelectorAll("main .section, main .card, main .stats > *, .wall > *, .foot-band, .foot-cols > div")];
+    els.forEach((el) => el.classList.add("rv"));
+    const io = new IntersectionObserver((entries) => {
+      let i = 0;
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        e.target.style.setProperty("--d", `${Math.min(i++, 6) * 70}ms`);
+        e.target.classList.add("in");
+        countUp(e.target);
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.12 });
+    els.forEach((el) => io.observe(el));
+    if (reduced) els.forEach((el) => el.classList.add("in"));
+  }
+
+  // Numbers roll up from zero the first time they enter the viewport.
+  function countUp(root) {
+    if (reduced) return;
+    root.querySelectorAll(".stat .v, .totals .v").forEach((el) => {
+      const node = [...el.childNodes].find((n) => n.nodeType === 3 && /[\d]/.test(n.textContent));
+      if (!node || el.dataset.counted) return;
+      el.dataset.counted = "1";
+      const txt = node.textContent, m = txt.match(/[\d,]+(\.\d+)?/);
+      if (!m) return;
+      const target = parseFloat(m[0].replace(/,/g, "")), dec = (m[1] || "").length ? m[1].length - 1 : 0;
+      const t0 = performance.now();
+      const step = (now) => {
+        const p = Math.min(1, (now - t0) / 900), v = target * (1 - Math.pow(1 - p, 3));
+        node.textContent = txt.replace(m[0], v.toLocaleString("en-US", { minimumFractionDigits: dec, maximumFractionDigits: dec }));
+        if (p < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    });
+  }
+
+  function start() {
+    const cfg = PAGES[page] || {};
+    atmosphere();
+    tape();
+    bigType(cfg);
+    solidAndKey(cfg);
+    reveal();
+  }
+  start();
+}
