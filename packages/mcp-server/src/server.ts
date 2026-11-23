@@ -21,7 +21,7 @@ if (!key) {
   console.error("AGENT_PRIVATE_KEY is required");
   process.exit(1);
 }
-const apiUrl = process.env.API_URL ?? "http://localhost:4021";
+const apiUrl = process.env.API_URL || "http://localhost:4021";
 const api = new URL(apiUrl);
 // Over plain HTTP a man-in-the-middle could rewrite payTo in the 402; only allow it for localhost.
 if (api.protocol !== "https:" && !["localhost", "127.0.0.1", "[::1]"].includes(api.hostname)) {

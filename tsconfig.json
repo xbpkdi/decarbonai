@@ -14,5 +14,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "scripts/**/*.ts", "apps/paid-api/src/**/*.ts", "spike/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "scripts/**/*.ts", "apps/paid-api/src/**/*.ts", "apps/paid-api/test/**/*.ts", "spike/**/*.ts"]
 }

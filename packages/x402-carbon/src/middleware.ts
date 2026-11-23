@@ -79,20 +79,42 @@ export function carbonPayment(opts: CarbonPaymentOptions): MiddlewareHandler<{ V
     new HTTPFacilitatorClient({ url: opts.facilitatorUrl ?? PAYAI_FACILITATOR }),
   ).register(caip2, new ExactEvmScheme());
 
-  // Durable: the accrual is written to the meter's SQLite queue before the response goes out.
-  server.onAfterSettle(async (ctx) => {
-    const c = ctx.requirements.extra?.carbon as CarbonExtra | undefined;
-    const auth = (ctx.paymentPayload.payload as { authorization?: { from: Address; nonce: Hex } }).authorization;
-    if (!c || !ctx.result.success || !auth) return;
-    opts.meter.enqueue({
-      paymentId: paymentIdOf(d.chainId, ctx.requirements.asset as Address, auth.from, auth.nonce),
-      settlementTx: ctx.result.transaction as Hex,
+  type Authorization = { from: Address; nonce: Hex; validBefore: string };
+  const paymentOf = (requirements: { asset: string; extra?: Record<string, unknown> }, payload: unknown) => {
+    const c = requirements.extra?.carbon as CarbonExtra | undefined;
+    const auth = (payload as { authorization?: Authorization }).authorization;
+    if (!c || !auth) return undefined;
+    const accrual = {
+      paymentId: paymentIdOf(d.chainId, requirements.asset as Address, auth.from, auth.nonce),
       payer: auth.from,
       agentId: BigInt(c.agentId),
       mgCO2e: BigInt(c.mgCO2e),
       surcharge: BigInt(c.surcharge),
       methodologyHash: c.methodologyHash,
+    };
+    return { auth, accrual };
+  };
+
+  // Write-ahead: a settle response we never get must not hide a charged payment. If this throws, x402 core
+  // aborts before calling the facilitator and nobody is charged.
+  server.onBeforeSettle(async (ctx) => {
+    const p = paymentOf(ctx.requirements, ctx.paymentPayload.payload);
+    if (!p) return;
+    await opts.meter.openIntent({
+      ...p.accrual,
+      nonce: p.auth.nonce,
+      asset: ctx.requirements.asset as Address,
+      payTo: ctx.requirements.payTo as Address,
+      amount: BigInt(ctx.requirements.amount),
+      validBefore: Number(p.auth.validBefore),
     });
+  });
+
+  // Durable: the accrual is written to the meter's SQLite queue before the response goes out.
+  server.onAfterSettle(async (ctx) => {
+    const p = paymentOf(ctx.requirements, ctx.paymentPayload.payload);
+    if (!p || !ctx.result.success) return;
+    opts.meter.enqueue({ ...p.accrual, settlementTx: ctx.result.transaction as Hex });
   });
 
   const price = (ctx: HTTPRequestContext) => {

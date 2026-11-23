@@ -17,7 +17,7 @@
     "build": "npm run build -w web",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "biome lint",
-    "test": "npm run test -w @decarbonai/x402-carbon",
+    "test": "npm run test -w @decarbonai/x402-carbon && npm run test -w paid-api && node --test scripts/test/*.test.ts",
     "contracts:build": "cd packages/contracts && forge build",
     "contracts:test": "cd packages/contracts && forge test",
     "contracts:coverage": "cd packages/contracts && forge coverage --report summary --no-match-coverage '(test|script)/'",
@@ -28,7 +28,9 @@
     "demo:burst": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/demo-burst.ts",
     "smoke:fuji": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/smoke-fuji.ts",
     "setup:merchant": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/setup-merchant.ts",
-    "reconcile": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/reconcile.ts"
+    "reconcile": "node --env-file=.env --no-warnings=ExperimentalWarning scripts/reconcile.ts",
+    "audit:roles": "node scripts/audit-roles.ts",
+    "retire:lot1": "node scripts/klima-retire.ts"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.6",

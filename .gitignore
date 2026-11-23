@@ -22,6 +22,11 @@ packages/contracts/broadcast/**
 !packages/contracts/broadcast/Deploy.s.sol/
 !packages/contracts/broadcast/Deploy.s.sol/43113/
 !packages/contracts/broadcast/Deploy.s.sol/43113/run-latest.json
+deployments/anvil-lot1.json
+# klima-retire bookkeeping: the intent is local state, only the finished lot file is committed
+deployments/avalanche-lot1.intent.json
+deployments/avalanche-lot1.void-*.json
+deployments/*.tmp
 
 # Playwright
 test-results/

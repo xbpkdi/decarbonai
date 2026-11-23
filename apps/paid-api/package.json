@@ -5,7 +5,8 @@
   "type": "module",
   "description": "Demo x402 paid inference API on Avalanche Fuji with a carbon surcharge (DecarbonAI v2).",
   "scripts": {
-    "start": "node --env-file-if-exists=../../.env --no-warnings=ExperimentalWarning src/server.ts"
+    "start": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning src/server.ts",
+    "test": "node --test --no-warnings=ExperimentalWarning test/*.test.ts"
   },
   "dependencies": {
     "@decarbonai/chain": "*",

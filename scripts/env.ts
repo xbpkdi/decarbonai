@@ -10,7 +10,7 @@ import { loadDeployment } from "@decarbonai/chain/node";
 export function scriptEnv() {
   const d: Deployment = loadDeployment();
   const mainnet = d.chainId === 43114;
-  const v = (fuji: string, main: string) => process.env[mainnet ? main : fuji];
+  const v = (fuji: string, main: string) => process.env[mainnet ? main : fuji] || undefined; // blank = unset
   const key = (fuji: string, main: string) => v(fuji, main) as Hex | undefined;
   const payToKey = key("PAY_TO_PRIVATE_KEY", "MAINNET_PAY_TO_PRIVATE_KEY");
   const payTo = (v("PAY_TO_ADDRESS", "MAINNET_PAY_TO_ADDRESS") ??

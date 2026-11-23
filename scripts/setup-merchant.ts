@@ -1,8 +1,10 @@
 // One-time merchant setup on DECARBONAI_NETWORK (fuji default | avalanche):
 //  - Fuji only: top up gas for the meter and payTo wallets from the deployer,
-//  - payTo approves the pool to pull carbon surcharges (pool.surchargeFunder(meter) must be payTo),
+//  - payTo approves the pool to pull up to 25 USDC of carbon surcharges (pool.surchargeFunder(meter) must be
+//    payTo). Bounded on purpose: a leaked meter key can push at most this much from payTo into the pool. The
+//    API fails closed below 10 USDC; run this again to top it up,
 //  - prints the role layout so you can check the meter holds METER_ROLE only.
-import { createWalletClient, erc20Abi, formatEther, http, maxUint256, parseEther } from "viem";
+import { createWalletClient, erc20Abi, formatEther, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { explorerFor, network, retirementPoolAbi } from "@decarbonai/chain";
 import { clientFor, rpcUrlFor } from "@decarbonai/chain/node";
@@ -29,13 +31,15 @@ if (!env.mainnet) {
   }
 }
 
+const ALLOWANCE = 25_000_000n; // 25 USDC, about 45,000 demo calls
+const TOP_UP_BELOW = 15_000_000n; // above the API's 10 USDC fail-closed floor
 const allowance = await client.readContract({ address: d.paymentToken, abi: erc20Abi, functionName: "allowance", args: [payToAccount.address, d.retirementPool] });
-if (allowance < 10n ** 30n) {
+if (allowance < TOP_UP_BELOW || allowance > ALLOWANCE) {
   const payTo = createWalletClient({ account: payToAccount, chain: net.chain, transport });
-  const hash = await payTo.writeContract({ address: d.paymentToken, abi: erc20Abi, functionName: "approve", args: [d.retirementPool, maxUint256] });
+  const hash = await payTo.writeContract({ address: d.paymentToken, abi: erc20Abi, functionName: "approve", args: [d.retirementPool, ALLOWANCE] });
   await client.waitForTransactionReceipt({ hash });
-  console.log(`payTo approved the pool for surcharges: ${explorer.tx(hash)}`);
-} else console.log("payTo allowance ok");
+  console.log(`payTo approved the pool for ${Number(ALLOWANCE) / 1e6} USDC of surcharges: ${explorer.tx(hash)}`);
+} else console.log(`payTo allowance ok: ${Number(allowance) / 1e6} USDC`);
 
 const pool = { address: d.retirementPool, abi: retirementPoolAbi } as const;
 const [funder, admin, meterRole, treasuryRole] = await Promise.all([

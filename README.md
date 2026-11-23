@@ -114,24 +114,26 @@ Circle's Fuji USDC (`0x5425…Bc65`) is only available from a captcha faucet, so
 | `packages/mcp-server` | stdio MCP server for Claude: `paid_inference`, `carbon_status`, `estimate_carbon`, with per-call and per-session budgets. |
 | `apps/paid-api` | Demo paid endpoint `GET /v1/infer` (simulated completion; the payment and carbon path are real), rate limited. |
 | `apps/web` | Next.js UI (Live, Agent, Receipts, Developers, Methodology) reading the Fuji pool. The v1 estimate/checkout flow and `POST /api/offset` are removed. |
-| `scripts/` | `setup-agent.ts`, `setup-merchant.ts`, `demo-burst.ts`, `smoke-fuji.ts`, `reconcile.ts`, `gen-abis.mjs`, `env.ts` (per-role keys). |
+| `scripts/` | `setup-agent.ts`, `setup-merchant.ts`, `demo-burst.ts`, `smoke-fuji.ts`, `reconcile.ts`, `audit-roles.ts` (read-only), `klima-retire.ts` (real credit on Base), `gen-abis.mjs`, `env.ts` (per-role keys). |
 
 ## Run it
 
 ```bash
 npm ci
 cp .env.example .env   # one key per role: FUJI_PRIVATE_KEY (admin), METER_PRIVATE_KEY, PAY_TO_PRIVATE_KEY, AGENT_PRIVATE_KEY
-npm run setup:merchant # gas for meter + payTo, payTo approves the pool, prints the role layout
+npm run setup:merchant # gas for meter + payTo, payTo approves the pool for 25 tUSDC, prints the role layout
 npm run setup:agent    # agent gas + 1000 tUSDC + ERC-8004 identity -> add AGENT_ID to .env
 npm run smoke:fuji     # pre-demo health check: wiring, role separation, supply, facilitator, one real paid call
 npm run demo:burst     # 100 paid calls, watch the pool fill and auto-retire (args: [calls] [concurrency])
-npm run reconcile      # every settled surcharge is on-chain (ACCRUAL_DB=… to point at the API's queue)
+npm run audit:roles    # read-only: who controls the deployment, every role ever granted
+npm run reconcile      # every settled surcharge is on-chain (uses the API's queue for this chain + pool)
 ```
 
 Run the API and let Claude pay for itself:
 
 ```bash
-METER_PRIVATE_KEY=… PAY_TO_ADDRESS=0x… npm run api   # http://localhost:4021, queue in apps/paid-api/.data/
+cp apps/paid-api/.env.example apps/paid-api/.env   # meter key + payTo address only; the API exits if it finds any other key
+npm run api                                        # http://localhost:4021, queue in apps/paid-api/.data/ (one DB per chain + pool)
 claude mcp add decarbonai -- node --env-file=$PWD/.env $PWD/packages/mcp-server/src/server.ts
 # then ask Claude: "use paid_inference to ask reasoning-heavy about x402, then show carbon_status"
 ```
@@ -142,7 +144,7 @@ Contracts:
 cd packages/contracts
 forge test                               # 67 tests incl. fuzz; 100% lines of src
 forge coverage --report summary --no-match-coverage '(test|script)/'
-# deploy (writes deployments/fuji.json)
+# deploy (writes deployments/fuji.json). DEPLOYER_PRIVATE_KEY must be exported; there is no fallback key
 METER_ADDRESS=0x… PAY_TO_ADDRESS=0x… PAYMENT_TOKEN=0xEe3aF37B5af84cDd20e7488F30Ea0b691bA20252 \
 METHODOLOGY_HASH=0x50316f9e7beab6cf0a7448d957b7df5f08b46b2625cb05a270208de18de3e677 METHODOLOGY_VERSION=v0-2026-08-anchored \
 forge script script/Deploy.s.sol:Deploy --rpc-url $FUJI_RPC_URL --broadcast --slow --verify \

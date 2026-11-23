@@ -6,6 +6,7 @@
       "packages/*/test/**/*.ts",
       "scripts/**",
       "apps/paid-api/src/**/*.ts",
+      "apps/paid-api/test/**/*.ts",
       "apps/web/**/*.ts",
       "apps/web/**/*.tsx",
       "!packages/chain/src/abis.ts",
