@@ -1,59 +1,53 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
-import { addCertificate, type Certificate } from "@/lib/certificates";
 import { retireTonnes } from "@retirement/carbonmark";
 
-export async function POST(req: Request) {
-  const body = (await req.json()) as { tonnes?: number; mgCO2e?: number };
-  const tonnes = body.tonnes ?? 0.001;
-  const mgCO2e = body.mgCO2e ?? 1_000_000;
+// v1 retirement endpoint. It spends real Carbonmark credits and Fuji gas, so it is closed by
+// default: it only runs when OFFSET_ADMIN_TOKEN is set server-side and the request carries
+// `Authorization: Bearer <OFFSET_ADMIN_TOKEN>`. The v2 path is x402 + RetirementPool on Fuji.
+const MAX_TONNES = 0.01;
 
+function authorized(req: Request): boolean {
+  const token = process.env.OFFSET_ADMIN_TOKEN;
+  if (!token) return false;
+  const header = req.headers.get("authorization") ?? "";
+  const expected = Buffer.from(`Bearer ${token}`);
+  const given = Buffer.from(header);
+  return given.length === expected.length && timingSafeEqual(given, expected);
+}
+
+export async function POST(req: Request) {
+  if (!process.env.OFFSET_ADMIN_TOKEN) {
+    return NextResponse.json(
+      { error: "Direct retirement is disabled. DecarbonAI v2 settles carbon via x402 on Avalanche Fuji." },
+      { status: 503 },
+    );
+  }
+  if (!authorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   if (!process.env.CARBONMARK_API_KEY) {
-    return NextResponse.json({ error: "CARBONMARK_API_KEY missing in apps/web/.env.local" }, { status: 500 });
+    return NextResponse.json({ error: "CARBONMARK_API_KEY missing" }, { status: 500 });
+  }
+
+  const body = (await req.json().catch(() => ({}))) as { tonnes?: unknown; mgCO2e?: unknown };
+  const tonnes = typeof body.tonnes === "number" ? body.tonnes : 0.001;
+  const mgCO2e = typeof body.mgCO2e === "number" ? body.mgCO2e : 1_000_000;
+  if (!Number.isFinite(tonnes) || tonnes < 0.001 || tonnes > MAX_TONNES) {
+    return NextResponse.json({ error: `tonnes must be between 0.001 and ${MAX_TONNES}` }, { status: 400 });
   }
 
   try {
-    // Step 1: Retire credits on Carbonmark (sandbox)
     const order = await retireTonnes(tonnes);
-    let snowtraceUrl: string | null = null;
-    let receiptId: string | null = null;
-
-    const fujiKey = process.env.FUJI_PRIVATE_KEY as `0x${string}` | undefined;
-    const contract = process.env.CERTIFICATE_RECEIPT_ADDRESS as `0x${string}` | undefined;
-
-    if (fujiKey && contract && order.view_retirement_url) {
-      // Step 2: Mirror receipt on Fuji C-Chain (optional if env set)
-      const { recordReceipt } = await import("../../../../../spike/deploy-receipt");
-      const tx = order.transaction_hash;
-      const sourceTx = (tx && tx.startsWith("0x") && tx.length === 66 ? tx : `0x${"00".repeat(32)}`) as `0x${string}`;
-      const recorded = await recordReceipt({
-        privateKey: fujiKey,
-        contract,
-        sourceTx,
-        carbonmarkUrl: order.view_retirement_url,
-        mgCO2e: BigInt(mgCO2e),
-        beneficiary: (process.env.BENEFICIARY_ADDRESS as `0x${string}`) ?? "0x000000000000000000000000000000000000dEaD",
-      });
-      snowtraceUrl = recorded.explorer;
-      receiptId = recorded.id;
-    }
-
-    const beneficiaryName = process.env.BENEFICIARY_NAME ?? "RWA Carbon Offset";
-
-    const cert: Certificate = {
+    // Not persisted: the .data file store was removed. The caller keeps this response.
+    return NextResponse.json({
       id: crypto.randomUUID(),
       tonnes,
       mgCO2e,
       carbonmarkUrl: order.view_retirement_url,
       sourceTx: order.transaction_hash,
-      snowtraceUrl,
-      receiptId,
       createdAt: new Date().toISOString(),
-      beneficiary: beneficiaryName,
-    };
-
-    // Step 3: Save certificate for /certificate/[id]
-    addCertificate(cert);
-    return NextResponse.json(cert);
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Retirement failed";
     return NextResponse.json({ error: message }, { status: 500 });

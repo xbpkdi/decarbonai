@@ -1,13 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2023",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "rewriteRelativeImportExtensions": false,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": false,
+    "noEmit": true,
     "types": ["node"]
   },
-  "include": ["spike/**/*.ts", "packages/**/*.ts"]
+  "include": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "scripts/**/*.ts", "apps/paid-api/src/**/*.ts", "apps/paid-api/test/**/*.ts", "spike/**/*.ts"]
 }

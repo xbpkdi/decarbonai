@@ -1,0 +1,24 @@
+{
+  "name": "@decarbonai/x402-carbon",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "x402 middleware that prices gCO2e into every paid call on Avalanche and settles it into the DecarbonAI RetirementPool.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "test": "node --test --no-warnings=ExperimentalWarning test/*.test.ts"
+  },
+  "dependencies": {
+    "@decarbonai/chain": "*",
+    "@decarbonai/core": "*",
+    "@x402/core": "2.32.0",
+    "@x402/evm": "2.32.0",
+    "@x402/fetch": "2.32.0",
+    "@x402/hono": "2.32.0",
+    "hono": "^4.10.0",
+    "viem": "^2.33.2"
+  }
+}

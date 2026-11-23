@@ -1,0 +1,18 @@
+{
+  "name": "paid-api",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Demo x402 paid inference API on Avalanche Fuji with a carbon surcharge (DecarbonAI v2).",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --no-warnings=ExperimentalWarning src/server.ts",
+    "test": "node --test --no-warnings=ExperimentalWarning test/*.test.ts"
+  },
+  "dependencies": {
+    "@decarbonai/chain": "*",
+    "@decarbonai/x402-carbon": "*",
+    "@hono/node-server": "^1.19.0",
+    "hono": "^4.10.0",
+    "viem": "^2.33.2"
+  }
+}

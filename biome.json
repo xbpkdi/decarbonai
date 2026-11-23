@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": ["packages/*/src/**/*.ts", "packages/*/test/**/*.ts", "scripts/**", "apps/paid-api/src/**/*.ts", "apps/paid-api/test/**/*.ts", "!packages/chain/src/abis.ts"]
+  },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "style": { "noNonNullAssertion": "off" }
+    }
+  }
+}

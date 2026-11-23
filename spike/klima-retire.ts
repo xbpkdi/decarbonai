@@ -70,11 +70,11 @@ async function main() {
     message: Record<string, unknown>;
   };
   const signature = await account.signTypedData({
-    domain: typedData.domain as never,
-    types: typedData.types as never,
+    domain: typedData.domain,
+    types: typedData.types,
     primaryType: typedData.primaryType,
-    message: typedData.message as never,
-  });
+    message: typedData.message,
+  } as Parameters<typeof account.signTypedData>[0]);
 
   const request = prep.actionsRetireRequest as Json;
   const authPayload = { ...(request.authPayload as Json), signature };

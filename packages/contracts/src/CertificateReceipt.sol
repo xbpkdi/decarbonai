@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-/// @notice Permanent public receipt on Avalanche C-Chain pointing at a real Carbonmark retirement.
+/// @notice [v1 legacy, kept for the existing Fuji deployment 0x9dd6...7cc1] Permanent public receipt on Avalanche C-Chain pointing at a real Carbonmark retirement.
 contract CertificateReceipt {
     address public immutable recorder;
 
@@ -17,11 +17,7 @@ contract CertificateReceipt {
     mapping(uint256 => Receipt) public receipts;
 
     event Recorded(
-        uint256 indexed id,
-        bytes32 indexed sourceTx,
-        address indexed beneficiary,
-        string carbonmarkUrl,
-        uint256 mgCO2e
+        uint256 indexed id, bytes32 indexed sourceTx, address indexed beneficiary, string carbonmarkUrl, uint256 mgCO2e
     );
 
     error NotRecorder();
@@ -30,12 +26,10 @@ contract CertificateReceipt {
         recorder = recorder_;
     }
 
-    function record(
-        bytes32 sourceTx,
-        string calldata carbonmarkUrl,
-        uint256 mgCO2e,
-        address beneficiary
-    ) external returns (uint256 id) {
+    function record(bytes32 sourceTx, string calldata carbonmarkUrl, uint256 mgCO2e, address beneficiary)
+        external
+        returns (uint256 id)
+    {
         if (msg.sender != recorder) revert NotRecorder();
         id = nextId++;
         receipts[id] = Receipt({
