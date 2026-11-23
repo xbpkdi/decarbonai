@@ -35,6 +35,52 @@ export type NewAccrual = Pick<
   "paymentId" | "settlementTx" | "payer" | "agentId" | "mgCO2e" | "surcharge" | "methodologyHash"
 >;
 
+/**
+ * A payment handed to the facilitator whose outcome is not recorded yet. Written before settlement, so a lost
+ * settle response cannot hide a charged payment; replaced by the accrual row, or resolved from the chain.
+ */
+export type SettleIntent = Omit<NewAccrual, "settlementTx"> & {
+  nonce: Hex;
+  asset: Address;
+  payTo: Address;
+  amount: bigint; // total authorized, base price + surcharge
+  validBefore: number; // unix seconds
+  fromBlock: bigint; // a block before the settlement
+  createdAt: number;
+};
+
+type RawIntent = {
+  payment_id: string;
+  payer: string;
+  agent_id: string;
+  mg_co2e: string;
+  surcharge: string;
+  methodology_hash: string;
+  nonce: string;
+  asset: string;
+  pay_to: string;
+  amount: string;
+  valid_before: number;
+  from_block: string;
+  created_at: number;
+};
+
+const toIntent = (r: RawIntent): SettleIntent => ({
+  paymentId: r.payment_id as Hex,
+  payer: r.payer as Address,
+  agentId: BigInt(r.agent_id),
+  mgCO2e: BigInt(r.mg_co2e),
+  surcharge: BigInt(r.surcharge),
+  methodologyHash: r.methodology_hash as Hex,
+  nonce: r.nonce as Hex,
+  asset: r.asset as Address,
+  payTo: r.pay_to as Address,
+  amount: BigInt(r.amount),
+  validBefore: r.valid_before,
+  fromBlock: BigInt(r.from_block),
+  createdAt: r.created_at,
+});
+
 type Raw = {
   payment_id: string;
   settlement_tx: string;
@@ -72,8 +118,9 @@ const toRow = (r: Raw): AccrualRow => ({
 export class AccrualStore {
   private readonly db: DatabaseSync;
 
-  /** `path` = file path, or ":memory:" for tests. */
+  /** `path` = file path, or ":memory:" for tests. A blank path is refused: SQLite would open a temporary DB. */
   constructor(path: string) {
+    if (!path.trim()) throw new Error("accrual DB path is empty (SQLite would use a temporary file)");
     if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
     this.db = new DatabaseSync(path);
     this.db.exec(`
@@ -95,13 +142,99 @@ export class AccrualStore {
         updated_at INTEGER NOT NULL,
         next_attempt_at INTEGER NOT NULL DEFAULT 0
       );
+      CREATE TABLE IF NOT EXISTS settle_intents (
+        payment_id TEXT PRIMARY KEY,
+        payer TEXT NOT NULL,
+        agent_id TEXT NOT NULL,
+        mg_co2e TEXT NOT NULL,
+        surcharge TEXT NOT NULL,
+        methodology_hash TEXT NOT NULL,
+        nonce TEXT NOT NULL,
+        asset TEXT NOT NULL,
+        pay_to TEXT NOT NULL,
+        amount TEXT NOT NULL,
+        valid_before INTEGER NOT NULL,
+        from_block TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'open',
+        created_at INTEGER NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
       CREATE INDEX IF NOT EXISTS accruals_status ON accruals (status, next_attempt_at);
       CREATE INDEX IF NOT EXISTS accruals_settlement ON accruals (settlement_tx);
     `);
   }
 
-  /** Durable insert; ignores a payment already recorded. Returns true if it was new. */
+  /**
+   * Tie this DB to one chain + pool, forever. Rows carry no chain, so replaying a Fuji queue into the mainnet
+   * pool would pull real USDC and burn backed DCO2 for payments that never happened. Throws on a mismatch,
+   * and on a DB that already has rows but no recorded chain (written before this check).
+   */
+  bindTo(chainId: number, pool: Address) {
+    const want = `${chainId}:${pool.toLowerCase()}`;
+    const have = (this.db.prepare("SELECT value FROM meta WHERE key = 'chain_pool'").get() as { value: string } | undefined)?.value;
+    if (have === want) return;
+    if (have) throw new Error(`accrual DB belongs to ${have}, not ${want}: use a separate ACCRUAL_DB per chain and pool`);
+    const { n } = this.db.prepare("SELECT COUNT(*) AS n FROM accruals").get() as { n: number };
+    if (n > 0) throw new Error(`accrual DB has ${n} rows but no recorded chain and pool: move it away, do not use it for ${want}`);
+    this.db.prepare("INSERT OR IGNORE INTO meta (key, value) VALUES ('chain_pool', ?)").run(want);
+    const stored = (this.db.prepare("SELECT value FROM meta WHERE key = 'chain_pool'").get() as { value: string }).value;
+    if (stored !== want) throw new Error(`accrual DB belongs to ${stored}, not ${want}`);
+  }
+
+  /** Durable insert; ignores a payment already recorded, and closes its settle intent. Returns true if it was new. */
   insert(a: NewAccrual, now = Date.now()): boolean {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const isNew = this.insertRow(a, now);
+      this.closeIntent(a.paymentId);
+      this.db.exec("COMMIT");
+      return isNew;
+    } catch (e) {
+      this.db.exec("ROLLBACK");
+      throw e;
+    }
+  }
+
+  insertIntent(i: Omit<SettleIntent, "createdAt">, now = Date.now()) {
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO settle_intents
+         (payment_id, payer, agent_id, mg_co2e, surcharge, methodology_hash, nonce, asset, pay_to, amount, valid_before, from_block, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        i.paymentId.toLowerCase(),
+        i.payer.toLowerCase(),
+        i.agentId.toString(),
+        i.mgCO2e.toString(),
+        i.surcharge.toString(),
+        i.methodologyHash,
+        i.nonce,
+        i.asset.toLowerCase(),
+        i.payTo.toLowerCase(),
+        i.amount.toString(),
+        i.validBefore,
+        i.fromBlock.toString(),
+        now,
+      );
+  }
+
+  /** Settle intents by status: 'open' = outcome unknown, 'unresolved' = needs a human. */
+  intents(status: "open" | "unresolved" = "open", createdBefore = Date.now()): SettleIntent[] {
+    return (
+      this.db.prepare("SELECT * FROM settle_intents WHERE status = ? AND created_at <= ? ORDER BY created_at").all(status, createdBefore) as RawIntent[]
+    ).map(toIntent);
+  }
+
+  closeIntent(id: Hex) {
+    this.db.prepare("DELETE FROM settle_intents WHERE payment_id = ?").run(id.toLowerCase());
+  }
+
+  markIntentUnresolved(id: Hex) {
+    this.db.prepare("UPDATE settle_intents SET status = 'unresolved' WHERE payment_id = ?").run(id.toLowerCase());
+  }
+
+  private insertRow(a: NewAccrual, now: number): boolean {
     const r = this.db
       .prepare(
         `INSERT OR IGNORE INTO accruals
@@ -167,6 +300,12 @@ export class AccrualStore {
        WHERE payment_id = ?`,
     );
     for (const id of ids) stmt.run(errorCode, now, now, id.toLowerCase());
+  }
+
+  /** Surcharge still to be pulled from payTo for rows created at or before `createdBefore`. */
+  unsettledSurcharge(createdBefore = Date.now()): bigint {
+    const rows = this.db.prepare("SELECT surcharge FROM accruals WHERE status <> 'confirmed' AND created_at <= ?").all(createdBefore) as { surcharge: string }[];
+    return rows.reduce((sum, r) => sum + BigInt(r.surcharge), 0n);
   }
 
   counts(): Record<AccrualStatus, { n: number; surcharge: bigint }> {

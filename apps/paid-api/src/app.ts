@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Address, Hex } from "viem";
-import { explorerFor, network, retirementPoolAbi, type Deployment } from "@decarbonai/chain";
+import { dCO2Abi, explorerFor, network, retirementPoolAbi, type Deployment } from "@decarbonai/chain";
 import { clientFor, loadDeployment, rpcUrlFor } from "@decarbonai/chain/node";
 import { AccrualStore, CarbonMeter, carbonPayment, type CarbonVariables } from "@decarbonai/x402-carbon";
 import { rateLimit } from "./ratelimit.ts";
@@ -36,13 +36,16 @@ export function createApp(cfg: AppConfig) {
   const app = new Hono<{ Variables: CarbonVariables }>();
 
   /**
-   * B1 guard: refuse to run with a key that can do more than meter, or with a payTo the pool does
-   * not pull surcharges from. Call before serving.
+   * B1 guard: refuse to run on the wrong chain, with a key that can do more than meter (pool roles, or
+   * ownership of DCO2 / receipt / adapter), or with a payTo the pool does not pull surcharges from.
+   * Call before serving.
    */
   async function preflight(): Promise<void> {
     if (cfg.payTo.toLowerCase() === meter.address.toLowerCase()) {
       throw new Error("PAY_TO_ADDRESS must differ from the meter wallet");
     }
+    const chainId = await client.getChainId();
+    if (chainId !== d.chainId) throw new Error(`RPC is chain ${chainId}, the deployment is on ${d.chainId}`);
     const pool = { address: d.retirementPool, abi: retirementPoolAbi } as const;
     const [meterRole, treasuryRole, pauserRole, admin, funder] = await Promise.all([
       client.readContract({ ...pool, functionName: "METER_ROLE" }),
@@ -51,14 +54,29 @@ export function createApp(cfg: AppConfig) {
       client.readContract({ ...pool, functionName: "defaultAdmin" }),
       client.readContract({ ...pool, functionName: "surchargeFunder", args: [meter.address] }),
     ]);
+    // all three are Ownable2Step, so one ABI reads them all
+    const owned = [
+      ["DCO2", d.dco2],
+      ["CarbonReceipt", d.carbonReceipt],
+      ["ERC8004ReputationAdapter", d.reputationAdapter],
+    ] as const;
+    const [[pendingAdmin], owners, pendingOwners] = await Promise.all([
+      client.readContract({ ...pool, functionName: "pendingDefaultAdmin" }),
+      Promise.all(owned.map(([, address]) => client.readContract({ address, abi: dCO2Abi, functionName: "owner" }))),
+      Promise.all(owned.map(([, address]) => client.readContract({ address, abi: dCO2Abi, functionName: "pendingOwner" }))),
+    ]);
+    const isMeterKey = (a: Address) => a.toLowerCase() === meter.address.toLowerCase();
     const [isMeter, isTreasury, isPauser] = await Promise.all(
       [meterRole, treasuryRole, pauserRole].map((role) =>
         client.readContract({ ...pool, functionName: "hasRole", args: [role, meter.address] }),
       ),
     );
     if (!isMeter) throw new Error(`meter ${meter.address} lacks METER_ROLE`);
-    if (isTreasury || isPauser || admin.toLowerCase() === meter.address.toLowerCase()) {
+    if (isTreasury || isPauser || isMeterKey(admin) || isMeterKey(pendingAdmin)) {
       throw new Error("meter key holds admin/treasury/pauser rights on the pool; use a METER_ROLE-only key");
+    }
+    for (const [i, [name]] of owned.entries()) {
+      if (isMeterKey(owners[i]) || isMeterKey(pendingOwners[i])) throw new Error(`meter key owns ${name}; use a METER_ROLE-only key`);
     }
     if (funder.toLowerCase() !== cfg.payTo.toLowerCase()) {
       throw new Error(`pool.surchargeFunder(meter) is ${funder}, expected PAY_TO_ADDRESS ${cfg.payTo}`);

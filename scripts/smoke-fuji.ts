@@ -94,16 +94,16 @@ if (!process.argv.includes("--no-pay")) {
   const { app, meter, preflight } = createApp({
     meterKey,
     payTo,
-    dbPath: process.env.ACCRUAL_DB ?? `.data/smoke-${d.chainId}.sqlite`,
+    dbPath: process.env.ACCRUAL_DB || `.data/smoke-${d.chainId}-${d.retirementPool.toLowerCase()}.sqlite`,
     deployment: d,
   });
   await preflight();
-  const server = serve({ fetch: app.fetch, port: 0 });
+  const server = serve({ fetch: app.fetch, port: 0, hostname: "127.0.0.1" });
   await new Promise((r) => server.once("listening", r));
   const port = (server.address() as AddressInfo).port;
   const before = await getAccount(client, agentAddr, d);
   const res = await createPayingFetch({ privateKey: agentKey, agentId: env.agentId, deployment: d }).fetch(
-    `http://localhost:${port}/v1/infer?model=claude-sonnet&maxOutputTokens=200&prompt=smoke`,
+    `http://127.0.0.1:${port}/v1/infer?model=claude-sonnet&maxOutputTokens=200&prompt=smoke`,
   );
   const s = settlementFrom(res);
   check(res.ok && !!s?.transaction, "x402 paid call settled", s?.transaction ? explorer.tx(s.transaction) : `HTTP ${res.status}`);

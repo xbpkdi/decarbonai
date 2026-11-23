@@ -1,8 +1,8 @@
-import { createWalletClient, erc20Abi, http, type Address, type Hex, type PublicClient } from "viem";
+import { createWalletClient, erc20Abi, http, parseAbi, parseEventLogs, type Address, type Hex, type PublicClient } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { FUJI, network, retirementPoolAbi, type Deployment } from "@decarbonai/chain";
 import { METHODOLOGY_HASH } from "@decarbonai/core";
-import type { AccrualStore, AccrualRow, NewAccrual } from "./store.ts";
+import type { AccrualStore, AccrualRow, NewAccrual, SettleIntent } from "./store.ts";
 
 /**
  * Gas limit per accrueBatch, sized from the items and the retirements they will trigger. We avoid
@@ -26,6 +26,18 @@ export function batchGasLimit(items: number, retirements: bigint, newPayers = 0,
     retirements * (backed ? RETIREMENT_GAS_BACKED : RETIREMENT_GAS_MOCK)
   );
 }
+
+const eip3009Abi = parseAbi([
+  "function authorizationState(address authorizer, bytes32 nonce) view returns (bool)",
+  "event AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)",
+  "event Transfer(address indexed from, address indexed to, uint256 value)",
+]);
+/** How long a settle response may take before an intent is checked on-chain. */
+const INTENT_MIN_AGE_MS = 120_000;
+/** Grace after validBefore before an unused authorization counts as dead (RPC lag). */
+const EXPIRY_MARGIN_SEC = 300;
+const LOG_CHUNK = 2000n; // public C-Chain RPC limit is 2048 blocks
+const LOG_CHUNKS = 5; // an authorization lives ~2 min, so its event is within the first few chunks
 
 /** Retirements a batch triggers, given each payer's on-chain pendingMg, capped by the pool's budget. */
 export function predictRetirements(
@@ -92,8 +104,10 @@ export class CarbonMeter {
   private readonly maxBacklog: number;
   private timer?: ReturnType<typeof setInterval>;
   private busy: Promise<void> = Promise.resolve();
-  private params?: { at: number; threshold: bigint; maxPerTx: bigint; paused: boolean; activeMethods: Set<string> };
+  private params?: { at: number; threshold: bigint; maxPerTx: bigint; paused: boolean; pricePerTonne: bigint; activeMethods: Set<string> };
   private healthCache?: Health;
+  private lastBlock?: bigint;
+  private intentsCheckedAt = 0;
 
   constructor(client: PublicClient, privateKey: Hex, d: Deployment = FUJI, opts: MeterOptions) {
     const account = privateKeyToAccount(privateKey);
@@ -101,6 +115,7 @@ export class CarbonMeter {
     this.client = client;
     this.d = d;
     this.store = opts.store;
+    this.store.bindTo(d.chainId, d.retirementPool);
     this.wallet = createWalletClient({ account, chain: network(d.chainId).chain, transport: http(opts.rpcUrl) });
     this.batchSize = opts.batchSize ?? 25;
     this.flushMs = opts.flushMs ?? 2000;
@@ -112,6 +127,12 @@ export class CarbonMeter {
   /** Durably record a settled payment (sync). Safe to call twice for the same payment. */
   enqueue(req: AccrualRequest): boolean {
     return this.store.insert(req);
+  }
+
+  /** Durably record a payment before it is settled. Throws if it cannot, so the caller must not settle. */
+  async openIntent(i: Omit<SettleIntent, "createdAt" | "fromBlock">) {
+    const fromBlock = this.lastBlock ?? (await this.client.getBlockNumber());
+    this.store.insertIntent({ ...i, fromBlock });
   }
 
   get(id: Hex): PublicAccrual | undefined {
@@ -134,6 +155,10 @@ export class CarbonMeter {
   flush(): Promise<void> {
     const run = async () => {
       try {
+        if (Date.now() - this.intentsCheckedAt > 30_000) {
+          this.intentsCheckedAt = Date.now();
+          await this.resolveIntents();
+        }
         await this.recoverSent();
         await this.settleNext();
       } catch {
@@ -159,10 +184,11 @@ export class CarbonMeter {
   private async refreshParams(force = false) {
     if (!force && this.params && Date.now() - this.params.at < 30_000) return this.params;
     const pool = { address: this.d.retirementPool, abi: retirementPoolAbi } as const;
-    const [threshold, maxPerTx, paused, method] = await Promise.all([
+    const [threshold, maxPerTx, paused, pricePerTonne, method] = await Promise.all([
       this.client.readContract({ ...pool, functionName: "thresholdMg" }),
       this.client.readContract({ ...pool, functionName: "maxRetirementsPerCall" }),
       this.client.readContract({ ...pool, functionName: "paused" }),
+      this.client.readContract({ ...pool, functionName: "pricePerTonne" }),
       this.client.readContract({ ...pool, functionName: "methodology", args: [METHODOLOGY_HASH] }),
     ]);
     this.params = {
@@ -170,6 +196,7 @@ export class CarbonMeter {
       threshold,
       maxPerTx: BigInt(maxPerTx),
       paused,
+      pricePerTonne,
       activeMethods: new Set(method.active ? [METHODOLOGY_HASH.toLowerCase()] : []),
     };
     return this.params;
@@ -278,6 +305,50 @@ export class CarbonMeter {
     if (missing.length) this.store.markRetry(missing, code);
   }
 
+  /**
+   * Payments whose settle response never reached us: queue the ones the chain shows as paid to the merchant,
+   * drop the ones that expired unused.
+   */
+  async resolveIntents(minAgeMs = INTENT_MIN_AGE_MS) {
+    for (const i of this.store.intents("open", Date.now() - minAgeMs)) {
+      try {
+        await this.resolveIntent(i);
+      } catch {
+        // RPC hiccup: this intent stays open, the others still get their turn
+      }
+    }
+  }
+
+  private async resolveIntent(i: SettleIntent) {
+    const head = await this.client.getBlock({ blockTag: "latest" });
+    const expired = Number(head.timestamp) > i.validBefore + EXPIRY_MARGIN_SEC;
+    const used = await this.client.readContract({ address: i.asset, abi: eip3009Abi, functionName: "authorizationState", args: [i.payer, i.nonce] });
+    if (!used) {
+      if (expired) this.store.closeIntent(i.paymentId);
+      return;
+    }
+    const tx = await this.findSettlement(i, head.number);
+    if (tx) this.enqueue({ ...i, settlementTx: tx });
+    // cancelled, or the nonce was spent on something else: not our money, but keep it visible
+    else if (expired) this.store.markIntentUnresolved(i.paymentId);
+  }
+
+  /** The tx that used this authorization and paid the merchant exactly the quoted amount. */
+  private async findSettlement(i: SettleIntent, head: bigint): Promise<Hex | null> {
+    for (let n = 0, from = i.fromBlock; n < LOG_CHUNKS && from <= head; n++, from += LOG_CHUNK) {
+      const to = from + LOG_CHUNK - 1n < head ? from + LOG_CHUNK - 1n : head;
+      const [log] = await this.client.getLogs({ address: i.asset, event: eip3009Abi[1], args: { authorizer: i.payer, nonce: i.nonce }, fromBlock: from, toBlock: to });
+      if (!log) continue;
+      const r = await this.client.getTransactionReceipt({ hash: log.transactionHash });
+      const lc = (a: string) => a.toLowerCase();
+      const paid = parseEventLogs({ abi: eip3009Abi, eventName: "Transfer", logs: r.logs }).some(
+        (l) => lc(l.address) === lc(i.asset) && lc(l.args.from) === lc(i.payer) && lc(l.args.to) === lc(i.payTo) && l.args.value === i.amount,
+      );
+      return r.status === "success" && paid ? log.transactionHash : null;
+    }
+    return null;
+  }
+
   /** Recover all in-flight rows immediately (call once at startup). */
   recover(): Promise<void> {
     const run = () => this.recoverSent(0);
@@ -288,8 +359,10 @@ export class CarbonMeter {
   /**
    * Reconciliation: every surcharge we took must be on-chain. Confirmed rows are checked against
    * pool.paymentSeen (re-queued if missing); pending/sent rows already seen are marked confirmed.
+   * Settle intents with an unknown outcome are resolved first.
    */
   async reconcile() {
+    await this.resolveIntents();
     for (const status of ["confirmed", "pending", "sent"] as const) {
       const rows = this.store.byStatus(status);
       for (let i = 0; i < rows.length; i += 50) {
@@ -324,6 +397,8 @@ export class CarbonMeter {
     try {
       const p = await this.refreshParams(true);
       if (p.paused) reasons.push("pool paused");
+      // a surcharge quoted at the old price reverts with SurchargeTooLow
+      if (p.pricePerTonne > BigInt(this.d.pricePerTonne)) reasons.push("pool price is above the quoted price");
       if (!p.activeMethods.has(METHODOLOGY_HASH.toLowerCase())) reasons.push("methodology inactive");
       const funder = await this.client.readContract({
         address: this.d.retirementPool,
@@ -332,7 +407,8 @@ export class CarbonMeter {
         args: [this.address],
       });
       const payer = funder === "0x0000000000000000000000000000000000000000" ? this.address : funder;
-      const [balance, allowance] = await Promise.all([
+      const [block, balance, allowance, funds] = await Promise.all([
+        this.client.getBlockNumber({ cacheTime: 0 }),
         this.client.getBalance({ address: this.address }),
         this.client.readContract({
           address: this.d.paymentToken,
@@ -340,9 +416,14 @@ export class CarbonMeter {
           functionName: "allowance",
           args: [payer, this.d.retirementPool],
         }),
+        this.client.readContract({ address: this.d.paymentToken, abi: erc20Abi, functionName: "balanceOf", args: [payer] }),
       ]);
+      this.lastBlock = block;
       if (balance < this.minMeterBalance) reasons.push("meter low on gas");
       if (allowance < this.minFunderAllowance) reasons.push("surcharge funder allowance too low");
+      // Each payment brings its own surcharge, so only what is already owed counts. Fresh rows are left out:
+      // an RPC node a few blocks behind may not show their payment yet.
+      if (funds < this.store.unsettledSurcharge(Date.now() - 30_000)) reasons.push("surcharge funder balance too low");
     } catch {
       reasons.push("chain unreachable");
     }

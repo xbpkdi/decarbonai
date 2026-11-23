@@ -3,10 +3,12 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import type { Address, Hex } from "viem";
+import type { Address, Hex, PublicClient } from "viem";
+import { FUJI } from "@decarbonai/chain";
 import { AccrualStore } from "../src/store.ts";
 import {
   BATCH_BASE_GAS,
+  CarbonMeter,
   ITEM_GAS,
   NEW_PAYER_GAS,
   RETIREMENT_GAS_BACKED,
@@ -71,6 +73,52 @@ test("store: sent -> confirmed, retry backs off and never drops", () => {
   assert.equal(c.confirmed.n, 1);
   assert.equal(c.pending.n, 1);
   assert.equal(c.pending.surcharge, 550n);
+  s.close();
+});
+
+test("store: bound to one chain and pool, refuses another, unbound rows and a blank path", () => {
+  const dir = mkdtempSync(join(tmpdir(), "accruals-"));
+  const path = join(dir, "q.sqlite");
+  try {
+    const s1 = new AccrualStore(path);
+    s1.bindTo(43113, A);
+    s1.bindTo(43113, A.toUpperCase().replace("0X", "0x") as Address); // same pool, other casing
+    s1.insert(row(1));
+    s1.close();
+    const s2 = new AccrualStore(path);
+    s2.bindTo(43113, A);
+    assert.throws(() => s2.bindTo(43114, A), /belongs to 43113/); // Fuji queue on mainnet
+    assert.throws(() => s2.bindTo(43113, B), /belongs to 43113/); // older pool, same chain
+    assert.equal(s2.byStatus("pending").length, 1); // untouched
+    s2.close();
+
+    const legacy = new AccrualStore(join(dir, "legacy.sqlite")); // rows written before the binding existed
+    legacy.insert(row(1));
+    assert.throws(() => legacy.bindTo(43114, A), /no recorded chain/);
+    legacy.close();
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  for (const blank of ["", "  "]) assert.throws(() => new AccrualStore(blank), /path is empty/);
+});
+
+test("meter: refuses another chain's DB at construction", () => {
+  const s = new AccrualStore(":memory:");
+  s.bindTo(43113, FUJI.retirementPool);
+  const client = {} as PublicClient;
+  const key = `0x${"01".repeat(32)}` as Hex; // dummy
+  new CarbonMeter(client, key, FUJI, { store: s });
+  assert.throws(() => new CarbonMeter(client, key, { ...FUJI, chainId: 43114 }, { store: s }), /belongs to 43113/);
+  s.close();
+});
+
+test("store: unsettled surcharge counts pending and sent rows, not fresh or confirmed ones", () => {
+  const s = new AccrualStore(":memory:");
+  for (const n of [1, 2, 3]) s.insert(row(n), n * 1000);
+  s.markSent([id(1), id(2)], id(99));
+  s.markConfirmed([id(1)]);
+  assert.equal(s.unsettledSurcharge(2000), 550n);
+  assert.equal(s.unsettledSurcharge(3000), 1100n);
   s.close();
 });
 

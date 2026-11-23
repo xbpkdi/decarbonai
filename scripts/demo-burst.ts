@@ -30,7 +30,7 @@ if (!apiUrl) {
   const created = createApp({
     meterKey: need(env.meterKey, "meter key"),
     payTo: need(env.payTo, "payTo"),
-    dbPath: process.env.ACCRUAL_DB ?? `.data/demo-${d.chainId}.sqlite`,
+    dbPath: process.env.ACCRUAL_DB || `.data/demo-${d.chainId}-${d.retirementPool.toLowerCase()}.sqlite`,
     deployment: d,
     rateLimitPerMinute: 100_000,
   });
@@ -38,9 +38,9 @@ if (!apiUrl) {
   await created.preflight();
   await meter.recover();
   meter.start();
-  server = serve({ fetch: created.app.fetch, port: 0 });
+  server = serve({ fetch: created.app.fetch, port: 0, hostname: "127.0.0.1" });
   await new Promise((r) => server!.once("listening", r));
-  apiUrl = `http://localhost:${(server.address() as AddressInfo).port}`;
+  apiUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
 }
 
 const agent = createPayingFetch({ privateKey: agentKey, agentId, deployment: d });
