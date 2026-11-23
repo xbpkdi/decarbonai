@@ -36,8 +36,8 @@ const eip3009Abi = parseAbi([
 const INTENT_MIN_AGE_MS = 120_000;
 /** Grace after validBefore before an unused authorization counts as dead (RPC lag). */
 const EXPIRY_MARGIN_SEC = 300;
-const LOG_CHUNK = 2000n; // public C-Chain RPC limit is 2048 blocks
-const LOG_CHUNKS = 5; // an authorization lives ~2 min, so its event is within the first few chunks
+const LOG_CHUNK = 100n; // eth_getLogs range limit of the public C-Chain RPC
+const LOG_CHUNKS = 20; // an authorization lives ~2 min (about 125 blocks), so its event is within the first few
 
 /** Retirements a batch triggers, given each payer's on-chain pendingMg, capped by the pool's budget. */
 export function predictRetirements(
