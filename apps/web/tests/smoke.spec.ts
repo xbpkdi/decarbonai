@@ -121,6 +121,16 @@ test("demo payments refuse without full settings", async ({ request }) => {
   expect((await request.post("/api/demo/pay")).status()).toBe(503);
 });
 
+// Copy audit: a v1 certificate link never opens a v2 receipt.
+for (const id of ["demo", "1", "0f8fad5b-d9cb-469f-a165-70867728950e"]) {
+  test(`old certificate ${id} explains itself`, async ({ page }) => {
+    const res = await page.goto(`/certificate/${id}`);
+    expect(res?.status()).toBe(200);
+    expect(new URL(page.url()).pathname).toBe(`/certificate/${id}`);
+    await expect(page.locator("h1")).toHaveText("Not carried over.");
+  });
+}
+
 // Simulated hashes must not look verifiable.
 test("mock receipt is not presented as verified", async ({ page }) => {
   await page.goto("/receipt/1?source=mock");

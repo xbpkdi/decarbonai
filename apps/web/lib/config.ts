@@ -66,7 +66,7 @@ export const CREDIT_NOTE = DEPLOYMENT.dco2Backed
 /** Adapters of earlier pool deployments that still have entries in the ERC-8004 registry. */
 export const SUPERSEDED_ADAPTERS: Hex[] = NETWORK.testnet ? ["0x3f672742dB74baEAD1716E81C82132d3d3F64CE9"] : [];
 
-/** ERC-8004 id -> display name, from NEXT_PUBLIC_AGENT_NAMES ({"42":"Claude research agent"}). */
+/** ERC-8004 id -> display name, from NEXT_PUBLIC_AGENT_NAMES ({"360":"Demo agent"}). */
 export const AGENT_NAMES: Record<string, string> = (() => {
   try {
     return JSON.parse(process.env.NEXT_PUBLIC_AGENT_NAMES || "{}");
