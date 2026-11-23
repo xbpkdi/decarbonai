@@ -1,59 +1,49 @@
 import type { Metadata, Viewport } from "next";
-import { Atmosphere } from "@/components/Atmosphere";
+import { Anton, Archivo, JetBrains_Mono, Noto_Sans_Thai } from "next/font/google";
+import { Providers } from "@/components/Providers";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
+import { NETWORK, SITE_URL, UNBACKED } from "@/lib/config";
+import { HEADLINE } from "@/lib/copy";
+import { demoConfig } from "@/lib/server/demo";
+
+// Developers "Run" / Agent "Pay one call" need every demo setting (see apps/web/README.md).
+const DEMO_READY = Boolean(demoConfig());
 import "./globals.css";
 
-export const viewport: Viewport = {
-  themeColor: "#050807",
-};
+const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton", display: "swap" });
+const archivo = Archivo({ weight: ["400", "500", "600", "700"], subsets: ["latin"], variable: "--font-archivo", display: "swap" });
+const mono = JetBrains_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-mono", display: "swap" });
+const thai = Noto_Sans_Thai({ weight: ["400", "500", "600"], subsets: ["thai"], variable: "--font-thai", display: "swap" });
+
+const description = `${NETWORK.testnet ? `Demo on ${NETWORK.name}` : `x402 carbon meter on ${NETWORK.name}`}. An x402 payment includes a carbon surcharge; a trusted meter records the estimated grams in batches, and each 1 kg burns a ${UNBACKED ? "mock credit" : "backed credit"} and mints a soulbound receipt.`;
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://rwa-carbon-offset.vercel.app"),
-  title: "rwa-carbon-offset — Measure AI emissions, retire real carbon",
-  description:
-    "Measure AI model CO₂ emissions, retire verified carbon credits via Carbonmark, and publish on-chain proof on Avalanche Fuji.",
-  applicationName: "rwa-carbon-offset",
-  icons: {
-    icon: [{ url: "/favicon.svg?v=leaf", type: "image/svg+xml" }],
-    apple: [{ url: "/apple-icon.png?v=leaf", type: "image/png", sizes: "180x180" }],
-    shortcut: "/favicon.svg?v=leaf",
-  },
-  openGraph: {
-    title: "rwa-carbon-offset — Measure AI emissions, retire real carbon",
-    description:
-      "Measure AI model CO₂ emissions, retire verified carbon credits via Carbonmark, and publish on-chain proof on Avalanche Fuji.",
-    type: "website",
-    siteName: "rwa-carbon-offset",
-    url: "https://rwa-carbon-offset.vercel.app",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "rwa-carbon-offset — Measure AI emissions, retire real carbon",
-    description:
-      "Measure AI model CO₂ emissions, retire verified carbon credits via Carbonmark, and publish on-chain proof on Avalanche Fuji.",
-  },
+  metadataBase: new URL(SITE_URL),
+  title: { default: `DecarbonAI · ${HEADLINE}`, template: "%s · DecarbonAI" },
+  description,
+  openGraph: { siteName: "DecarbonAI", type: "website", description },
+  twitter: { card: "summary_large_image" },
 };
+
+export const viewport: Viewport = { themeColor: "#080a09", colorScheme: "dark" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-screen antialiased">
-        <div className="relative flex min-h-screen flex-col">
-          <div className="aurora-field" aria-hidden="true" />
-          <Atmosphere />
+    <html lang="en" data-demo={DEMO_READY ? "1" : undefined} className={`fx-rich ${anton.variable} ${archivo.variable} ${mono.variable} ${thai.variable}`}>
+      <body>
+        <Providers>
+          <div className="atmo" aria-hidden="true">
+            <div className="aur a1" />
+            <div className="aur a2" />
+            <div className="aur a3" />
+            <div className="grid" />
+            <div className="grain" />
+          </div>
           <SiteHeader />
-          <main className="relative flex min-h-0 flex-1 flex-col">{children}</main>
+          {children}
           <SiteFooter />
-        </div>
+        </Providers>
       </body>
     </html>
   );

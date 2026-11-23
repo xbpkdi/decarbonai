@@ -27,3 +27,8 @@ deployments/anvil-lot1.json
 deployments/avalanche-lot1.intent.json
 deployments/avalanche-lot1.void-*.json
 deployments/*.tmp
+
+# Playwright
+test-results/
+playwright-report/
+*.tsbuildinfo

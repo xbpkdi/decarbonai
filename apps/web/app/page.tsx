@@ -1,19 +1,24 @@
-import { getHomeStats, formatMg, formatTonnes } from "@/lib/stats";
-import { HomePageClient } from "@/components/HomePageClient";
+import type { Metadata } from "next";
+import { LiveMarkup } from "@/components/pages/LiveMarkup";
+import { Runtime } from "@/components/Runtime";
+import { FRESH_MS } from "@/lib/types";
+import { getSnapshotSafe } from "@/lib/server/chain";
+import "@/styles/live.css";
 
-export default function HomePage() {
-  const stats = getHomeStats();
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: { absolute: "Live · DecarbonAI" } };
+
+export default async function LivePage() {
+  const snapshot = await getSnapshotSafe();
+  const last = snapshot?.accruals.at(-1)?.t ?? 0;
   return (
-    <HomePageClient
-      stats={stats}
-      formatted={{
-        totalMgCO2e: formatMg(stats.totalMgCO2e),
-        totalTonnesRetired: formatTonnes(stats.totalTonnesRetired),
-        certificateCount: stats.certificateCount.toLocaleString(),
-        uniqueBeneficiaries: stats.uniqueBeneficiaries.toLocaleString(),
-        monthlyMgCO2e: `${formatMg(stats.monthlyMgCO2e)} g`,
-        yearlyMgCO2e: `${formatMg(stats.yearlyMgCO2e)} g`,
-      }}
-    />
+    <>
+      <main data-page="index">
+        <div className="stage">
+          <LiveMarkup status={!snapshot ? "NO DATA" : Date.now() - last < FRESH_MS ? "LIVE" : "IDLE"} />
+        </div>
+      </main>
+      <Runtime page="index" snapshot={snapshot} />
+    </>
   );
 }

@@ -1,90 +1,90 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion } from "framer-motion";
-import { AuroraMark } from "@/components/AuroraMark";
-import { cn } from "@/lib/utils";
+import { CloseIcon, Mark, MenuIcon } from "@/components/Icons";
+import { WalletButton } from "@/components/WalletButton";
+import { DEPLOYMENT, NETWORK } from "@/lib/config";
 
-const navItems = [
-  { href: "/", label: "Home", exact: true },
-  { href: "/estimate", label: "Estimate" },
-  { href: "/checkout", label: "Checkout" },
-  { href: "/certificate/demo", label: "Certificate" },
-  { href: "/methodology", label: "Methodology" },
-];
+const PAGES = [
+  ["/", "Live"],
+  ["/agent", "Agent"],
+  ["/receipts", "Receipts"],
+  ["/developers", "Developers"],
+  ["/methodology", "Methodology"],
+] as const;
 
-function NavLink({ href, label, exact, compact }: { href: string; label: string; exact?: boolean; compact?: boolean }) {
-  const pathname = usePathname();
-  const active = exact ? pathname === href : pathname === href || (href !== "/" && pathname.startsWith(href));
-
-  return (
-    <Link
-      href={href}
-      className={cn(
-        compact ? "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors" : "rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors",
-        active
-          ? compact
-            ? "border border-aurora-border-strong bg-aurora-panel text-aurora-fg"
-            : "border border-aurora-border-strong bg-aurora-panel text-aurora-fg shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
-          : compact
-            ? "border border-transparent text-aurora-fg-muted hover:text-aurora-fg"
-            : "text-aurora-fg-muted hover:text-aurora-fg",
-      )}
-    >
-      {label}
-    </Link>
-  );
+function current(path: string) {
+  if (path.startsWith("/receipt")) return "/receipts";
+  if (path.startsWith("/agent")) return "/agent";
+  return path;
 }
 
+/** Sticky navbar + mobile sheet. Ticker and block number are filled by the runtime (bindChrome). */
 export function SiteHeader() {
+  const cur = current(usePathname());
+  // Plain anchors: each page boots its own live runtime.
+  const links = PAGES.map(([href, label]) => (
+    <a key={href} href={href} aria-current={href === cur ? "page" : undefined}>
+      {label}
+    </a>
+  ));
   return (
-    <motion.header
-      initial={{ y: -20, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
-      className="sticky top-0 z-50 w-full px-3 pt-3 sm:px-6 sm:pt-4 lg:px-8"
-    >
-      <div className="mx-auto max-w-[1500px] rounded-2xl glass-panel px-3 py-2.5 sm:px-5 sm:py-3">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-            <AuroraMark className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate font-display text-base font-semibold tracking-tight text-aurora-fg sm:text-lg">
-                rwa-carbon-offset
-              </span>
-              <span className="hidden text-[10px] font-semibold uppercase tracking-[0.16em] text-aurora-fg-muted sm:inline">
-                Carbon Retirement
-              </span>
-            </div>
-          </Link>
-
-          <nav aria-label="Primary" className="hidden items-center gap-1 rounded-full border border-aurora-border bg-aurora-bg-raised/60 p-1 lg:flex">
-            {navItems.map((item) => (
-              <NavLink key={item.href} {...item} />
-            ))}
+    <>
+      <header className="nav">
+        <div className="nav-in">
+          <a className="brand" href="/">
+            <Mark />
+            <span>DecarbonAI</span>
+          </a>
+          <nav className="nav-links" aria-label="Main">
+            {links}
+            <span className="nav-underline" aria-hidden="true" />
           </nav>
-
-          <div className="flex shrink-0 items-center gap-2 rounded-full border border-aurora-border bg-aurora-panel px-3 py-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-aurora-carbon opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-aurora-carbon" />
+          <div className="nav-right">
+            <a className="chip-net" title="Open the RetirementPool on the explorer" href={`${NETWORK.explorer}/address/${DEPLOYMENT.retirementPool}`} target="_blank" rel="noreferrer">
+              <span className="dot-live" />
+              {NETWORK.name}
+              <span className="blk tnum" data-block />
+            </a>
+            <span className="ticker" title="Total estimated CO₂e metered, all agents">
+              <span className="odo" data-ticker />
+              <span className="unit">g CO₂e metered</span>
             </span>
-            <span className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-aurora-fg-muted">
-              Fuji <span className="hidden sm:inline">· Live</span>
-            </span>
+            <WalletButton />
+            <button type="button" className="icon-btn menu-btn" data-menu aria-label="Open menu">
+              <MenuIcon />
+            </button>
           </div>
         </div>
-
-        <nav
-          aria-label="Primary mobile"
-          className="-mx-1 mt-2.5 flex items-center gap-1 overflow-x-auto pb-0.5 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden"
-        >
-          {navItems.map((item) => (
-            <NavLink key={item.href} {...item} compact />
-          ))}
-        </nav>
-      </div>
-    </motion.header>
+      </header>
+      <section className="tape" aria-label="Last metered events">
+        <div className="tape-track" />
+      </section>
+      <div className="sheet-bg" data-close />
+      <aside className="sheet" aria-label="Menu">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <a className="brand" href="/">
+            <Mark />
+            <span>DecarbonAI</span>
+          </a>
+          <button type="button" className="icon-btn" data-close aria-label="Close menu">
+            <CloseIcon />
+          </button>
+        </div>
+        <div className="ticker" style={{ justifyContent: "space-between" }}>
+          <span className="odo" data-ticker />
+          <span className="unit">g CO₂e metered</span>
+        </div>
+        <span className="chip-net">
+          <span className="dot-live" />
+          {NETWORK.name}
+          <span className="mono dim" style={{ fontSize: 12 }} data-block />
+        </span>
+        <nav>{links}</nav>
+        <div style={{ display: "flex", gap: 10, marginTop: "auto" }}>
+          <WalletButton primary />
+        </div>
+      </aside>
+    </>
   );
 }
