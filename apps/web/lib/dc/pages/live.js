@@ -20,7 +20,7 @@ export default function init(DC) {
   let retiring = false;
 
   function paintHero() {
-    $("#line").innerHTML = `captured from <b>${fmt.count(state.calls)}</b> paid x402 calls · <b class="mint">${fmt.mass(state.retiredMg)}</b> retired · <b>${fmt.usd(state.surcharge, 3)}</b> carbon surcharge`;
+    $("#line").innerHTML = `metered across <b>${fmt.count(state.calls)}</b> paid ${DC.NET.testnet ? "testnet" : "x402"} calls · <b class="mint">${fmt.mass(state.retiredMg)}</b> ${DC.RETIRED.toLowerCase()} · <b>${fmt.usd(state.surcharge, 3)}</b> carbon surcharge`;
   }
   function paintPool() {
     const p = Math.min(pending(), THRESHOLD_MG);
@@ -39,7 +39,7 @@ export default function init(DC) {
   paintHero(); paintPool();
 
   // ---------- status: LIVE / IDLE / SIMULATED ----------
-  const pill = $(".hero .pill-live");
+  const pill = $("#status");
   function paintStatus() {
     const eb = $("#h-metered");
     if (DC.mock) { pill.textContent = "SIMULATED"; pill.className = "pill pill-sim"; eb.textContent = "Simulated stream · rehearsal only, not on-chain"; return; }
@@ -102,10 +102,10 @@ export default function init(DC) {
         <span class="eyebrow">Latest receipt · soulbound</span>
         <h2 id="h-latest" style="margin-top:6px">${fmt.no(r.n)}</h2>
         <dl>
-          <dt>Retired</dt><dd><b style="color:var(--mint)">${fmt.mass(r.mg)} CO₂e</b></dd>
+          <dt>${DC.RETIRED}</dt><dd><b style="color:var(--mint)">${fmt.mass(r.mg)} CO₂e</b></dd>
           <dt>Agent</dt><dd>${a.name} <span class="mono dim">#${a.id}</span></dd>
           <dt>Calls covered</dt><dd class="tnum">${fmt.count(r.calls)} paid x402 calls</dd>
-          <dt>Credit</dt><dd>DCO2 lot ${r.lot}${DC.NET.testnet ? ' <span class="pill pill-mock" style="height:20px;font-size:11px">mock</span>' : ""}</dd>
+          <dt>Credit</dt><dd>DCO2 lot ${r.lot}${DC.UNBACKED ? ' <span class="pill pill-mock" style="height:20px;font-size:11px">mock</span>' : ""}</dd>
           <dt>Tx</dt><dd>${hashLink(r.tx, 8, 6)}</dd>
         </dl>
         <div class="acts"><a class="btn btn-primary btn-sm" href="/receipt/${r.n}">Open receipt</a><a class="btn btn-outline btn-sm" href="/receipts">All receipts</a></div>
@@ -313,7 +313,7 @@ export default function init(DC) {
     if (agent !== F) return;
     retiring = true;
     const pill = $("#poolState"); pill.textContent = `Sealing on ${DC.NET.short}`; pill.classList.add("retiring");
-    $("#lbl-seal").innerHTML = `<span class="red">Burning ${fmt.mass(THRESHOLD_MG)} DCO2…</span>`;
+    $("#lbl-seal").innerHTML = `<span class="red">Burning ${fmt.mass(THRESHOLD_MG)} ${DC.UNBACKED ? "mock " : ""}DCO2…</span>`;
   });
   on("retired", (r) => {
     if (r.agent !== F) return;

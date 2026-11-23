@@ -1,3 +1,5 @@
+import { LIVE_WORD } from "@/lib/copy";
+
 /* Rich layer: atmosphere, carbon tape, big type, one solid block per page, key-card border,
    scroll reveals and counters. Always on. */
 export default function init(DC) {
@@ -5,11 +7,11 @@ export default function init(DC) {
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   const PAGES = {
-    index: { word: "Captured", solid: "#latest", key: ".pool" },
+    index: { word: LIVE_WORD, solid: "#latest", key: ".pool" },
     agent: { word: "Footprint", solid: ".rep", key: "#tl" },
     receipts: { word: "Sealed", solid: ".wall .spec", key: ".bar" },
     receipt: { word: null, solid: null, key: "#checks" },
-    developers: { word: "One line", solid: ".install", key: ".run" },
+    developers: { word: "Middleware", solid: ".install", key: ".run" },
     methodology: { word: "The math", solid: ".calc .res", key: ".calc" },
   };
 
@@ -76,7 +78,7 @@ export default function init(DC) {
       const box = document.querySelector("#checks");
       const banner = document.createElement("div");
       banner.className = "verified";
-      banner.innerHTML = `<span>${DC.I.check}</span><div><b>Verified on ${DC.NET.name}.</b> <span data-verified-note>Event, soulbound lock and methodology hash all match.</span></div>`;
+      banner.innerHTML = `<span>${DC.I.check}</span><div><b>${DC.mock ? "Simulated checks." : `Receipt found on ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}.`}</b> <span data-verified-note></span></div>`;
       banner.style.cssText = "display:none;align-items:center;gap:14px;margin:0 16px 16px;padding:16px 18px;border-radius:12px;font-size:15px;";
       box.after(banner);
       const check = () => {

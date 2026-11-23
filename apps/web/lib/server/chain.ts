@@ -1,8 +1,8 @@
 import "server-only";
-import { carbonReceiptAbi, retirementPoolAbi } from "@decarbonai/chain";
+import { carbonReceiptAbi, reputationRegistryAbi, retirementPoolAbi } from "@decarbonai/chain";
 import { unstable_cache } from "next/cache";
 import { createPublicClient, decodeEventLog, encodeEventTopics, http, type Address, type Hex } from "viem";
-import { DEPLOYMENT as D, NETWORK, RPC_URL } from "@/lib/config";
+import { DEPLOYMENT as D, NETWORK, RPC_URL, SUPERSEDED_ADAPTERS } from "@/lib/config";
 import type { Snapshot, SnapAccrual, SnapRetirement } from "@/lib/types";
 
 const RPC = process.env.RPC_URL || RPC_URL;
@@ -137,6 +137,20 @@ export async function verifyReceipt(n: number): Promise<ReceiptCheck> {
     return { n, exists: true, locked, owner, methodologyHash: r.methodologyHash, methodologyActive: m.active, methodologyVersion: m.version, backed: r.backed, lot: Number(r.lotId) };
   } catch {
     return { n, exists: false, locked: false, owner: null, methodologyHash: null, methodologyActive: false, methodologyVersion: null, backed: false, lot: 0 };
+  }
+}
+
+export type AgentFeedback = { current: number; superseded: number };
+
+/** ERC-8004 entries this deployment's adapter wrote for the agent, and those of superseded adapters. Null: not read. */
+export async function agentFeedback(id: bigint): Promise<AgentFeedback | null> {
+  const count = (adapter: Address) =>
+    client.readContract({ address: D.erc8004ReputationRegistry, abi: reputationRegistryAbi, functionName: "getLastIndex", args: [id, adapter] }).then(Number);
+  try {
+    const [current, ...old] = await Promise.all([D.reputationAdapter, ...SUPERSEDED_ADAPTERS].map(count));
+    return { current, superseded: old.reduce((s, n) => s + n, 0) };
+  } catch {
+    return null;
   }
 }
 

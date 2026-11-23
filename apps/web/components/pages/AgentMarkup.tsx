@@ -1,5 +1,18 @@
+import { NETWORK, UNBACKED } from "@/lib/config";
+import type { AgentFeedback } from "@/lib/server/chain";
+
+/** Says only what the ERC-8004 registry holds from this deployment's adapter. */
+function feedbackNote(f: AgentFeedback | null) {
+  if (!f) return "The ERC-8004 registry could not be read right now.";
+  const rule = "The pool writes carbon-settled feedback only when a backed lot is burned.";
+  const mock = UNBACKED ? ` ${NETWORK.short} burns a mock lot${f.current ? "" : ", so this pool has written none"}.` : "";
+  const old = f.superseded ? ` ${f.superseded} registry ${f.superseded === 1 ? "entry comes" : "entries come"} from a superseded adapter.` : "";
+  return rule + mock + old;
+}
+
 /* Server-rendered markup for the Agent page; lib/dc/pages/agent.js fills and animates it. */
-export function AgentMarkup({ yourAgents }: { yourAgents: React.ReactNode }) {
+export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback | null; yourAgents: React.ReactNode }) {
+  const settled = Boolean(feedback?.current);
   return (
     <>
       <header className="page-head">
@@ -13,9 +26,9 @@ export function AgentMarkup({ yourAgents }: { yourAgents: React.ReactNode }) {
         {yourAgents}
       </div>
       <section className="card bar-mint rep" aria-labelledby="h-rep">
-        <div className="row" style={{ justifyContent: "space-between" }}><span className="eyebrow" id="h-rep">ERC-8004 reputation</span><span className="pill pill-settled pill-dot sparkle" id="settled">Carbon-settled</span></div>
-        <div className="row" style={{ marginTop: "14px", alignItems: "baseline" }}><span className="big" id="repN"></span><span className="muted">carbon-settled entries</span></div>
-        <p className="dim" style={{ fontSize: "13px", marginTop: "8px" }}>Written by the RetirementPool to the ERC-8004 Reputation Registry each time this agent's pool retires.</p>
+        <div className="row" style={{ justifyContent: "space-between" }}><span className="eyebrow" id="h-rep">ERC-8004 reputation</span><span className={`pill pill-dot ${settled ? "pill-settled sparkle" : "pill-smoke"}`} id="settled">{settled ? "Carbon-settled" : feedback ? "No feedback yet" : "Not read"}</span></div>
+        <div className="row" style={{ marginTop: "14px", alignItems: "baseline" }}><span className="big" id="repN">{feedback ? feedback.current : "–"}</span><span className="muted">{feedback?.current === 1 ? "entry" : "entries"} from this pool</span></div>
+        <p className="dim" style={{ fontSize: "13px", marginTop: "8px" }}>{feedbackNote(feedback)}</p>
       </section>
     </div>
   </header>

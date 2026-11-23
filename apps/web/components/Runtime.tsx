@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { CONTRACT_LIST, AGENT_NAMES, CREDIT_NOTE, DEMO_AGENT_ID, DEPLOYMENT, NETWORK } from "@/lib/config";
+import { CONTRACT_LIST, AGENT_NAMES, CREDIT_NOTE, DEMO_AGENT_ID, DEPLOYMENT, NETWORK, TOKEN, UNBACKED } from "@/lib/config";
 import type { Snapshot } from "@/lib/types";
 
 export type PageKey = "index" | "agent" | "receipts" | "receipt" | "developers" | "methodology";
@@ -64,6 +64,8 @@ export function Runtime({ page, snapshot }: { page: PageKey; snapshot: Snapshot 
         featured: Number(process.env.NEXT_PUBLIC_FEATURED_AGENT_ID || 0) || DEMO_AGENT_ID,
         demoAgentId: DEMO_AGENT_ID,
         creditNote: CREDIT_NOTE,
+        unbacked: UNBACKED,
+        token: TOKEN,
         demoReady,
       });
       Object.assign(DC, { CONTRACT_LIST });

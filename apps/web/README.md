@@ -18,7 +18,7 @@ Names only; never commit values. Variables marked server-only must **not** get a
 | Name | Scope | Needed for |
 |---|---|---|
 | `NEXT_PUBLIC_NETWORK` | public | `fuji` (default) or `mainnet`; picks `deployments/<network>.json` and the footer credit wording |
-| `NEXT_PUBLIC_AGENT_NAMES` | public | JSON map of ERC-8004 id to display name, e.g. `{"360":"Claude research agent"}`; unknown ids show as "Agent #id" |
+| `NEXT_PUBLIC_AGENT_NAMES` | public | JSON map of ERC-8004 id to display name, e.g. `{"360":"Demo agent"}`; unknown ids show as "Agent #id" |
 | `NEXT_PUBLIC_FEATURED_AGENT_ID` | public | Optional. Agent on the Live pool card (default: the demo agent, else the latest payer) |
 | `NEXT_PUBLIC_SITE_URL` | public | Optional. Canonical origin for OG and metadata (default: this Vercel deployment, else `https://decarbonai.vercel.app`) |
 | `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` | public | Optional. QR wallets in Connect wallet; extension wallets work without it |

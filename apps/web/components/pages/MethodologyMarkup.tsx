@@ -1,4 +1,4 @@
-import { NETWORK, DEPLOYMENT } from "@/lib/config";
+import { NETWORK, DEPLOYMENT, TOKEN } from "@/lib/config";
 
 /* Server-rendered markup for the Methodology page; lib/dc/pages/methodology.js fills and animates it. */
 export function MethodologyMarkup() {
@@ -8,14 +8,14 @@ export function MethodologyMarkup() {
     <div className="wrap">
       <span className="eyebrow">Methodology · {DEPLOYMENT.methodologyVersion}</span>
       <h1 className="display">How a call becomes grams</h1>
-      <p className="lead">Every paid call is priced from its model class and token counts. The factor set is versioned, and its hash is stored on-chain, so any receipt can be traced back to the exact method that produced it.</p>
+      <p className="lead">Every paid call is priced before it runs, from its model class, prompt length and declared max output. The factor set is versioned, its hash is stored on-chain, and each receipt stores the methodology hash of its last accrual.</p>
       <a className="hashbadge" id="hb" href={`${NETWORK.explorer}/address/${DEPLOYMENT.retirementPool}`} target="_blank" rel="noreferrer"><span className="dot-live"></span><span className="k">on-chain hash</span><span style={{ color: "var(--avax)" }} id="hbv"></span><span style={{ color: "var(--avax)" }}>↗</span></a>
     </div>
   </header>
 
   <div className="wrap">
     <section className="section" aria-labelledby="h-calc">
-      <div className="section-title"><h2 id="h-calc">Price a call</h2><span className="dim" style={{ fontSize: "13px" }}>Same formula the middleware runs before every payment</span></div>
+      <div className="section-title"><h2 id="h-calc">Price a call</h2><span className="dim" style={{ fontSize: "13px" }}>Same formula as the middleware, which feeds it declared limits</span></div>
       <div className="card calc bar-mint">
         <div className="ctl">
           <div><div className="lbl">Model class</div>{/* biome-ignore lint/a11y/useSemanticElements: segmented control styled as a pill row */}
@@ -53,6 +53,13 @@ export function MethodologyMarkup() {
           <li>These are v0 approximations for the demo, not a port of EcoLogits. The EcoLogits port is the next version and gets a new on-chain hash.</li>
           <li>Grid intensity is one global average (400 g/kWh). Per-region intensity needs the provider to say where a call ran.</li>
           <li>The meter is a trusted reporter in v0: the API operator submits the grams. Signed usage from providers is on the roadmap.</li>
+          {NETWORK.testnet && (
+            <>
+              <li>The demo API returns simulated text. Payments use our {TOKEN.name} faucet token, not Circle USDC.</li>
+              <li>The x402 payment settles first. The meter batches the accruals on-chain afterwards.</li>
+              <li>No ERC-8004 feedback is written on {NETWORK.short}. Nothing is on mainnet, and nothing real has been retired.</li>
+            </>
+          )}
           {NETWORK.testnet ? (
             <li>DCO2 on {NETWORK.short} is a testnet mock credit. It is not backed by a real tonne. In production each lot is minted 1:1 against a credit retired off-chain (custodial bridge v0), with the registry serial stored in the lot.</li>
           ) : (

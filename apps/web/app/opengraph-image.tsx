@@ -1,14 +1,15 @@
-import { NETWORK } from "@/lib/config";
+import { NETWORK, UNBACKED } from "@/lib/config";
+import { HEADLINE } from "@/lib/copy";
 import { OG_SIZE, ogImage } from "@/lib/og";
 
-export const alt = "DecarbonAI: every paid AI call settles its own carbon";
+export const alt = `DecarbonAI: ${HEADLINE}`;
 export const size = OG_SIZE;
 export const contentType = "image/png";
 
 export default function Image() {
   return ogImage({
     eyebrow: `x402 · ${NETWORK.name}`,
-    title: "Every paid AI call settles its own carbon.",
-    sub: "A carbon surcharge rides inside each x402 payment, retires credit for the agent and mints a soulbound receipt.",
+    title: `${HEADLINE}.`,
+    sub: `${NETWORK.testnet ? `${NETWORK.short} testnet demo: ` : ""}surcharge in each x402 payment, accruals batched on-chain, ${UNBACKED ? "mock credit" : "backed credit"} burned per 1 kg.`,
   });
 }

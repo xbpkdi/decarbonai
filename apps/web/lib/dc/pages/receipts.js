@@ -15,7 +15,7 @@ export default function init(DC) {
   }
   function paintTotals() {
     const kg = state.receipts.reduce((s, r) => s + r.mg, 0) / 1e6;
-    $("#totals").innerHTML = `<div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts</div></div><div><div class="v tnum" style="color:var(--mint)">${fmt.count(kg)}<span style="font-family:var(--f-ui);font-size:18px;color:var(--text-2)"> kg</span></div><div class="k">CO₂e retired</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents</div></div>`;
+    $("#totals").innerHTML = `<div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts</div></div><div><div class="v tnum" style="color:var(--mint)">${fmt.count(kg)}<span style="font-family:var(--f-ui);font-size:18px;color:var(--text-2)"> kg</span></div><div class="k">CO₂e ${DC.RETIRED.toLowerCase()}</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents</div></div>`;
     if (!state.receipts.length) $("#wall").innerHTML = `<p class="muted">No receipts yet. The first one is minted when an agent's pool reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`;
   }
   function paintChips() {

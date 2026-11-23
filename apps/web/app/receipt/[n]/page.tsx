@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ReceiptMarkup } from "@/components/pages/ReceiptMarkup";
 import { Runtime } from "@/components/Runtime";
-import { NETWORK } from "@/lib/config";
+import { NETWORK, UNBACKED } from "@/lib/config";
 import { getSnapshotSafe } from "@/lib/server/chain";
 import "@/styles/receipt.css";
 
@@ -15,7 +15,9 @@ const no = (n: number) => `No. ${String(n).padStart(4, "0")}`;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const n = Number((await params).n);
   const title = `${no(n)} · Receipt`;
-  const description = `Soulbound retirement receipt ${no(n)} on ${NETWORK.name}: an AI agent's x402 payments retired their own carbon.`;
+  const description = UNBACKED
+    ? `Testnet receipt ${no(n)} on ${NETWORK.name}: metered CO₂e matched by a mock credit burn (not a real tonne).`
+    : `Soulbound receipt ${no(n)} on ${NETWORK.name}: metered CO₂e matched by a backed credit burn.`;
   return { title, description, openGraph: { title: `DecarbonAI receipt ${no(n)}`, description }, twitter: { card: "summary_large_image" } };
 }
 

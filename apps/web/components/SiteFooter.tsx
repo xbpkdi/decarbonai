@@ -1,4 +1,8 @@
 import { CONTRACT_LIST, CREDIT_NOTE, DEPLOYMENT, NETWORK, REPO_URL, short } from "@/lib/config";
+import { HEADLINE } from "@/lib/copy";
+
+// The Offset mark sits in front of the word "carbon".
+const [LEAD, TAIL = ""] = HEADLINE.split(/\s+(?=carbon\b)/i);
 
 export function SiteFooter() {
   return (
@@ -6,7 +10,7 @@ export function SiteFooter() {
       <div className="wrap">
         <div className="foot-band">
           <p className="display">
-            Every paid AI call settles its own{" "}
+            {LEAD}{" "}
             <span className="mark-inline" aria-hidden="true">
               <svg viewBox="6 6 20 20" aria-hidden="true">
                 <rect className="g" x="6" y="6" width="14" height="14" rx="2" />
@@ -14,7 +18,7 @@ export function SiteFooter() {
                 <rect className="r" x="12" y="12" width="8" height="8" />
               </svg>
             </span>{" "}
-            carbon.
+            {TAIL}.
           </p>
           <div className="acts">
             <a className="btn btn-primary" href="/">

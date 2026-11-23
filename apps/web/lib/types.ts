@@ -1,5 +1,8 @@
 type Hex = `0x${string}`;
 
+/** Live data counts as "live" only if the chain moved this recently. */
+export const FRESH_MS = 15 * 60_000;
+
 /** One CarbonAccrued event. `t` is the block time in ms. */
 export type SnapAccrual = { id: Hex; tx: Hex; t: number; block: number; agent: number; payer: Hex; mg: number; sur: number };
 

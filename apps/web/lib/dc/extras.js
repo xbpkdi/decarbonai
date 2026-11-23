@@ -85,7 +85,7 @@ export default function init(DC) {
     el.setAttribute("aria-label", "Network totals");
     const cells = [
       ["Paid calls", () => state.calls, 0, ""],
-      ["g CO₂e retired", () => state.retiredMg / 1000, 0, "lime"],
+      [`g CO₂e ${DC.RETIRED.toLowerCase()}`, () => state.retiredMg / 1000, 0, "lime"],
       ["Receipts sealed", () => state.receipts.length, 0, ""],
       ["Agents settling", () => DC.AGENTS.length, 0, ""],
     ];
@@ -102,7 +102,7 @@ export default function init(DC) {
   function terminal(host) {
     const term = document.createElement("div");
     term.className = "term";
-    term.innerHTML = `<div class="term-bar"><i></i><i></i><i></i><span>claude · ~/research-agent</span><button class="term-replay" type="button">Replay</button></div><div class="term-body" aria-live="polite"></div>`;
+    term.innerHTML = `<div class="term-bar"><i></i><i></i><i></i><span>Illustration · replay</span><button class="term-replay" type="button">Replay</button></div><div class="term-body" aria-live="polite"></div>`;
     host.appendChild(term);
     const body = term.querySelector(".term-body");
     const { fmt } = DC;
@@ -111,11 +111,11 @@ export default function init(DC) {
       const id = ++run;
       const wait = (ms) => new Promise((r) => setTimeout(r, reduced ? 0 : ms));
       const alive = () => id === run;
-      // Live: replays the latest real CarbonAccrued. Mock: a simulated call that also feeds the stream.
+      // Live: an illustration around the latest real CarbonAccrued. Mock: a simulated call that also feeds the stream.
       const last = DC.mock ? null : DC.state.feed[0];
-      const agentId = last ? last.agent : 42;
+      const agentId = last ? last.agent : DC.mock ? 42 : 0;
       const mg = last ? last.mg : Math.round(DC.gramsPerCall("claude-sonnet", 3000, 1500).g * 1000 * (0.92 + Math.random() * 0.16));
-      const sur = last ? last.sur : DC.surchargeFor(mg), tx = last ? last.tx : DC.hex(32);
+      const sur = last ? last.sur : DC.surchargeFor(mg), tx = last ? last.tx : DC.mock ? DC.hex(32) : null;
       body.innerHTML = `<div class="ln"><span class="pr">&gt;</span> <span class="typed"></span><span class="caret"></span></div>`;
       const typed = body.querySelector(".typed");
       const prompt = 'Use paid_inference to summarise "x402 on Avalanche" for my notes';
@@ -123,12 +123,12 @@ export default function init(DC) {
       body.querySelector(".caret").remove();
       const out = [
         [500, `<span class="tool">⏺ decarbonai · paid_inference</span> <span class="dim">(MCP)</span>`],
-        [700, `<span class="br">⎿</span> GET /v1/infer?model=claude-sonnet`],
+        [700, `<span class="br">⎿</span> GET /v1/infer?prompt=…&amp;model=…`],
         [600, `<span class="br">⎿</span> <span class="warn">402 Payment Required</span>  $0.010 + <span class="red">${fmt.usd(sur, 5)} carbon</span> <span class="dim">(${(mg / 1000).toFixed(2)} g CO₂e)</span>`],
-        [800, `<span class="br">⎿</span> signed x402 payment · agent #${agentId} · ${DC.NET.testnet ? "test USDC" : "USDC"}`],
-        [1100, `<span class="br">⎿</span> settled on ${DC.NET.name}  <span class="red">${DC.short(tx, 8, 6)} ↗</span>`],
-        [500, `<span class="br">⎿</span> <span class="lime">CarbonAccrued +${(mg / 1000).toFixed(2)} g</span> · pool ${fmt.count(Math.round(Math.min((DC.state.pending[agentId] || 0) + (last ? 0 : mg), DC.THRESHOLD_MG) / 1000))} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g`],
-        [700, `<span class="tool">⏺</span> x402 lets an agent pay per request inside HTTP: the server answers 402 with a price, the agent signs a USDC transfer, a facilitator settles it on Avalanche…`],
+        [800, `<span class="br">⎿</span> signed x402 payment${agentId ? ` · agent #${agentId}` : ""} · ${DC.TOKEN.name}`],
+        [1100, `<span class="br">⎿</span> settled via x402 facilitator on ${DC.NET.name}`],
+        [500, `<span class="br">⎿</span> <span class="dim">later, in a meter batch:</span> <span class="lime">CarbonAccrued +${(mg / 1000).toFixed(2)} g</span>${tx ? ` <span class="red">${DC.short(tx, 8, 6)}</span>` : ""} · pool ${fmt.count(Math.round(Math.min((DC.state.pending[agentId] || 0) + (last ? 0 : mg), DC.THRESHOLD_MG) / 1000))} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g`],
+        [700, `<span class="tool">⏺</span> [simulated completion] The demo API returns placeholder text: the server answers 402 with a price, the agent signs a ${DC.TOKEN.name} (EIP-3009) transfer, a facilitator settles it.`],
       ];
       for (const [ms, html] of out) {
         await wait(ms); if (!alive()) return;

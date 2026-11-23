@@ -6,7 +6,6 @@ export default function init(DC) {
 
   $("#eb").textContent = `ERC-8004 agent #${a.id} · ${DC.NET.name}`;
   $("#name").textContent = a.title;
-  $("#note").textContent = a.note;
   $("#meta").innerHTML = [
     a.payer && `<div><dt>Wallet</dt><dd>${DC.addrLink(a.payer)}</dd></div>`,
     state.history[a.id]?.length && `<div><dt>First paid call</dt><dd>${fmt.date(state.history[a.id][0].t)}</dd></div>`,
@@ -17,12 +16,12 @@ export default function init(DC) {
   function paint() {
     const ac = state.acct[a.id], rs = state.receipts.filter((r) => r.agent === a.id);
     const retiredMg = rs.reduce((s, r) => s + r.mg, 0);
-    $("#repN").textContent = rs.length;
+    $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}; our meter batches the surcharges into the pool.` : "No calls recorded by this pool.");
     $("#stats").innerHTML = [
       ["Paid calls", fmt.count(ac.calls), "", "metered through x402", ""],
       ["Carbon metered", fmt.g(ac.mg, 1), "g", "CO₂e, mid estimate", ""],
-      ["Retired", fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
-      ["Surcharge paid", fmt.usd(ac.sur, 3), "", "USDC into the pool", ""],
+      [DC.RETIRED, fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
+      ["Surcharge paid", fmt.usd(ac.sur, 3), "", `${DC.TOKEN.symbol}, pulled into the pool in batches`, ""],
     ].map(([k, v, u, n, c]) => `<div class="card stat ${c}"><div class="k">${k}</div><div class="v tnum">${v}${u ? `<span class="u">${u}</span>` : ""}</div><div class="n">${n}</div></div>`).join("");
     const p = Math.min(state.pending[a.id], THRESHOLD_MG);
     $("#toGo").textContent = fmt.count(Math.round((THRESHOLD_MG - p) / 1000));
@@ -90,7 +89,7 @@ export default function init(DC) {
     } else tip.classList.remove("on");
   });
   host.addEventListener("pointerleave", () => { hover = null; tip.classList.remove("on"); });
-  host.addEventListener("click", () => { if (hover) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
+  host.addEventListener("click", () => { if (hover && !DC.mock) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
   readColors(); build(); requestAnimationFrame(draw);
   new ResizeObserver(build).observe(host);
 
@@ -98,7 +97,7 @@ export default function init(DC) {
   on("retired", (r) => {
     if (r.agent !== a.id) return;
     build(); paint();
-    const s = $("#settled"); s.classList.remove("go"); void s.offsetWidth; s.classList.add("go");
-    DC.toast(`New ERC-8004 feedback: carbon-settled, ${fmt.no(r.n)}`);
+    const s = $("#settled"); if (s.classList.contains("sparkle")) { s.classList.remove("go"); void s.offsetWidth; s.classList.add("go"); }
+    DC.toast(`${DC.mock ? "Simulated: receipt" : "Receipt"} ${fmt.no(r.n)} minted${DC.UNBACKED ? " (mock lot, no ERC-8004 feedback)" : ""}`);
   });
 }

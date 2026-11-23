@@ -1,4 +1,4 @@
-import { NETWORK } from "@/lib/config";
+import { NETWORK, UNBACKED } from "@/lib/config";
 
 /* Server-rendered markup for the Receipts page; lib/dc/pages/receipts.js fills and animates it. */
 export function ReceiptsMarkup() {
@@ -9,7 +9,7 @@ export function ReceiptsMarkup() {
       <div>
         <span className="eyebrow">Soulbound ERC-5192 · {NETWORK.name}</span>
         <h1 className="display">Receipts</h1>
-        <p className="lead">Every coin is a soulbound token, minted when an agent's pool reaches 1 kg and burns DCO2. It cannot be sold or moved, so a retirement can only ever be claimed once.</p>
+        <p className="lead">{UNBACKED ? "Each coin is a soulbound testnet receipt, minted when a payer's account reaches 1 kg and the pool burns a mock credit. It cannot be moved, and it is not a claim on a real tonne." : "Each coin is a soulbound receipt, minted when a payer's account reaches 1 kg and the pool burns a backed credit. It cannot be sold or moved."}</p>
       </div>
       <div className="totals" id="totals"></div>
     </div>

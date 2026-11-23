@@ -4,7 +4,9 @@ export default function init(DC) {
   const main = document.querySelector("main");
   const API = main.dataset.api;
   const REPO_DIR = "/path/to/decarbonai";
-  const AGENT = DC.demoAgentId || 42;
+  // No hosted API or demo agent configured: show placeholders, never localhost or someone else's agent id.
+  const AGENT = DC.demoAgentId || "&lt;your-agent-id&gt;";
+  const API_ENV = API || "&lt;your-paid-api-url&gt;";
   const CODE = {
     server: `<span class="k">import</span> { Hono } <span class="k">from</span> <span class="s">"hono"</span>;
 <span class="k">import</span> { CarbonMeter, carbonPayment, AccrualStore } <span class="k">from</span> <span class="s">"@decarbonai/x402-carbon"</span>;
@@ -22,7 +24,7 @@ app.use(<span class="s">"/v1/infer"</span>, <span class="f">carbonPayment</span>
   route: <span class="s">"GET /v1/infer"</span>,
   description: <span class="s">"Paid inference with a carbon surcharge"</span>,
   payTo: process.env.PAY_TO_ADDRESS, <span class="c">// merchant wallet the pool pulls surcharges from</span>
-  baseAmount: <span class="n">10_000n</span>,                <span class="c">// $0.01 in USDC base units</span>
+  baseAmount: <span class="n">10_000n</span>,                <span class="c">// 0.01 ${DC.TOKEN.symbol} in base units</span>
   meter,
 }));
 
@@ -34,30 +36,31 @@ app.get(<span class="s">"/v1/infer"</span>, (c) => {
 
 <span class="k">const</span> agent = <span class="f">createPayingFetch</span>({
   privateKey: process.env.AGENT_PRIVATE_KEY,
-  agentId: <span class="n">${AGENT}n</span>,${" ".repeat(Math.max(1, 18 - String(AGENT).length))}<span class="c">// ERC-8004 id, sent as x-agent-id</span>
+  agentId: ${DC.demoAgentId ? `<span class="n">${AGENT}n</span>,${" ".repeat(Math.max(1, 18 - String(AGENT).length))}<span class="c">// our demo agent; use your own ERC-8004 id</span>` : `BigInt(process.env.AGENT_ID), <span class="c">// your ERC-8004 id, sent as x-agent-id</span>`}
   maxAmountPerPayment: <span class="n">100_000n</span>, <span class="c">// never pay more than $0.10</span>
 });
 
 <span class="k">const</span> res = <span class="k">await</span> agent.fetch(
-  <span class="s">"${API}/v1/infer?prompt=hello&amp;model=claude-sonnet"</span>
+  ${API ? `<span class="s">"${API}/v1/infer?prompt=hello&amp;model=claude-sonnet"</span>` : `process.env.API_URL + <span class="s">"/v1/infer?prompt=hello&amp;model=claude-sonnet"</span>`}
 );
 <span class="c">// The 402 quote already includes the carbon line; the agent pays once.</span>`,
   };
   // The MCP server ships in the repo (packages/mcp-server); node runs its TypeScript directly (Node 22.18+).
   const SERVER = `${REPO_DIR}/packages/mcp-server/src/server.ts`;
   const MCP = {
-    code: `<span class="c"># from the cloned repo</span>
+    code: `<span class="c"># from the cloned repo</span>${API ? "" : `
+<span class="c"># No public paid API yet. Run your own (npm run api) with a meter the pool admin has authorised.</span>`}
 claude mcp add decarbonai \\
   --env AGENT_PRIVATE_KEY=0x… \\
   --env AGENT_ID=${AGENT} \\
-  --env API_URL=${API} \\
+  --env API_URL=${API_ENV} \\
   -- node "$PWD/packages/mcp-server/src/server.ts"`,
     desktop: `{
   <span class="s">"mcpServers"</span>: {
     <span class="s">"decarbonai"</span>: {
       <span class="s">"command"</span>: <span class="s">"node"</span>,
       <span class="s">"args"</span>: [<span class="s">"${SERVER}"</span>],
-      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"AGENT_ID"</span>: <span class="s">"${AGENT}"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API}"</span> }
+      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"AGENT_ID"</span>: <span class="s">"${AGENT}"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API_ENV}"</span> }
     }
   }
 }`,
@@ -67,7 +70,7 @@ claude mcp add decarbonai \\
     <span class="s">"decarbonai"</span>: {
       <span class="s">"command"</span>: <span class="s">"node"</span>,
       <span class="s">"args"</span>: [<span class="s">"${SERVER}"</span>],
-      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API}"</span> }
+      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API_ENV}"</span> }
     }
   }
 }`,
@@ -96,7 +99,7 @@ claude mcp add decarbonai \\
     // Not configured: say so up front instead of failing on click.
     runBtn.disabled = true;
     runBtn.title = "Live demo payments are switched off on this deployment";
-    $("#out").innerHTML = `<div class="empty">Live demo payments are switched off on this deployment, so Run is paused.<br>You can still pay from your own agent with the MCP setup below, or watch real Fuji payments on <a href="/" style="color:var(--mint)">Live</a>.</div>`;
+    $("#out").innerHTML = `<div class="empty">Live demo payments are switched off on this deployment, so Run is paused.<br>Past ${NET.name} activity is on <a href="/" style="color:var(--mint)">Live</a>.</div>`;
   }
   let busy = false;
   const show = (lines, delays) => {
@@ -106,7 +109,7 @@ claude mcp add decarbonai \\
   const lines = ({ path, mg, sur, price, tx, agent, json, secs }) => [
     `<span class="dim">→</span> GET ${path}`,
     `<span class="st402">← 402 Payment Required</span>  price ${fmt.usd(price, 3)} + <span class="red">${fmt.usd(sur, 5)} carbon</span> (${(mg / 1000).toFixed(2)} g CO₂e)`,
-    `<span class="dim">→</span> signing x402 payment${agent ? ` from agent #${agent}` : ""} (${NET.testnet ? "test USDC" : "USDC"}, EIP-3009)`,
+    `<span class="dim">→</span> signing x402 payment${agent ? ` from agent #${agent}` : ""} (${DC.TOKEN.name}, EIP-3009)`,
     `<span class="dim">→</span> facilitator settled on ${NET.short}${secs ? ` in ${secs} s` : ""}  ${tx ? DC.hashLink(tx, 10, 6) : '<span class="dim">tx pending</span>'}`,
     `<span class="st200">← 200 OK</span>`,
     `<span class="json">${json}</span>`,

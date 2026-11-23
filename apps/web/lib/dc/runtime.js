@@ -3,6 +3,8 @@
    - "live" (default): CarbonAccrued / Retired events from the RetirementPool, polled through /api/snapshot.
    - "mock" (?source=mock): the seeded simulation from the prototype, with the B (burst) / P (pause) rehearsal keys. */
 
+import { FRESH_MS } from "@/lib/types";
+
 // ---------- seeded random (mock source) ----------
 let seed = 0xdeca7b0;
 function rand() {
@@ -140,7 +142,7 @@ const reduced = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduce
 
 /**
  * Builds the runtime for one page load and exposes it as window.DC.
- * cfg: { source, snapshot, net, contracts, method, agentNames, featured, demoAgentId, creditNote }
+ * cfg: { source, snapshot, net, contracts, method, agentNames, featured, demoAgentId, creditNote, unbacked, token }
  */
 export function createDC(cfg) {
   const { net: NET, contracts: CONTRACTS, method: METHOD } = cfg;
@@ -150,8 +152,11 @@ export function createDC(cfg) {
   const PRICE_PER_TONNE = snap?.pricePerTonne || cfg.pricePerTonne || 25_000_000; // USDC base units per tonne
   const surchargeFor = (mg) => Math.ceil((mg * PRICE_PER_TONNE) / 1e9);
 
-  const hashLink = (h, a, b, cls = "") => `<a class="hash ${cls}" href="${NET.explorer}/tx/${h}" target="_blank" rel="noreferrer" data-copy="${h}" title="${h}">${short(h, a, b)}${I.arr}</a>`;
-  const addrLink = (h) => `<a class="hash" href="${NET.explorer}/address/${h}" target="_blank" rel="noreferrer" title="${h}">${short(h)}${I.arr}</a>`;
+  // Simulated hashes and payers are not on any explorer: show them as plain text.
+  const simHash = (h, a, b, cls = "") => `<span class="hash ${cls}" title="Simulated">${short(h, a, b)}</span>`;
+  const onChain = new Set(Object.values(CONTRACTS));
+  const hashLink = (h, a, b, cls = "") => (mock ? simHash(h, a, b, cls) : `<a class="hash ${cls}" href="${NET.explorer}/tx/${h}" target="_blank" rel="noreferrer" data-copy="${h}" title="${h}">${short(h, a, b)}${I.arr}</a>`);
+  const addrLink = (h) => (mock && !onChain.has(h) ? simHash(h) : `<a class="hash" href="${NET.explorer}/address/${h}" target="_blank" rel="noreferrer" title="${h}">${short(h)}${I.arr}</a>`);
 
   // ---------- agents ----------
   const AGENTS = mock ? MOCK_AGENTS.map((a) => ({ ...a, title: a.name })) : [];
@@ -160,7 +165,7 @@ export function createDC(cfg) {
     let a = AGENTS.find((x) => x.id === id);
     if (!a) {
       const named = cfg.agentNames[String(id)];
-      a = { id, name: named || (id ? "Agent" : "Unregistered payer"), title: named || (id ? `Agent #${id}` : "Unregistered payer"), note: "Pays for x402 calls on Avalanche; every payment carries its carbon surcharge into the RetirementPool.", payer: payer || "", model: null, since: t || Date.now() };
+      a = { id, name: named || (id ? "Agent" : "Unregistered payer"), title: named || (id ? `Agent #${id}` : "Unregistered payer"), note: "", payer: payer || "", model: null, since: t || Date.now() };
       AGENTS.push(a);
       state.pending[id] ??= 0;
       state.acct[id] ??= { calls: 0, mg: 0, sur: 0 };
@@ -324,7 +329,8 @@ export function createDC(cfg) {
     source: mock ? "mock" : "live", mock, state, AGENTS, agentById, CONTRACTS, METHOD, NET, FACTORS, THRESHOLD_MG, PRICE_PER_TONNE,
     gramsPerCall, surchargeFor, fmt, short, hex, rand, on, emit, odometer, I, hashLink, addrLink, toast, sealSVG, coinHTML, reduced, ago, groupByTx,
     // Live data counts as "live" only if the chain moved in the last 15 minutes.
-    isFresh: () => mock || (state.feed[0] && Date.now() - state.feed[0].t < 15 * 60_000),
+    isFresh: () => mock || (state.feed[0] && Date.now() - state.feed[0].t < FRESH_MS),
+    UNBACKED: cfg.unbacked, RETIRED: cfg.unbacked ? "Mock-retired" : "Retired", TOKEN: cfg.token,
     demoReady: cfg.demoReady,
     scaleBar: (el, mg) => scaleBar(el, mg, THRESHOLD_MG), creditNote: cfg.creditNote, demoAgentId: cfg.demoAgentId,
     FEATURED: featuredId(), startStream: () => controls.start(), burst: (n) => controls.burst(n), forceRetire: (id) => controls.forceRetire(id),
@@ -337,7 +343,7 @@ export function createDC(cfg) {
     const kg = r.mg / 1e6;
     return `<div class="coin ${size}" data-coin>
       <div class="coin-face">
-        <span class="coin-eyebrow">Retired</span>
+        <span class="coin-eyebrow">${cfg.unbacked ? "Testnet mock" : "Retired"}</span>
         <span class="coin-kg">${kg.toLocaleString("en-US", { maximumFractionDigits: 3 })} kg</span>
         <span class="coin-unit">CO₂e</span>
         <span class="coin-no">${fmt.no(r.n)}</span>

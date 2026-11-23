@@ -3,7 +3,8 @@ import { Anton, Archivo, JetBrains_Mono, Noto_Sans_Thai } from "next/font/google
 import { Providers } from "@/components/Providers";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
-import { NETWORK, SITE_URL } from "@/lib/config";
+import { NETWORK, SITE_URL, UNBACKED } from "@/lib/config";
+import { HEADLINE } from "@/lib/copy";
 
 // Developers "Run" / Agent "Pay one call" need these server-only vars (see apps/web/README.md).
 const DEMO_READY = Boolean(process.env.DEMO_AGENT_PRIVATE_KEY && process.env.DEMO_API_URL && process.env.NEXT_PUBLIC_DEMO_AGENT_ID);
@@ -14,11 +15,11 @@ const archivo = Archivo({ weight: ["400", "500", "600", "700"], subsets: ["latin
 const mono = JetBrains_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-mono", display: "swap" });
 const thai = Noto_Sans_Thai({ weight: ["400", "500", "600"], subsets: ["thai"], variable: "--font-thai", display: "swap" });
 
-const description = `Every paid AI call settles its own carbon. An x402 carbon meter on ${NETWORK.name}: each payment carries a surcharge that retires credit for the agent and mints a soulbound receipt.`;
+const description = `${NETWORK.testnet ? `Testnet demo on ${NETWORK.name}` : `x402 carbon meter on ${NETWORK.name}`}. An x402 payment includes a carbon surcharge; a trusted meter records the estimated grams in batches, and each 1 kg burns a ${UNBACKED ? "mock credit" : "backed credit"} and mints a soulbound receipt.`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "DecarbonAI · Every paid AI call settles its own carbon", template: "%s · DecarbonAI" },
+  title: { default: `DecarbonAI · ${HEADLINE}`, template: "%s · DecarbonAI" },
   description,
   openGraph: { siteName: "DecarbonAI", type: "website", description },
   twitter: { card: "summary_large_image" },

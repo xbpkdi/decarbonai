@@ -9,8 +9,9 @@ export const metadata: Metadata = { title: "Developers" };
 
 export default async function DevelopersPage() {
   const snapshot = await getSnapshotSafe();
-  // The paid API the snippets point at: the hosted demo API, else the repo's local `npm run api`.
-  const api = process.env.NEXT_PUBLIC_DEMO_API_URL || "http://localhost:4021";
+  // The hosted paid API the snippets point at. Anything but https is not public: show placeholders instead.
+  const hosted = process.env.NEXT_PUBLIC_DEMO_API_URL ?? "";
+  const api = hosted.startsWith("https://") ? hosted.replace(/\/$/, "") : "";
   return (
     <>
       <main data-page="developers" data-api={api}>

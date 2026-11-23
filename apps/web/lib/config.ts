@@ -52,10 +52,19 @@ export const DEPLOYMENT = JSON.parse(process.env.NEXT_PUBLIC_DEPLOYMENT || "{}")
 
 export const RPC_URL = process.env.NEXT_PUBLIC_RPC_URL || NETWORK.rpc;
 
+/** True while the pool burns a credit with no real retirement behind it (Fuji). */
+export const UNBACKED = !DEPLOYMENT.dco2Backed;
+
+/** Fuji pays in our own faucet token, not Circle USDC. */
+export const TOKEN = NETWORK.testnet ? { name: "TestUSDC", symbol: "tUSDC" } : { name: "USDC", symbol: "USDC" };
+
 /** Footer and receipts follow the network: Fuji burns a mock credit, mainnet burns backed lots. */
 export const CREDIT_NOTE = DEPLOYMENT.dco2Backed
   ? "DCO2 lots are minted 1:1 against credits retired off-chain"
   : "DCO2 is a testnet mock credit";
+
+/** Adapters of earlier pool deployments that still have entries in the ERC-8004 registry. */
+export const SUPERSEDED_ADAPTERS: Hex[] = NETWORK.testnet ? ["0x3f672742dB74baEAD1716E81C82132d3d3F64CE9"] : [];
 
 /** ERC-8004 id -> display name, from NEXT_PUBLIC_AGENT_NAMES ({"42":"Claude research agent"}). */
 export const AGENT_NAMES: Record<string, string> = (() => {
@@ -85,7 +94,9 @@ export const CONTRACT_LIST = [
   ["RetirementPool", DEPLOYMENT.retirementPool, "Takes the surcharge, emits CarbonAccrued, retires per payer at 1 kg."],
   ["CarbonReceipt", DEPLOYMENT.carbonReceipt, "ERC-721 + ERC-5192 soulbound receipts."],
   [DEPLOYMENT.dco2Backed ? "DCO2" : "DCO2 (mock)", DEPLOYMENT.dco2, "ERC-1155 credit lots, burned on retirement."],
-  ["ERC-8004 adapter", DEPLOYMENT.reputationAdapter, "Writes carbon-settled feedback to the agent's reputation."],
+  ["ERC-8004 adapter", DEPLOYMENT.reputationAdapter, UNBACKED
+    ? `Writes carbon-settled feedback for backed lots only. None written on ${NETWORK.short}.`
+    : "Writes carbon-settled feedback for backed lots."],
 ] as const;
 
 export function short(hex: string, head = 6, tail = 4) {

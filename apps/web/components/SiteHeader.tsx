@@ -46,9 +46,9 @@ export function SiteHeader() {
               {NETWORK.name}
               <span className="blk tnum" data-block />
             </a>
-            <span className="ticker" title="Total CO₂e captured, all agents">
+            <span className="ticker" title="Total estimated CO₂e metered, all agents">
               <span className="odo" data-ticker />
-              <span className="unit">g CO₂e captured</span>
+              <span className="unit">g CO₂e metered</span>
             </span>
             <WalletButton />
             <button type="button" className="icon-btn menu-btn" data-menu aria-label="Open menu">
@@ -73,7 +73,7 @@ export function SiteHeader() {
         </div>
         <div className="ticker" style={{ justifyContent: "space-between" }}>
           <span className="odo" data-ticker />
-          <span className="unit">g CO₂e captured</span>
+          <span className="unit">g CO₂e metered</span>
         </div>
         <span className="chip-net">
           <span className="dot-live" />
