@@ -2,12 +2,13 @@
 // and before any money moves: until then the deployer can still grant itself a role, and a grant to a third
 // address survives the hand-off.
 //   DECARBONAI_NETWORK=avalanche npm run audit:roles
-import { type Address, type Hex, getAddress, parseAbi } from "viem";
+import { type Address, type Hex, createPublicClient, getAddress, http, parseAbi } from "viem";
 import { carbonReceiptAbi, dCO2Abi, eRC8004ReputationAdapterAbi, network, retirementPoolAbi } from "@decarbonai/chain";
-import { clientFor, loadDeployment } from "@decarbonai/chain/node";
+import { loadDeployment, rpcUrlFor } from "@decarbonai/chain/node";
 
 const d = loadDeployment();
-const client = clientFor(d);
+// the event scan makes one call per 100 blocks, so be patient with a rate-limited public RPC
+const client = createPublicClient({ chain: network(d.chainId).chain, transport: http(rpcUrlFor(d), { retryCount: 8, retryDelay: 500 }) });
 const ZERO = "0x0000000000000000000000000000000000000000";
 const mainnet = d.chainId === 43114;
 let failures = 0;
@@ -85,9 +86,10 @@ const CHUNK = 100n; // eth_getLogs range limit of the public C-Chain RPC
 const starts: bigint[] = [];
 for (let from = BigInt(d.deployBlock); from <= head; from += CHUNK) starts.push(from);
 const events = retirementPoolAbi.filter((x) => x.type === "event" && (x.name === "RoleGranted" || x.name === "SurchargeFunderSet"));
-for (let i = 0; i < starts.length; i += 8) {
+if (starts.length > 100) console.log(`scanning ${starts.length * 100} blocks of events, this takes a while...`);
+for (let i = 0; i < starts.length; i += 4) {
   const logs = await Promise.all(
-    starts.slice(i, i + 8).map((fromBlock) => client.getLogs({ address: d.retirementPool, events, fromBlock, toBlock: fromBlock + CHUNK - 1n < head ? fromBlock + CHUNK - 1n : head })),
+    starts.slice(i, i + 4).map((fromBlock) => client.getLogs({ address: d.retirementPool, events, fromBlock, toBlock: fromBlock + CHUNK - 1n < head ? fromBlock + CHUNK - 1n : head })),
   );
   for (const l of logs.flat()) {
     if (l.eventName === "RoleGranted") {
@@ -114,6 +116,20 @@ for (const meter of new Set<Address>([...funders, getAddress(d.meter)])) {
   const funder = await client.readContract({ ...pool, functionName: "surchargeFunder", args: [meter] });
   check(eq(funder, eq(meter, d.meter) ? d.payTo : ZERO), `surcharge funder of ${meter}`, funder);
 }
+
+// ---- nothing else was changed in the hand-off window
+const [price, threshold, methodology, paused, nextLotId, queue] = await Promise.all([
+  client.readContract({ ...pool, functionName: "pricePerTonne" }),
+  client.readContract({ ...pool, functionName: "thresholdMg" }),
+  client.readContract({ ...pool, functionName: "methodology", args: [d.methodologyHash] }),
+  client.readContract({ ...pool, functionName: "paused" }),
+  client.readContract({ address: d.dco2, abi: dCO2Abi, functionName: "nextLotId" }),
+  client.readContract({ ...pool, functionName: "lotQueueLength" }),
+]);
+check(price === BigInt(d.pricePerTonne) && threshold === BigInt(d.thresholdMg), "price and threshold are the deployed ones");
+check(methodology.active && !paused, "methodology active, pool not paused", methodology.version);
+check(nextLotId === BigInt(d.initialLotId) + 1n, "no other DCO2 lot was minted (expected until the Safe adds one)", `next lot ${nextLotId}`);
+check(queue === (d.initialLotId > 0 ? 1n : 0n), "the pool queue holds only that lot (expected until the Safe adds one)", `${queue} queued`);
 
 // ---- the lot the deployment minted
 if (d.initialLotId > 0) {

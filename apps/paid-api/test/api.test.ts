@@ -39,11 +39,13 @@ const ok = { METER_PRIVATE_KEY: KEY, PAY_TO_ADDRESS: SAFE };
 
 test("server exits if any other private key is in its environment, and never prints one", async () => {
   const secret = `0x${"ab".repeat(32)}`;
-  for (const name of ["MAINNET_PRIVATE_KEY", "MAINNET_METER_PRIVATE_KEY", "PAY_TO_PRIVATE_KEY", "BASE_BUYER_PRIVATE_KEY", "FUJI_PRIVATE_KEY", "AGENT_PRIVATE_KEY", "PRIVATE_KEY", "deployer_private_key", "MNEMONIC"]) {
-    const { code, out } = await start({ ...ok, [name]: secret });
-    assert.equal(code, 1, name);
-    assert.match(out, new RegExp(`Refusing to start.*${name}`));
-    assert.equal(out.includes(secret) || out.includes(KEY), false, name);
+  const { code, out } = await start({ ...ok, MAINNET_PRIVATE_KEY: secret });
+  assert.equal(code, 1);
+  assert.match(out, /Refusing to start.*MAINNET_PRIVATE_KEY/);
+  assert.equal(out.includes(secret) || out.includes(KEY), false);
+  // the rest without a process each
+  for (const name of ["MAINNET_METER_PRIVATE_KEY", "PAY_TO_PRIVATE_KEY", "BASE_BUYER_PRIVATE_KEY", "FUJI_PRIVATE_KEY", "AGENT_PRIVATE_KEY", "PRIVATE_KEY", "deployer_private_key", "MNEMONIC"]) {
+    assert.deepEqual(foreignSecrets({ ...ok, [name]: secret }), [name]);
   }
 });
 

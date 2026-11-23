@@ -103,7 +103,8 @@ contract Deploy is Script {
         if (block.chainid == 43114) _checkMainnet(p);
         _print(p);
         Deployed memory d = _deploy(p);
-        // A dry run must not leave a deployment file behind: every script would believe it.
+        // A dry run must not leave a deployment file behind: every script would believe it. Nor may --resume
+        // write one: forge re-runs this script to collect signers, from a nonce that gives other addresses.
         if (block.chainid == 31337 || vm.isContext(VmSafe.ForgeContext.ScriptBroadcast)) _write(p, d);
         else console2.log("simulation only: no deployment file written");
     }
@@ -155,7 +156,7 @@ contract Deploy is Script {
 
     function _checkMainnet(Params memory p) internal view {
         string memory path = _deploymentPath();
-        if (vm.exists(path)) revert AlreadyDeployed(path);
+        if (vm.exists(path) && !vm.isContext(VmSafe.ForgeContext.ScriptResume)) revert AlreadyDeployed(path);
 
         if (p.treasury != p.admin) revert FixedOnMainnet("TREASURY_ADDRESS");
         if (p.pauser != p.admin) revert FixedOnMainnet("PAUSER_ADDRESS");
