@@ -5,9 +5,10 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
 import { NETWORK, SITE_URL, UNBACKED } from "@/lib/config";
 import { HEADLINE } from "@/lib/copy";
+import { demoConfig } from "@/lib/server/demo";
 
-// Developers "Run" / Agent "Pay one call" need these server-only vars (see apps/web/README.md).
-const DEMO_READY = Boolean(process.env.DEMO_AGENT_PRIVATE_KEY && process.env.DEMO_API_URL && process.env.NEXT_PUBLIC_DEMO_AGENT_ID);
+// Developers "Run" / Agent "Pay one call" need every demo setting (see apps/web/README.md).
+const DEMO_READY = Boolean(demoConfig());
 import "./globals.css";
 
 const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton", display: "swap" });

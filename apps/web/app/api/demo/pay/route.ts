@@ -1,12 +1,13 @@
 import { createPayingFetch, settlementFrom } from "@decarbonai/x402-carbon/client";
 import type { CarbonExtra } from "@decarbonai/x402-carbon";
-import type { Hex } from "viem";
 import { NETWORK } from "@/lib/config";
+import { demoConfig } from "@/lib/server/demo";
 
 /**
  * One real paid x402 call against the demo API, paid by the server-side test agent wallet. Powers the
  * Developers "Run" button and the Agent "Pay one call" button. Testnet only, rate-limited.
  *
+ * Refuses unless every setting is present and well formed (lib/server/demo.ts).
  * Env: DEMO_AGENT_PRIVATE_KEY (funded with test USDC on Fuji), DEMO_API_URL (paid-api base URL),
  * NEXT_PUBLIC_DEMO_AGENT_ID (ERC-8004 id the payments are attributed to).
  */
@@ -24,25 +25,24 @@ function limited(ip: string) {
 }
 
 export async function POST(req: Request) {
-  const key = process.env.DEMO_AGENT_PRIVATE_KEY as Hex | undefined;
-  const api = process.env.DEMO_API_URL;
   if (!NETWORK.testnet) return Response.json({ error: "Demo payments run on Fuji only." }, { status: 403 });
-  if (!key || !api) return Response.json({ error: "Demo payments are not configured on this deployment." }, { status: 503 });
+  const demo = demoConfig();
+  if (!demo) return Response.json({ error: "Demo payments are not configured on this deployment." }, { status: 503 });
   const ip = (req.headers.get("x-forwarded-for") ?? "local").split(",")[0].trim();
   if (limited(ip)) return Response.json({ error: "Too many demo calls. Try again in a minute." }, { status: 429 });
 
   let quote: CarbonExtra | undefined;
   let amount = "0";
-  const agentId = process.env.NEXT_PUBLIC_DEMO_AGENT_ID ? BigInt(process.env.NEXT_PUBLIC_DEMO_AGENT_ID) : undefined;
+  const { agentId } = demo;
   const agent = createPayingFetch({
-    privateKey: key,
+    privateKey: demo.key,
     agentId,
     onPayment: (carbon, a) => {
       quote = carbon;
       amount = a;
     },
   });
-  const url = new URL("/v1/infer", api);
+  const url = new URL("/v1/infer", demo.api);
   url.searchParams.set("prompt", "Summarise x402 on Avalanche in one line");
   url.searchParams.set("model", "claude-sonnet");
   const started = Date.now();
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     return Response.json({
       path: `${url.pathname}${url.search}`,
       payer: agent.address,
-      agentId: agentId?.toString() ?? null,
+      agentId: agentId.toString(),
       amount,
       quote: quote ?? null,
       tx: settlement?.transaction ?? null,

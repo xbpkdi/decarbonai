@@ -26,13 +26,13 @@ Names only; never commit values. Variables marked server-only must **not** get a
 
 ### Live demo payments (Developers "Run", Agent "Pay one call")
 
-`DEMO_API_URL`, `DEMO_AGENT_PRIVATE_KEY` and `NEXT_PUBLIC_DEMO_AGENT_ID` must all be set, or both buttons show a calm "switched off on this deployment" state instead of paying:
+`DEMO_API_URL`, `DEMO_AGENT_PRIVATE_KEY` and `NEXT_PUBLIC_DEMO_AGENT_ID` must all be set and well formed, or `POST /api/demo/pay` answers 503 and both buttons show a calm "switched off on this deployment" state instead of paying:
 
 | Name | Scope | Value to use |
 |---|---|---|
-| `DEMO_API_URL` | server-only | Base URL of the deployed paid API (`apps/paid-api`), https |
-| `DEMO_AGENT_PRIVATE_KEY` | server-only | A **Fuji test** agent key funded with test USDC. Never a mainnet key |
-| `NEXT_PUBLIC_DEMO_AGENT_ID` | public | ERC-8004 id of that agent (the "Pay one call" button shows on its Agent page) |
-| `NEXT_PUBLIC_DEMO_API_URL` | public | Same URL as `DEMO_API_URL`; shown in the Developers code samples |
+| `DEMO_API_URL` | server-only | Base URL of the deployed paid API (`apps/paid-api`), https (http only on localhost) |
+| `DEMO_AGENT_PRIVATE_KEY` | server-only | A **Fuji test** agent key (0x + 64 hex) funded with TestUSDC. Never a mainnet, deployer or meter key |
+| `NEXT_PUBLIC_DEMO_AGENT_ID` | public | Decimal ERC-8004 id of that agent. Public: never paste a key here (the "Pay one call" button shows on its Agent page) |
+| `NEXT_PUBLIC_DEMO_API_URL` | public | Same URL as `DEMO_API_URL`, https only; shown in the Developers code samples |
 
 Payments run on Fuji only and are rate-limited (4 per IP and 20 total per minute). After setting them, redeploy and do one test click on Developers → Run before going on stage.
