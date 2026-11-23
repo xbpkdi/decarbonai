@@ -90,3 +90,41 @@ test("mock mode is visibly simulated", async ({ page }) => {
   await expect(page.locator(".sim-banner")).toHaveCount(0);
   await expect(page.locator(".hero .pill").first()).not.toHaveText("SIMULATED");
 });
+
+// Copy audit: an unbacked pool writes no ERC-8004 feedback, for any agent id.
+for (const id of [1, 360]) {
+  test(`agent ${id} claims no reputation from the mock lot`, async ({ page }) => {
+    await page.goto(`/agent/${id}`);
+    await expect(page.locator("#settled")).toHaveText("No feedback yet");
+    await expect(page.locator("#repN")).toHaveText("0");
+  });
+}
+
+// Copy audit: samples never present localhost or a third party's agent as ours.
+test("developer samples use placeholders when nothing is hosted", async ({ page }) => {
+  test.skip(Boolean(process.env.NEXT_PUBLIC_DEMO_API_URL || process.env.NEXT_PUBLIC_DEMO_AGENT_ID), "hosted demo configured");
+  await page.goto("/developers");
+  const samples = page.locator("#code, #mcpCode");
+  for (const tab of ["server", "agent"]) {
+    await page.locator(`[data-code="${tab}"]`).click();
+    for (const text of await samples.allTextContents()) expect(text).not.toMatch(/localhost|\b42\b/);
+  }
+  for (const tab of ["code", "desktop", "cursor"]) {
+    await page.locator(`[data-mcp="${tab}"]`).click();
+    await expect(page.locator("#mcpCode")).toContainText("<your-paid-api-url>");
+    await expect(page.locator("#mcpCode")).not.toContainText("localhost");
+  }
+});
+
+test("demo payments refuse without full settings", async ({ request }) => {
+  test.skip(Boolean(process.env.DEMO_AGENT_PRIVATE_KEY), "demo configured");
+  expect((await request.post("/api/demo/pay")).status()).toBe(503);
+});
+
+// Simulated hashes must not look verifiable.
+test("mock receipt is not presented as verified", async ({ page }) => {
+  await page.goto("/receipt/1?source=mock");
+  await expect(page.locator("#checks li").last()).toHaveAttribute("data-s", "warn", { timeout: 15_000 });
+  await expect(page.locator(".verified")).toContainText("Simulated checks.");
+  await expect(page.locator('#info a[href*="/tx/"], #checks a[href*="/tx/"]')).toHaveCount(0);
+});
