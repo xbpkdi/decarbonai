@@ -26,7 +26,7 @@ export function MethodologyMarkup() {
         </div>
         <div className="res" aria-live="polite">
           <div><span className="eyebrow">Carbon per call</span><div className="bigout"><span className="v tnum" id="g"></span><span className="u">g CO₂e</span></div><div className="dim" style={{ fontSize: "13px", marginTop: "6px" }} id="range"></div></div>
-          <div><div className="gauge"><span className="mk" id="mk"></span></div><div className="gauge-l"><span>0.1 g · smoke</span><span>10 g</span><span>100 g · captured</span></div></div>
+          <div><div className="gauge"><span className="mk" id="mk"></span></div><div className="gauge-l"><span>0.1 g · smoke</span><span>10 g</span><span>100 g · high</span></div></div>
           <div className="minis">
             <div className="mini"><div className="k">Surcharge / call</div><div className="v tnum" id="sur"></div></div>
             <div className="mini"><div className="k">Per day</div><div className="v tnum" id="day"></div></div>
@@ -61,7 +61,7 @@ export function MethodologyMarkup() {
             </>
           )}
           {NETWORK.testnet ? (
-            <li>DCO2 on {NETWORK.short} is a testnet mock credit. It is not backed by a real tonne. In production each lot is minted 1:1 against a credit retired off-chain (custodial bridge v0), with the registry serial stored in the lot.</li>
+            <li>DCO2 on {NETWORK.short} is a testnet mock credit. It is not backed by a real tonne. Planned for mainnet: each lot would be minted 1:1 against a credit retired off-chain (custodial bridge v0), with the registry serial stored in the lot.</li>
           ) : (
             <li>DCO2 lots are minted 1:1 against credits retired off-chain through a custodial bridge (v0), with the registry serial stored in the lot. The bridge operator is trusted in v0.</li>
           )}

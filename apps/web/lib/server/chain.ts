@@ -155,9 +155,20 @@ export async function agentFeedback(id: bigint): Promise<AgentFeedback | null> {
 }
 
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef" as Hex;
+const reverted = (e: unknown) => e instanceof BaseError && Boolean(e.walk((x) => x instanceof ContractFunctionRevertedError));
 const ownerOfAbi = [
   { type: "function", name: "ownerOf", stateMutability: "view", inputs: [{ name: "tokenId", type: "uint256" }], outputs: [{ name: "", type: "address" }] },
 ] as const;
+
+/** Whether the ERC-8004 registry has this agent id. Null: not read. */
+export async function agentRegistered(id: bigint): Promise<boolean | null> {
+  try {
+    await client.readContract({ address: D.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] });
+    return true;
+  } catch (e) {
+    return reverted(e) ? false : null;
+  }
+}
 
 /** ERC-8004 identities currently held by `owner` (Transfer logs to the address, re-checked with ownerOf). */
 export async function ownedAgents(owner: Address): Promise<number[]> {
@@ -167,7 +178,7 @@ export async function ownedAgents(owner: Address): Promise<number[]> {
   const owners = await Promise.all(
     ids.map((id) => client.readContract({ address: D.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] }).catch((e) => {
         // A burned id reverts; anything else means the lookup failed, not that the wallet owns nothing.
-        if (e instanceof BaseError && e.walk((x) => x instanceof ContractFunctionRevertedError)) return null;
+        if (reverted(e)) return null;
         throw e;
       }),
     ),

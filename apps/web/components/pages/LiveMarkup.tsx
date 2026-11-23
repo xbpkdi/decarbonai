@@ -8,7 +8,7 @@ export function LiveMarkup({ status }: { status: "LIVE" | "IDLE" | "NO DATA" }) 
   return (
     <>
     <section className="hero" aria-labelledby="h-metered">
-      <div className="eyebrow-row"><span className={status === "LIVE" ? "pill pill-live" : "pill pill-smoke pill-idle"} id="status">{status}</span><span className="eyebrow" id="h-metered">x402 carbon meter · {NETWORK.name}</span></div>
+      <div className="eyebrow-row"><span className={status === "LIVE" ? "pill pill-live" : "pill pill-smoke pill-idle"} id="status">{status}</span><span className="eyebrow" id="h-metered">x402 carbon meter · {NETWORK.testnet ? `${NETWORK.short} testnet` : NETWORK.name}</span></div>
       <h1 className="big"><span className="odo" id="big"></span><span className="unit">g CO₂e</span></h1>
       <p className="line" id="line"></p>
     </section>
@@ -24,9 +24,9 @@ export function LiveMarkup({ status }: { status: "LIVE" | "IDLE" | "NO DATA" }) 
       </div>
     </section>
 
-    <section className="scene card" aria-label="Capture: each x402 payment releases smoke that crystallises in the pool">
+    <section className="scene card" aria-label="Animation: metered calls filling a payer's account in the pool">
       <canvas id="scene" aria-hidden="true" tabIndex={-1}></canvas>
-      <div className="scene-legend" aria-hidden="true"><span><i style={{ background: "var(--smoke)" }}></i>Emitted</span><span><i style={{ background: "var(--mint)" }}></i>Captured</span><span><i style={{ background: "var(--avax)" }}></i>On-chain</span></div>
+      <div className="scene-legend" aria-hidden="true"><span><i style={{ background: "var(--smoke)" }}></i>Emitted</span><span><i style={{ background: "var(--mint)" }}></i>Pooled</span><span><i style={{ background: "var(--avax)" }}></i>On-chain</span></div>
       <div className="scene-keys" aria-hidden="true" hidden><kbd>B</kbd> burst 100 calls · <kbd>P</kbd> pause</div>
       <div className="node-label" data-node="0"><div className="t">AI agent</div><div className="s" id="lblAgent" /><div className="v" id="lblVia">x402 payer</div></div>
       <div className="node-label" data-node="1"><div className="t">x402 payment</div><div className="s">{TOKEN.name} ({TOKEN.symbol}) on {NETWORK.short}</div><div className="v" id="lbl-pay"></div></div>

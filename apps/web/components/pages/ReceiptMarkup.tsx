@@ -15,7 +15,7 @@ export function ReceiptMarkup() {
     <div className="card qr-card">
       <span className="eyebrow">Open on your phone</span>
       <div style={{ marginTop: "14px" }}><div className="qr" id="qr"></div></div>
-      <p className="dim" style={{ fontSize: "13px", marginTop: "12px" }}>Scan to open this receipt on your phone. Every check links to Snowtrace.</p>
+      <p className="dim" style={{ fontSize: "13px", marginTop: "12px" }}>Scan to open this receipt on your phone. Contract links open Snowtrace; tap a tx hash to copy it.</p>
       <button type="button" className="btn btn-outline btn-sm" style={{ marginTop: "12px" }} id="share">Share link</button>
     </div>
   </section>

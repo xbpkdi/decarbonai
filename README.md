@@ -8,7 +8,7 @@ Every paid agent call carries its own carbon. DecarbonAI is an x402 middleware f
 
 Once an agent has accrued 1 kg, the pool retires DCO2 credits and mints the agent a **soulbound receipt** (ERC-5192). When the burned lot is backed by a real off-chain retirement, it also writes **"carbon-settled" feedback to the agent's ERC-8004 reputation**. No human in the loop.
 
-**Live web (v1 UI):** https://decarbonai.vercel.app
+**Web:** https://decarbonai.vercel.app
 
 ## Acknowledgments
 
@@ -113,7 +113,7 @@ Circle's Fuji USDC (`0x5425…Bc65`) is only available from a captcha faucet, so
 | `packages/x402-carbon` | Hono middleware `carbonPayment()`, durable `AccrualStore` + `CarbonMeter` worker, pricing, `createPayingFetch()` client. |
 | `packages/mcp-server` | stdio MCP server for Claude: `paid_inference`, `carbon_status`, `estimate_carbon`, with per-call and per-session budgets. |
 | `apps/paid-api` | Demo paid endpoint `GET /v1/infer` (simulated completion; the payment and carbon path are real), rate limited. |
-| `apps/web` | v1 Next.js UI (unchanged; redesign pending). `POST /api/offset` is closed by default. |
+| `apps/web` | Next.js UI (Live, Agent, Receipts, Developers, Methodology) reading the Fuji pool. The v1 estimate/checkout flow and `POST /api/offset` are removed. |
 | `scripts/` | `setup-agent.ts`, `setup-merchant.ts`, `demo-burst.ts`, `smoke-fuji.ts`, `reconcile.ts`, `gen-abis.mjs`, `env.ts` (per-role keys). |
 
 ## Run it
@@ -179,4 +179,4 @@ Prepared but **not deployed**. [`docs/MAINNET.md`](docs/MAINNET.md) has the role
 
 ## v1 (legacy)
 
-v1 retired Carbonmark credits on Base from a web checkout and mirrored a receipt to `CertificateReceipt` on Fuji ([`0x9dd6…7cc1`](https://testnet.snowtrace.io/address/0x9dd6ae803cab0bd07b4cbc09fab3bc30f7357cc1)). Its `POST /api/offset` spent real credits with no auth. It now returns 503 unless `OFFSET_ADMIN_TOKEN` is set server-side and sent as a Bearer token, and caps `tonnes` at 0.01. The local `.data` certificate store was removed.
+v1 retired Carbonmark credits on Base from a web checkout and mirrored a receipt to `CertificateReceipt` on Fuji ([`0x9dd6…7cc1`](https://testnet.snowtrace.io/address/0x9dd6ae803cab0bd07b4cbc09fab3bc30f7357cc1)). Its `POST /api/offset` spent real credits with no auth. That route, the v1 pages and the local `.data` certificate store were removed; old `/certificate/…` links show a notice.

@@ -22,7 +22,7 @@ export function SiteFooter() {
           </p>
           <div className="acts">
             <a className="btn btn-primary" href="/">
-              Run the demo
+              See {NETWORK.short} activity
             </a>
             <a className="btn btn-outline" href="/developers">
               Read the docs
@@ -75,7 +75,7 @@ export function SiteFooter() {
           </span>
           <span className="built">
             <span className="dot-live" />
-            Built on Avalanche · © 2026 DecarbonAI
+            Built on {NETWORK.name} · © 2026 DecarbonAI
           </span>
         </div>
       </div>

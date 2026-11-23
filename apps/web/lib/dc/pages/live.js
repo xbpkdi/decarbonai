@@ -49,7 +49,7 @@ export default function init(DC) {
     const fresh = DC.isFresh();
     pill.textContent = DC.failed ? "NO DATA" : fresh ? "LIVE" : "IDLE";
     pill.className = fresh ? "pill pill-live" : "pill pill-smoke pill-idle";
-    eb.textContent = `x402 carbon meter · ${DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t)}` : ""}`;
+    eb.textContent = `x402 carbon meter · ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t)}` : ""}`;
   }
   paintStatus();
   setInterval(paintStatus, 30_000);
@@ -60,7 +60,7 @@ export default function init(DC) {
   const when = (t) => (new Date(t).toDateString() === today ? fmt.time(t) : `${new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${fmt.time(t).slice(0, 5)}`);
   function row(c, fresh) {
     const a = agentById(c.agent);
-    const batch = c.n > 1 ? ` <span class="batch" title="${c.n} calls settled in one meter batch">×${c.n}</span>` : "";
+    const batch = c.n > 1 ? ` <span class="batch" title="${c.n} calls recorded in one meter batch">×${c.n}</span>` : "";
     const tr = document.createElement("tr");
     if (fresh) tr.className = "new";
     tr.innerHTML = `<td class="c-time mono dim"><span class="tick${fresh ? " hot" : ""}"></span>${when(c.t)}</td>
@@ -315,8 +315,8 @@ export default function init(DC) {
   on("full", ({ agent }) => {
     if (agent !== F) return;
     retiring = true;
-    const pill = $("#poolState"); pill.textContent = `Sealing on ${DC.NET.short}`; pill.classList.add("retiring");
-    $("#lbl-seal").innerHTML = `<span class="red">Burning ${fmt.mass(THRESHOLD_MG)} ${DC.UNBACKED ? "mock " : ""}DCO2…</span>`;
+    const pill = $("#poolState"); pill.textContent = "Receipt minted"; pill.classList.add("retiring");
+    $("#lbl-seal").innerHTML = `<span class="red">Burned ${fmt.mass(THRESHOLD_MG)} ${DC.UNBACKED ? "mock " : ""}DCO2</span>`;
   });
   on("retired", (r) => {
     if (r.agent !== F) return;

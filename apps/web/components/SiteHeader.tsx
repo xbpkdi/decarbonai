@@ -57,7 +57,7 @@ export function SiteHeader() {
           </div>
         </div>
       </header>
-      <section className="tape" aria-label="Recent carbon events">
+      <section className="tape" aria-label="Last metered events">
         <div className="tape-track" />
       </section>
       <div className="sheet-bg" data-close />

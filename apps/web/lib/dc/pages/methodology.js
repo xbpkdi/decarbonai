@@ -23,7 +23,7 @@ export default function init(DC) {
     const pos = Math.max(0, Math.min(1, (Math.log10(g) + 1) / 3));
     $("#mk").style.left = pos * 100 + "%";
     $("#formula").innerHTML = `energy = ${FACTORS.base} + <span class="s">${fmt.count(tout)}</span> ÷ 1000 × ${f.out} + <span class="s">${fmt.count(tin)}</span> ÷ 1000 × ${f.in} = <b>${wh.toFixed(2)} Wh</b><br>
-      g CO₂e = ${wh.toFixed(2)} ÷ 1000 × ${FACTORS.grid} g/kWh × PUE ${FACTORS.pue} + ${FACTORS.embodied} g = <b style="color:var(--mint)">${g.toFixed(3)} g</b> → <b>${fmt.count(mg)} mg</b> on-chain<br>
+      g CO₂e = ${wh.toFixed(2)} ÷ 1000 × ${FACTORS.grid} g/kWh × PUE ${FACTORS.pue} + ${FACTORS.embodied} g = <b style="color:var(--mint)">${g.toFixed(3)} g</b> → <b>${fmt.count(mg)} mg</b>, batched on-chain<br>
       surcharge = ceil(${fmt.count(mg)} mg × ${fmt.usd(DC.PRICE_PER_TONNE, 2)} per tonne ÷ 10⁹) = <b style="color:var(--avax)">${fmt.usd(surchargeFor(mg), 5)}</b>`;
   }
   calc();

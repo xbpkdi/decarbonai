@@ -99,7 +99,7 @@ claude mcp add decarbonai \\
     // Not configured: say so up front instead of failing on click.
     runBtn.disabled = true;
     runBtn.title = "Live demo payments are switched off on this deployment";
-    $("#out").innerHTML = `<div class="empty">Live demo payments are switched off on this deployment, so Run is paused.<br>Past ${NET.name} activity is on <a href="/" style="color:var(--mint)">Live</a>.</div>`;
+    $("#out").innerHTML = `<div class="empty"><div>Live demo payments are switched off on this deployment, so Run is paused.<br>Past ${NET.name} activity is on <a href="/" style="color:var(--mint)">Live</a>.</div></div>`;
   }
   let busy = false;
   const show = (lines, delays) => {
@@ -110,7 +110,7 @@ claude mcp add decarbonai \\
     `<span class="dim">→</span> GET ${path}`,
     `<span class="st402">← 402 Payment Required</span>  price ${fmt.usd(price, 3)} + <span class="red">${fmt.usd(sur, 5)} carbon</span> (${(mg / 1000).toFixed(2)} g CO₂e)`,
     `<span class="dim">→</span> signing x402 payment${agent ? ` from agent #${agent}` : ""} (${DC.TOKEN.name}, EIP-3009)`,
-    `<span class="dim">→</span> facilitator settled on ${NET.short}${secs ? ` in ${secs} s` : ""}  ${tx ? DC.hashLink(tx, 10, 6) : '<span class="dim">tx pending</span>'}`,
+    `<span class="dim">→</span> facilitator settled on ${NET.short}${secs ? ` · round trip ${secs} s` : ""}  ${tx ? DC.hashLink(tx, 10, 6) : '<span class="dim">tx pending</span>'}`,
     `<span class="st200">← 200 OK</span>`,
     `<span class="json">${json}</span>`,
   ];

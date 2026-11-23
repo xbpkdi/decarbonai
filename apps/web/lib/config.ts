@@ -8,7 +8,7 @@ const NETWORKS = {
   fuji: {
     id: "fuji",
     chain: avalancheFuji,
-    name: "Avalanche Fuji",
+    name: "Avalanche Fuji testnet",
     short: "Fuji",
     testnet: true,
     explorer: "https://testnet.snowtrace.io",
@@ -94,6 +94,7 @@ export const CONTRACT_LIST = [
   ["RetirementPool", DEPLOYMENT.retirementPool, "Takes the surcharge, emits CarbonAccrued, retires per payer at 1 kg."],
   ["CarbonReceipt", DEPLOYMENT.carbonReceipt, "ERC-721 + ERC-5192 soulbound receipts."],
   [DEPLOYMENT.dco2Backed ? "DCO2" : "DCO2 (mock)", DEPLOYMENT.dco2, "ERC-1155 credit lots, burned on retirement."],
+  [TOKEN.name, DEPLOYMENT.paymentToken, NETWORK.testnet ? `Testnet payment token (${TOKEN.symbol}) with a faucet. Not Circle USDC.` : "Payment token."],
   ["ERC-8004 adapter", DEPLOYMENT.reputationAdapter, UNBACKED
     ? `Writes carbon-settled feedback for backed lots only. None written on ${NETWORK.short}.`
     : "Writes carbon-settled feedback for backed lots."],

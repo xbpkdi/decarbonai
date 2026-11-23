@@ -3,6 +3,7 @@
    - "live" (default): CarbonAccrued / Retired events from the RetirementPool, polled through /api/snapshot.
    - "mock" (?source=mock): the seeded simulation from the prototype, with the B (burst) / P (pause) rehearsal keys. */
 
+import { NETWORK } from "@/lib/config";
 import { FRESH_MS } from "@/lib/types";
 
 // ---------- seeded random (mock source) ----------
@@ -112,7 +113,7 @@ function sealSVG(n, cls = "") {
     <circle cx="60" cy="60" r="56" fill="none" stroke="currentColor" stroke-width="3"/>
     <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" stroke-width="1"/>
     <circle cx="60" cy="60" r="31" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.2"/>
-    <text style="font-family:var(--f-mono)" font-size="9.4" font-weight="600" letter-spacing="2.2" fill="currentColor"><textPath href="#${id}">SOULBOUND · ERC-5192 · AVALANCHE ·</textPath></text>
+    <text style="font-family:var(--f-mono)" font-size="9.4" font-weight="600" letter-spacing="2.2" fill="currentColor"><textPath href="#${id}">SOULBOUND · ERC-5192 · ${NETWORK.testnet ? "AVAX FUJI" : "AVALANCHE"} ·</textPath></text>
     <text x="60" y="56" text-anchor="middle" style="font-family:var(--f-mono)" font-size="8" fill="currentColor">No.</text>
     <text x="60" y="72" text-anchor="middle" style="font-family:var(--f-display)" font-size="19" fill="currentColor">${String(n).padStart(4, "0")}</text>
   </svg>`;

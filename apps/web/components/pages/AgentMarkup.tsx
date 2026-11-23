@@ -38,11 +38,11 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
 
     <section className="section" aria-labelledby="h-tl">
       <div className="section-title"><h2 id="h-tl">Footprint timeline</h2>
-        <div className="tl-legend"><span><i style={{ background: "var(--smoke)" }}></i>Emitted, not yet retired</span><span><i style={{ background: "var(--mint)" }}></i>Retired into a receipt</span><span className="hide-sm"><i style={{ background: "var(--avax)" }}></i>New call</span></div></div>
+        <div className="tl-legend"><span><i style={{ background: "var(--smoke)" }}></i>Metered, not yet covered</span><span><i style={{ background: "var(--mint)" }}></i>{UNBACKED ? "Covered by a mock-retirement receipt" : "Covered by a receipt"}</span><span className="hide-sm"><i style={{ background: "var(--avax)" }}></i>New call</span></div></div>
       <div className="card">
-        <div className="timeline" id="tl"><canvas id="tlc" aria-label="Every paid call as a dot over time. Retired ranges are mint."></canvas><div className="tl-tip" id="tip"></div></div>
+        <div className="timeline" id="tl"><canvas id="tlc" aria-label="Every paid call as a dot over time. Ranges covered by a receipt are mint."></canvas><div className="tl-tip" id="tip"></div></div>
       </div>
-      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Every paid call is a dot. When a pool fills, the calls it covered recrystallise in green under their receipt number. Hover a dot to see its transaction.</p>
+      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Every paid call is a dot. When a pool fills, the calls it covered recrystallise in green under their receipt number. Hover a dot to see its meter batch tx.</p>
     </section>
 
     <section className="section" aria-labelledby="h-next">
@@ -54,7 +54,7 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
 
     <section className="section" aria-labelledby="h-rc">
       <div className="section-title"><h2 id="h-rc">Receipts</h2><span className="dim" style={{ fontSize: "13px" }}>Soulbound ERC-5192 tokens. They cannot be transferred or sold.</span></div>
-      <div className="card" style={{ overflowX: "auto", position: "relative" }}><table className="tbl"><thead><tr><th>Receipt</th><th>Retired</th><th className="r">Amount</th><th className="r">Calls</th><th className="r">Tx</th></tr></thead><tbody id="rc"></tbody></table></div>
+      <div className="card" style={{ overflowX: "auto", position: "relative" }}><table className="tbl"><thead><tr><th>Receipt</th><th>Minted</th><th className="r">Amount</th><th className="r">Calls</th><th className="r">Tx</th></tr></thead><tbody id="rc"></tbody></table></div>
     </section>
   </div>
     </>

@@ -3,7 +3,8 @@ import { NETWORK, DEPLOYMENT, TOKEN, UNBACKED, short } from "@/lib/config";
 /* Server-rendered markup for the Developers page; lib/dc/pages/developers.js fills and animates it. */
 const INSTALL = "git clone https://github.com/xbpkdi/decarbonai && cd decarbonai && npm install";
 
-export function DevelopersMarkup() {
+/** `demo`: live demo payments are configured on this deployment. */
+export function DevelopersMarkup({ demo }: { demo: boolean }) {
   return (
     <>
       <header className="page-head">
@@ -12,13 +13,13 @@ export function DevelopersMarkup() {
       <h1 className="display">Meter carbon on every x402 call</h1>
       <p className="lead">One Hono middleware plus a meter we authorise. Each payment includes a carbon surcharge priced from declared token limits; {NETWORK.testnet ? `on ${NETWORK.short} ` : ""}the pool burns a {UNBACKED ? "mock" : "backed"} credit per 1 kg.</p>
       <div className="card install"><span className="dollar">$</span><code id="cmd">{INSTALL}</code><button type="button" className="btn btn-outline btn-sm copy" data-copy-text={INSTALL}>Copy</button></div>
-      <p className="dim install-note">Installs from GitHub today: the packages live in the repo&apos;s npm workspace. npm release soon.</p>
+      <p className="dim install-note">Installs from GitHub today: the packages live in the repo&apos;s npm workspace. Not published to npm.</p>
     </div>
   </header>
 
   <div className="wrap">
     <section className="section" aria-labelledby="h-try">
-      <div className="section-title"><h2 id="h-try">Try it: pay for one call</h2><span className="dim" style={{ fontSize: "13px" }}>Run calls the paid demo API on {NETWORK.short} with a test agent wallet</span></div>
+      <div className="section-title"><h2 id="h-try">Try it: pay for one call</h2><span className="dim" style={{ fontSize: "13px" }}>{demo ? `Run calls the paid demo API on ${NETWORK.short} with a test agent wallet` : "Live demo payments are off on this deployment"}</span></div>
       <div className="two">
         <div className="card" style={{ overflow: "hidden" }}>
           <div className="tabs" role="tablist"><button type="button" className="tab" role="tab" aria-selected="true" data-code="server">server.ts</button><button type="button" className="tab" role="tab" aria-selected="false" data-code="agent">agent.ts</button><span className="sp"></span><button type="button" className="btn btn-outline btn-sm copy" id="copyCode">Copy</button></div>
@@ -27,7 +28,7 @@ export function DevelopersMarkup() {
         <div className="card run bar-red">
           <div className="card-h"><h3>Response</h3><button type="button" className="btn btn-primary btn-sm" id="run">Run</button></div>
           <div className="out" id="out"><div className="empty">Press Run. The agent receives a 402 with the carbon line in the quote, pays once in {TOKEN.name} ({NETWORK.testnet ? "our faucet token, " : ""}{short(DEPLOYMENT.paymentToken ?? "")}), and gets a simulated completion plus a Snowtrace link.</div></div>
-          <div className="sur" id="sur"><div><div className="k2">Call price</div><div className="v2" id="price">$0.010</div></div><div><div className="k2">Carbon surcharge</div><div className="v2" id="surV" style={{ color: "var(--avax)" }}>$0</div></div><div><div className="k2">gCO₂e</div><div className="v2" id="gV" style={{ color: "var(--mint)" }}>0 g</div></div></div>
+          <div className="sur" id="sur"><div><div className="k2">{demo ? "Call price" : "Example price"}</div><div className="v2" id="price">$0.010</div></div><div><div className="k2">Carbon surcharge</div><div className="v2" id="surV" style={{ color: "var(--avax)" }}>{demo ? "$0" : "–"}</div></div><div><div className="k2">gCO₂e</div><div className="v2" id="gV" style={{ color: "var(--mint)" }}>{demo ? "0 g" : "–"}</div></div></div>
         </div>
       </div>
     </section>

@@ -4,7 +4,8 @@ export default function init(DC) {
   const id = Number(document.querySelector("main").dataset.id) || 0;
   const a = agentById(id);
 
-  $("#eb").textContent = id || !DC.failed ? `ERC-8004 agent #${a.id} · ${DC.NET.name}` : DC.NET.name;
+  const registered = { true: `ERC-8004 agent #${id}`, false: "Not in the ERC-8004 registry" }[document.querySelector("main").dataset.registered];
+  $("#eb").textContent = DC.mock ? `Simulated agent #${a.id} · rehearsal only` : registered ? `${registered} · ${DC.NET.name}` : DC.NET.name;
   $("#name").textContent = id || !DC.failed ? a.title : "Agent";
   $("#meta").innerHTML = [
     a.payer && `<div><dt>Wallet</dt><dd>${DC.addrLink(a.payer)}</dd></div>`,
@@ -26,7 +27,7 @@ export default function init(DC) {
     const retiredMg = rs.reduce((s, r) => s + r.mg, 0);
     $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}; our meter batches the surcharges into the pool.` : "No calls recorded by this pool.");
     $("#stats").innerHTML = [
-      ["Paid calls", fmt.count(ac.calls), "", "metered through x402", ""],
+      ["Paid calls", fmt.count(ac.calls), "", "reported by the trusted meter", ""],
       ["Carbon metered", fmt.g(ac.mg, 1), "g", "CO₂e, mid estimate", ""],
       [DC.RETIRED, fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
       ["Surcharge paid", fmt.usd(ac.sur, 3), "", `${DC.TOKEN.symbol}, pulled into the pool in batches`, ""],
@@ -92,7 +93,7 @@ export default function init(DC) {
     for (const p of pts) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
     hover = best;
     if (best) {
-      tip.innerHTML = `<div class="mono dim">${fmt.dt(best.c.t)}</div><div style="margin-top:3px"><b>${(best.c.mg / 1000).toFixed(2)} g</b> CO₂e · ${best.c.receipt ? `<span style="color:var(--mint)">retired in ${fmt.no(best.c.receipt)}</span>` : '<span class="dim">pending</span>'}</div><div class="mono" style="color:var(--avax);margin-top:3px">${DC.short(best.c.tx, 10, 6)} ↗</div>`;
+      tip.innerHTML = `<div class="mono dim">${fmt.dt(best.c.t)}</div><div style="margin-top:3px"><b>${(best.c.mg / 1000).toFixed(2)} g</b> CO₂e · ${best.c.receipt ? `<span style="color:var(--mint)">covered by ${fmt.no(best.c.receipt)}</span>` : '<span class="dim">pending</span>'}</div><div class="mono" style="color:var(--avax);margin-top:3px">${DC.short(best.c.tx, 10, 6)} ↗</div>`;
       tip.style.left = best.x + "px"; tip.style.top = best.y + "px"; tip.classList.add("on");
     } else tip.classList.remove("on");
   });

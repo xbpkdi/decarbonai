@@ -28,10 +28,9 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ["@decarbonai/chain", "@decarbonai/core", "@decarbonai/x402-carbon"],
   outputFileTracingRoot: path.join(__dirname, "../.."),
-  // The old individual estimate/checkout flow is gone; keep shared certificate links working.
+  // The old individual estimate/checkout flow is gone. /certificate/:id explains that v1 certificates were not carried over.
   async redirects() {
     return [
-      { source: "/certificate/:id", destination: "/receipt/:id", permanent: false },
       { source: "/receipts/:n(\\d+)", destination: "/receipt/:n", permanent: false },
       { source: "/estimate", destination: "/methodology", permanent: false },
       { source: "/checkout", destination: "/", permanent: false },

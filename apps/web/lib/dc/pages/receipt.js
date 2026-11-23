@@ -4,9 +4,10 @@ export default function init(DC) {
   const { state, fmt, agentById, CONTRACTS, METHOD, NET, I, reduced } = DC;
   const $ = (s) => document.querySelector(s);
   const n = Number(document.querySelector("main").dataset.n);
+  const KIND = DC.UNBACKED ? "Testnet receipt (mock credit)" : "Retirement receipt";
   const r = state.receipts.find((x) => x.n === n);
   if (!r) {
-    $("#info").innerHTML = `<span class="eyebrow">Retirement receipt · ${NET.name}</span><h1 class="display" id="rt">${fmt.no(n || 0)}</h1>
+    $("#info").innerHTML = `<span class="eyebrow">${KIND} · ${NET.name}</span><h1 class="display" id="rt">${fmt.no(n || 0)}</h1>
       <p class="lead" style="margin-top:18px">${DC.failed ? `${DC.READ_FAILED} This receipt has not been checked.` : `This receipt has not been minted on ${NET.name} yet, or the chain index is still catching up.`}</p>
       <div class="acts"><a class="btn btn-outline" href="/receipts">All receipts</a></div>`;
     document.querySelector(".verify-grid").hidden = true;
@@ -16,7 +17,7 @@ export default function init(DC) {
 
   $("#tilt").innerHTML = DC.coinHTML(r) ;
   $("#tilt .coin").insertAdjacentHTML("beforeend", '<span class="glare" aria-hidden="true"></span>');
-  $("#info").innerHTML = `<span class="eyebrow">${DC.mock ? "Simulated receipt · rehearsal only" : `Retirement receipt · ${NET.name}`}</span>
+  $("#info").innerHTML = `<span class="eyebrow">${DC.mock ? "Simulated receipt · rehearsal only" : `${KIND} · ${NET.name}`}</span>
     <h1 class="display" id="rt">${fmt.no(r.n)}</h1>
     <dl>
       <dt>${DC.RETIRED}</dt><dd><b style="color:var(--mint);font-size:18px">${fmt.mass(r.mg)} CO₂e</b></dd>
@@ -25,7 +26,7 @@ export default function init(DC) {
       <dt>Calls covered</dt><dd class="tnum">${fmt.count(r.calls)} paid x402 calls</dd>
       <dt>Surcharge paid</dt><dd class="tnum">${fmt.usd(r.sur).slice(1)} ${DC.TOKEN.symbol}${NET.testnet ? " (testnet)" : ""}</dd>
       <dt>Credit burned</dt><dd>DCO2 lot ${r.lot}${DC.UNBACKED ? ' <span class="pill pill-mock">testnet mock credit</span>' : ""}</dd>
-      <dt>Retired at</dt><dd>${fmt.dt(r.t)}</dd>
+      <dt>Minted at</dt><dd>${fmt.dt(r.t)}</dd>
     </dl>
     <div class="acts">${DC.mock ? "" : `<a class="btn btn-primary" href="${NET.explorer}/tx/${r.tx}" target="_blank" rel="noreferrer">View on Snowtrace ↗</a>`}<a class="btn btn-outline" href="/receipts">All receipts</a><span class="pill pill-settled pill-dot">ERC-5192 locked</span></div>`;
 
@@ -51,7 +52,7 @@ export default function init(DC) {
     { t: "The receipt is soulbound", d: `CarbonReceipt ${DC.addrLink(CONTRACTS.CarbonReceipt)} returns <span class="mono">locked(${r.n}) = true</span> (ERC-5192).`, ok: (v) => v.locked, res: ["locked() = true", "not locked"] },
     { t: "The grams follow a published method", d: `Expected methodology hash <span class="mono" style="word-break:break-all">${METHOD.hash}</span>, published as <a href="/methodology" style="color:var(--mint)">${METHOD.version}</a>.`, after: (v) => `This receipt stores methodology hash <span class="mono" style="word-break:break-all">${v.methodologyHash}</span>, ${v.methodologyActive ? "active" : "not active"} on the pool as <a href="/methodology" style="color:var(--mint)">${v.methodologyVersion}</a>${v.methodologyHash?.toLowerCase() === METHOD.hash.toLowerCase() ? ", the version this site publishes" : ""}.`, ok: (v) => v.methodologyActive, res: ["hash registered", "hash not active"] },
     DC.UNBACKED
-      ? { t: "A credit lot was burned", d: `DCO2 lot ${r.lot} on ${DC.addrLink(CONTRACTS.DCO2)}. This is a <b style="color:var(--warn)">testnet mock credit</b>, not backed by a real tonne. In production each lot is minted 1:1 against a credit retired off-chain.`, ok: () => true, warn: true, res: ["mock credit"] }
+      ? { t: "A credit lot was burned", d: `DCO2 lot ${r.lot} on ${DC.addrLink(CONTRACTS.DCO2)}. This is a <b style="color:var(--warn)">testnet mock credit</b>, not backed by a real tonne. Planned for mainnet: each lot would be minted 1:1 against a credit retired off-chain.`, ok: () => true, warn: true, res: ["mock credit"] }
       : { t: "A credit lot was burned", d: `DCO2 lot ${r.lot} on ${DC.addrLink(CONTRACTS.DCO2)}, minted 1:1 against a credit retired off-chain.`, ok: (v) => v.backed, res: ["backed lot", "lot not backed"] },
   ];
   async function readChain() {
@@ -93,7 +94,7 @@ export default function init(DC) {
   QRCode.toString(url, { type: "svg", margin: 1, errorCorrectionLevel: "M", color: { dark: "#080a09", light: "#ffffff" } }).then((svg) => { $("#qr").innerHTML = svg; });
   $("#share").addEventListener("click", async () => {
     if (navigator.share) {
-      try { await navigator.share({ title: `DecarbonAI receipt ${fmt.no(r.n)}`, text: `${fmt.mass(r.mg)} ${DC.UNBACKED ? "mock " : ""}CO₂e receipt on ${NET.name}${NET.testnet ? " testnet" : ""}`, url }); return; } catch (e) { if (e?.name === "AbortError") return; }
+      try { await navigator.share({ title: `DecarbonAI receipt ${fmt.no(r.n)}`, text: `${fmt.mass(r.mg)} ${DC.UNBACKED ? "mock " : ""}CO₂e receipt on ${NET.name}`, url }); return; } catch (e) { if (e?.name === "AbortError") return; }
     }
     try { await navigator.clipboard.writeText(url); DC.toast("Receipt link copied"); } catch { DC.toast(`Copy failed. Link: ${url}`); }
   });

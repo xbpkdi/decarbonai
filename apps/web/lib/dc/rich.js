@@ -11,7 +11,7 @@ export default function init(DC) {
     agent: { word: "Footprint", solid: ".rep", key: "#tl" },
     receipts: { word: "Sealed", solid: ".wall .spec", key: ".bar" },
     receipt: { word: null, solid: null, key: "#checks" },
-    developers: { word: "Middleware", solid: ".install", key: ".run" },
+    developers: { word: "Per call", solid: ".install", key: ".run" },
     methodology: { word: "The math", solid: ".calc .res", key: ".calc" },
   };
 
@@ -27,8 +27,11 @@ export default function init(DC) {
     const t = document.querySelector(".tape");
     if (!t) return;
     const items = [];
-    const acc = (c) => `<span class="tape-item"><span class="rd"></span><span class="h">${short(c.tx, 6, 4)}</span><span class="g">+${(c.mg / 1000).toFixed(2)} g</span>${c.n > 1 ? `<span class="dim">${c.n} calls</span>` : ""}<span>${agentById(c.agent).title}</span></span>`;
-    const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} sealed<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span></span>`;
+    // Anything before today carries its date.
+    const today = new Date().toDateString();
+    const day = (e) => (new Date(e.t).toDateString() === today ? "" : `<span class="dim">${new Date(e.t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>`);
+    const acc = (c) => `<span class="tape-item"><span class="rd"></span><span class="h">${short(c.tx, 6, 4)}</span><span class="g">+${(c.mg / 1000).toFixed(2)} g</span>${c.n > 1 ? `<span class="dim">${c.n} calls</span>` : ""}<span>${agentById(c.agent).title}</span>${day(c)}</span>`;
+    const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} sealed<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span>${day(r)}</span>`;
     DC.groupByTx(state.feed).slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
     const track = t.querySelector(".tape-track");
     const render = (fresh) => {
@@ -78,7 +81,7 @@ export default function init(DC) {
       const box = document.querySelector("#checks");
       const banner = document.createElement("div");
       banner.className = "verified";
-      banner.innerHTML = `<span>${DC.I.check}</span><div><b>${DC.mock ? "Simulated checks." : `Receipt found on ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}.`}</b> <span data-verified-note></span></div>`;
+      banner.innerHTML = `<span>${DC.I.check}</span><div><b>${DC.mock ? "Simulated checks." : `Receipt found on ${DC.NET.name}.`}</b> <span data-verified-note></span></div>`;
       banner.style.cssText = "display:none;align-items:center;gap:14px;margin:0 16px 16px;padding:16px 18px;border-radius:12px;font-size:15px;";
       box.after(banner);
       const check = () => {

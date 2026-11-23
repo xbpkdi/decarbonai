@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { DevelopersMarkup } from "@/components/pages/DevelopersMarkup";
 import { Runtime } from "@/components/Runtime";
 import { getSnapshotSafe } from "@/lib/server/chain";
+import { demoConfig } from "@/lib/server/demo";
 import "@/styles/developers.css";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function DevelopersPage() {
   return (
     <>
       <main data-page="developers" data-api={api}>
-        <DevelopersMarkup />
+        <DevelopersMarkup demo={Boolean(demoConfig())} />
       </main>
       <Runtime page="developers" snapshot={snapshot} />
     </>

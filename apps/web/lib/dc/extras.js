@@ -82,12 +82,12 @@ export default function init(DC) {
     const { state } = DC;
     const el = document.createElement("section");
     el.className = "strip";
-    el.setAttribute("aria-label", "Network totals");
+    el.setAttribute("aria-label", "Pool totals");
     const cells = [
       ["Paid calls", () => state.calls, 0, ""],
       [`g CO₂e ${DC.RETIRED.toLowerCase()}`, () => state.retiredMg / 1000, 0, "lime"],
       ["Receipts sealed", () => state.receipts.length, 0, ""],
-      ["Agents settling", () => DC.AGENTS.length, 0, ""],
+      ["Agents metered", () => DC.AGENTS.length, 0, ""],
     ];
     el.innerHTML = `<div class="wrap strip-in">${cells.map(([k, , , c], i) => `<div class="cell ${c}"><span class="odo" data-i="${i}"></span><span class="k">${k}</span></div>`).join("")}</div>`;
     afterEl.after(el);
@@ -156,7 +156,7 @@ export default function init(DC) {
         ["Tokens", `${DC.fmt.count(tin)} in · ${DC.fmt.count(tout)} out`, ""],
         ["Energy", `${wh.toFixed(2)} Wh`, ""],
         ["Carbon", `${g.toFixed(3)}<small>g CO₂e</small>`, "lime"],
-        ["On-chain", `${DC.fmt.count(mg)} mg in CarbonAccrued`, "red"],
+        ["On-chain", `recorded as ${DC.fmt.count(mg)} mg, in a later batch`, "red"],
         ["Surcharge", `${DC.fmt.usd(DC.surchargeFor(mg), 5)} in the same x402 payment`, ""],
       ];
       el.querySelector("ol").innerHTML = steps.map(([k, v, c]) => `<li class="${c}"><span class="k">${k}</span><span class="v">${v}</span></li>`).join("");
