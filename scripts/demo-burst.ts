@@ -32,6 +32,7 @@ if (!apiUrl) {
     payTo: need(env.payTo, "payTo"),
     dbPath: process.env.ACCRUAL_DB || `.data/demo-${d.chainId}-${d.retirementPool.toLowerCase()}.sqlite`,
     deployment: d,
+    facilitatorUrl: process.env.X402_FACILITATOR_URL || undefined,
     rateLimitPerMinute: 100_000,
   });
   meter = created.meter;
