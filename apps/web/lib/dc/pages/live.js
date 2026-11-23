@@ -5,7 +5,7 @@ export default function init(DC) {
   const F = DC.FEATURED; // the agent whose pool fills on stage
   const pending = () => state.pending[F] || 0;
   const fa = agentById(F);
-  $("#poolAgent").innerHTML = `${fa.name} <span class="mono dim">#${fa.id}</span>`;
+  if (!DC.failed) $("#poolAgent").innerHTML = `${fa.name} <span class="mono dim">#${fa.id}</span>`;
   $("#poolAgentLink").href = `/agent/${fa.id}`;
   $("#lblAgent").textContent = fa.id ? `ERC-8004 #${fa.id}` : "x402 payer";
   if (!DC.mock) {
@@ -15,14 +15,16 @@ export default function init(DC) {
   }
 
   // ---------- hero + pool ----------
-  const big = DC.odometer($("#big"), { decimals: 1, value: state.totalMg / 1000 });
-  const togo = DC.odometer($("#togo"), { value: Math.round((THRESHOLD_MG - pending()) / 1000) });
+  const big = DC.odometer($("#big"), { decimals: 1, value: DC.failed ? null : state.totalMg / 1000 });
+  const togo = DC.odometer($("#togo"), { value: DC.failed ? null : Math.round((THRESHOLD_MG - pending()) / 1000) });
   let retiring = false;
 
   function paintHero() {
+    if (DC.failed) { $("#line").textContent = DC.READ_FAILED; return; }
     $("#line").innerHTML = `metered across <b>${fmt.count(state.calls)}</b> paid ${DC.NET.testnet ? "testnet" : "x402"} calls · <b class="mint">${fmt.mass(state.retiredMg)}</b> ${DC.RETIRED.toLowerCase()} · <b>${fmt.usd(state.surcharge, 3)}</b> carbon surcharge`;
   }
   function paintPool() {
+    if (DC.failed) { DC.scaleBar($("#scale"), 0); $("#pooled").textContent = "Pool not read"; $("#lbl-pool").textContent = "Not read"; return; }
     const p = Math.min(pending(), THRESHOLD_MG);
     togo.set(Math.max(0, Math.round((THRESHOLD_MG - p) / 1000)));
     DC.scaleBar($("#scale"), p);
@@ -45,7 +47,7 @@ export default function init(DC) {
     if (DC.mock) { pill.textContent = "SIMULATED"; pill.className = "pill pill-sim"; eb.textContent = "Simulated stream · rehearsal only, not on-chain"; return; }
     const last = state.feed[0];
     const fresh = DC.isFresh();
-    pill.textContent = fresh ? "LIVE" : "IDLE";
+    pill.textContent = DC.failed ? "NO DATA" : fresh ? "LIVE" : "IDLE";
     pill.className = fresh ? "pill pill-live" : "pill pill-smoke pill-idle";
     eb.textContent = `x402 carbon meter · ${DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t)}` : ""}`;
   }
@@ -71,6 +73,7 @@ export default function init(DC) {
     return tr;
   }
   DC.groupByTx(state.feed).slice(0, 14).forEach((c) => feed.appendChild(row(c, false)));
+  if (DC.failed) feed.innerHTML = `<tr><td colspan="7" class="muted">${DC.READ_FAILED}</td></tr>`;
   let top = null;
   function pushRow(c) {
     // Calls from the same meter batch fold into the row above.
@@ -91,9 +94,9 @@ export default function init(DC) {
   function paintLatest(r, stamp) {
     if (!r) {
       $("#latest").innerHTML = `<div class="coin-wrap" style="opacity:.35">${coinHTML({ n: 0, mg: THRESHOLD_MG }, { seal: false })}</div>
-        <div style="min-width:0"><span class="eyebrow">Latest receipt · soulbound</span><h2 id="h-latest" style="margin-top:6px">No receipt yet</h2>
-        <p class="muted" style="margin-top:10px;font-size:14px">The first receipt is minted when an agent's pool reaches ${fmt.mass(THRESHOLD_MG)}.</p></div>`;
-      $("#lbl-seal").textContent = "First seal at 1 kg";
+        <div style="min-width:0"><span class="eyebrow">Latest receipt · soulbound</span><h2 id="h-latest" style="margin-top:6px">${DC.failed ? "Receipts not read" : "No receipt yet"}</h2>
+        <p class="muted" style="margin-top:10px;font-size:14px">${DC.failed ? DC.READ_FAILED : `The first receipt is minted when an agent's pool reaches ${fmt.mass(THRESHOLD_MG)}.`}</p></div>`;
+      $("#lbl-seal").textContent = DC.failed ? "Not read" : "First seal at 1 kg";
       return;
     }
     const a = agentById(r.agent);
@@ -325,7 +328,7 @@ export default function init(DC) {
     }, 1350);
   });
   function paintPay(c) {
-    if (!c) { $("#lbl-pay").textContent = "Waiting for a payment"; return; }
+    if (!c) { $("#lbl-pay").textContent = DC.failed ? "Not read" : "Waiting for a payment"; return; }
     $("#lbl-pay").innerHTML = `${c.price != null ? `${fmt.usd(c.price, 3)} + ` : ""}<span class="red">${fmt.usd(c.sur, 5)} carbon</span>`;
   }
   paintPay(state.feed[0]);

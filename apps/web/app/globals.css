@@ -118,6 +118,7 @@ h1, h2, h3, p { margin: 0; }
 a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
 /* Simulated stream: a fixed banner with a one-click way back to chain data. */
 .sim-banner { position: fixed; z-index: 70; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-radius: 999px; background: var(--warn); color: #1a1204; font: 600 13px var(--f-ui); box-shadow: 0 10px 30px rgba(0,0,0,.45); white-space: nowrap; }
+.sim-banner.read-failed { padding-right: 16px; }
 .sim-banner a { background: #1a1204; color: var(--warn); border-radius: 999px; padding: 4px 12px; }
 .pill-dot::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 

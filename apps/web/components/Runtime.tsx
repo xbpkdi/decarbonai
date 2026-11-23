@@ -69,14 +69,17 @@ export function Runtime({ page, snapshot }: { page: PageKey; snapshot: Snapshot 
         demoReady,
       });
       Object.assign(DC, { CONTRACT_LIST });
-      if (source === "live" && !snap) DC.toast(`Could not read ${NETWORK.name} right now. Retrying…`);
+      const banner = (cls: string, html: string) => {
+        const el = document.createElement("div");
+        el.className = cls;
+        el.setAttribute("role", "status");
+        el.innerHTML = html;
+        document.body.appendChild(el);
+      };
+      if (source === "live" && !snap) banner("sim-banner read-failed", `Could not read ${NETWORK.name}. Numbers are hidden until it answers. Retrying…`);
       if (source === "mock") {
         document.documentElement.dataset.source = "mock";
-        const banner = document.createElement("div");
-        banner.className = "sim-banner";
-        banner.setAttribute("role", "status");
-        banner.innerHTML = `Simulated data · rehearsal only <a href="${location.pathname}?source=live">Back to live chain data</a>`;
-        document.body.appendChild(banner);
+        banner("sim-banner", `Simulated data · rehearsal only <a href="${location.pathname}?source=live">Back to live chain data</a>`);
       }
       pageMod.default(DC);
       bindChrome(DC);

@@ -15,7 +15,7 @@ export default async function LivePage() {
     <>
       <main data-page="index">
         <div className="stage">
-          <LiveMarkup fresh={Date.now() - last < FRESH_MS} />
+          <LiveMarkup status={!snapshot ? "NO DATA" : Date.now() - last < FRESH_MS ? "LIVE" : "IDLE"} />
         </div>
       </main>
       <Runtime page="index" snapshot={snapshot} />

@@ -7,7 +7,7 @@ export default function init(DC) {
   const r = state.receipts.find((x) => x.n === n);
   if (!r) {
     $("#info").innerHTML = `<span class="eyebrow">Retirement receipt · ${NET.name}</span><h1 class="display" id="rt">${fmt.no(n || 0)}</h1>
-      <p class="lead" style="margin-top:18px">This receipt has not been minted on ${NET.name} yet, or the chain index is still catching up.</p>
+      <p class="lead" style="margin-top:18px">${DC.failed ? `${DC.READ_FAILED} This receipt has not been checked.` : `This receipt has not been minted on ${NET.name} yet, or the chain index is still catching up.`}</p>
       <div class="acts"><a class="btn btn-outline" href="/receipts">All receipts</a></div>`;
     document.querySelector(".verify-grid").hidden = true;
     return;

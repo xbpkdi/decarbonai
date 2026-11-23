@@ -32,7 +32,7 @@ export default function init(DC) {
     DC.groupByTx(state.feed).slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
     const track = t.querySelector(".tape-track");
     const render = (fresh) => {
-      const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>Waiting for the next paid call on ${DC.NET.name}</span>`;
+      const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>${DC.failed ? DC.READ_FAILED : `Waiting for the next paid call on ${DC.NET.name}`}</span>`;
       track.innerHTML = html + html;
       if (fresh) track.querySelector(".tape-item")?.classList.add("fresh");
     };

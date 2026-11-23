@@ -1,7 +1,7 @@
 import "server-only";
 import { carbonReceiptAbi, reputationRegistryAbi, retirementPoolAbi } from "@decarbonai/chain";
 import { unstable_cache } from "next/cache";
-import { createPublicClient, decodeEventLog, encodeEventTopics, http, type Address, type Hex } from "viem";
+import { BaseError, ContractFunctionRevertedError, createPublicClient, decodeEventLog, encodeEventTopics, http, type Address, type Hex } from "viem";
 import { DEPLOYMENT as D, NETWORK, RPC_URL, SUPERSEDED_ADAPTERS } from "@/lib/config";
 import type { Snapshot, SnapAccrual, SnapRetirement } from "@/lib/types";
 
@@ -165,7 +165,12 @@ export async function ownedAgents(owner: Address): Promise<number[]> {
   const rows = await logs(D.erc8004IdentityRegistry, [TRANSFER, null, topic], 0);
   const ids = [...new Set(rows.filter((r) => r.topics[3]).map((r) => BigInt(r.topics[3])))];
   const owners = await Promise.all(
-    ids.map((id) => client.readContract({ address: D.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] }).catch(() => null)),
+    ids.map((id) => client.readContract({ address: D.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] }).catch((e) => {
+        // A burned id reverts; anything else means the lookup failed, not that the wallet owns nothing.
+        if (e instanceof BaseError && e.walk((x) => x instanceof ContractFunctionRevertedError)) return null;
+        throw e;
+      }),
+    ),
   );
   return ids.filter((_, i) => owners[i]?.toLowerCase() === owner.toLowerCase()).map(Number).sort((a, b) => a - b);
 }

@@ -4,8 +4,8 @@ export default function init(DC) {
   const id = Number(document.querySelector("main").dataset.id) || 0;
   const a = agentById(id);
 
-  $("#eb").textContent = `ERC-8004 agent #${a.id} · ${DC.NET.name}`;
-  $("#name").textContent = a.title;
+  $("#eb").textContent = id || !DC.failed ? `ERC-8004 agent #${a.id} · ${DC.NET.name}` : DC.NET.name;
+  $("#name").textContent = id || !DC.failed ? a.title : "Agent";
   $("#meta").innerHTML = [
     a.payer && `<div><dt>Wallet</dt><dd>${DC.addrLink(a.payer)}</dd></div>`,
     state.history[a.id]?.length && `<div><dt>First paid call</dt><dd>${fmt.date(state.history[a.id][0].t)}</dd></div>`,
@@ -14,6 +14,14 @@ export default function init(DC) {
   $("#tabs").innerHTML = AGENTS.filter((x) => x.id === a.id || state.history[x.id]?.length).map((x) => `<a href="/agent/${x.id}" aria-current="${x.id === a.id}">#${x.id} ${x.name}</a>`).join("");
 
   function paint() {
+    if (DC.failed) {
+      $("#note").textContent = DC.READ_FAILED;
+      $("#stats").innerHTML = ["Paid calls", "Carbon metered", DC.RETIRED, "Surcharge paid"].map((k) => `<div class="card stat"><div class="k">${k}</div><div class="v">–</div><div class="n">not read</div></div>`).join("");
+      $("#toGo").textContent = "–";
+      DC.scaleBar($("#scale"), 0);
+      $("#rc").innerHTML = `<tr><td colspan="5" class="muted">${DC.READ_FAILED}</td></tr>`;
+      return;
+    }
     const ac = state.acct[a.id], rs = state.receipts.filter((r) => r.agent === a.id);
     const retiredMg = rs.reduce((s, r) => s + r.mg, 0);
     $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}; our meter batches the surcharges into the pool.` : "No calls recorded by this pool.");
@@ -58,7 +66,7 @@ export default function init(DC) {
     // axis
     ctx.strokeStyle = colors["--line"]; ctx.beginPath(); ctx.moveTo(20, H - 14); ctx.lineTo(W - 20, H - 14); ctx.stroke();
     if (!pts.length) {
-      ctx.fillStyle = colors["--text-3"]; ctx.textAlign = "center"; ctx.fillText("No paid calls from this agent yet", W / 2, H / 2);
+      ctx.fillStyle = colors["--text-3"]; ctx.textAlign = "center"; ctx.fillText(DC.failed ? DC.READ_FAILED : "No paid calls from this agent yet", W / 2, H / 2);
       requestAnimationFrame(draw);
       return;
     }

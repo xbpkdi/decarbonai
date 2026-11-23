@@ -62,7 +62,7 @@ function odometer(el, { decimals = 0, value = 0 } = {}) {
   el.classList.add("odo");
   let cur = null;
   function render(v) {
-    const str = v.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    const str = v == null ? "–" : v.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     if (cur && cur.length === str.length) {
       [...str].forEach((ch, i) => {
         const node = el.children[i];
@@ -148,6 +148,7 @@ export function createDC(cfg) {
   const { net: NET, contracts: CONTRACTS, method: METHOD } = cfg;
   const mock = cfg.source === "mock";
   const snap = cfg.snapshot;
+  const failed = !mock && !snap; // the chain read failed: show that, never zeros
   const THRESHOLD_MG = snap?.thresholdMg || cfg.thresholdMg || 1_000_000;
   const PRICE_PER_TONNE = snap?.pricePerTonne || cfg.pricePerTonne || 25_000_000; // USDC base units per tonne
   const surchargeFor = (mg) => Math.ceil((mg * PRICE_PER_TONNE) / 1e9);
@@ -293,6 +294,8 @@ export function createDC(cfg) {
     };
     if (snap) ingest(snap, false);
     state.feed.sort((x, y) => y.t - x.t);
+    // The page was painted without data: start over now that the chain can be read.
+    const recover = () => (location.pathname === "/agent/0" ? location.replace("/agent") : location.reload());
     let polling = false;
     const poll = async () => {
       clearTimeout(timer);
@@ -301,6 +304,7 @@ export function createDC(cfg) {
       if (!paused && document.visibilityState === "visible") {
         try {
           const res = await fetch(`/api/snapshot?since=${lastBlock}`, { cache: "no-store" });
+          if (res.ok && failed) return recover();
           if (res.ok) ingest(await res.json(), true);
         } catch { /* keep the last state; the next poll retries */ }
       }
@@ -330,6 +334,7 @@ export function createDC(cfg) {
     gramsPerCall, surchargeFor, fmt, short, hex, rand, on, emit, odometer, I, hashLink, addrLink, toast, sealSVG, coinHTML, reduced, ago, groupByTx,
     // Live data counts as "live" only if the chain moved in the last 15 minutes.
     isFresh: () => mock || (state.feed[0] && Date.now() - state.feed[0].t < FRESH_MS),
+    failed, READ_FAILED: `Could not read ${NET.name} right now. Retrying…`,
     UNBACKED: cfg.unbacked, RETIRED: cfg.unbacked ? "Mock-retired" : "Retired", TOKEN: cfg.token,
     demoReady: cfg.demoReady,
     scaleBar: (el, mg) => scaleBar(el, mg, THRESHOLD_MG), creditNote: cfg.creditNote, demoAgentId: cfg.demoAgentId,
@@ -377,7 +382,7 @@ export function bindChrome(DC) {
     nl.querySelectorAll("a").forEach((a) => a.addEventListener("mouseenter", () => place(a)));
     nl.addEventListener("mouseleave", () => place(active));
   }
-  const tickers = [...document.querySelectorAll("[data-ticker]")].map((el) => odometer(el, { decimals: 1, value: state.totalMg / 1000 }));
+  const tickers = [...document.querySelectorAll("[data-ticker]")].map((el) => odometer(el, { decimals: 1, value: DC.failed ? null : state.totalMg / 1000 }));
   // Roll at most once a second so digits settle between updates during a burst.
   let tq = false;
   on("accrual", () => { if (tq) return; tq = true; setTimeout(() => { tq = false; tickers.forEach((t) => t.set(state.totalMg / 1000)); }, 1000); });

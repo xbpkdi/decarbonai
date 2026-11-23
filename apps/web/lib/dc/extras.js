@@ -91,8 +91,8 @@ export default function init(DC) {
     ];
     el.innerHTML = `<div class="wrap strip-in">${cells.map(([k, , , c], i) => `<div class="cell ${c}"><span class="odo" data-i="${i}"></span><span class="k">${k}</span></div>`).join("")}</div>`;
     afterEl.after(el);
-    const odos = cells.map(([, f, d], i) => DC.odometer(el.querySelector(`[data-i="${i}"]`), { decimals: d, value: 0 }));
-    const paint = () => cells.forEach(([, f], i) => odos[i].set(f()));
+    const odos = cells.map(([, f, d], i) => DC.odometer(el.querySelector(`[data-i="${i}"]`), { decimals: d, value: DC.failed ? null : 0 }));
+    const paint = () => cells.forEach(([, f], i) => odos[i].set(DC.failed ? null : f()));
     // roll up from zero once the strip is on screen
     new IntersectionObserver(([e], o) => { if (e.isIntersecting) { setTimeout(paint, 120); o.disconnect(); } }, { threshold: 0.3 }).observe(el);
     DC.on("accrual", paint); DC.on("retired", paint);

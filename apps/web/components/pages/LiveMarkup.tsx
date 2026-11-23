@@ -3,12 +3,12 @@ import { NETWORK, TOKEN, UNBACKED } from "@/lib/config";
 
 const BURN = UNBACKED ? "Mock DCO2 burn" : "DCO2 burn";
 
-/** `fresh`: the chain moved recently. The runtime keeps the pill current after boot. */
-export function LiveMarkup({ fresh }: { fresh: boolean }) {
+/** The status pill as of this read; the runtime keeps it current after boot. */
+export function LiveMarkup({ status }: { status: "LIVE" | "IDLE" | "NO DATA" }) {
   return (
     <>
     <section className="hero" aria-labelledby="h-metered">
-      <div className="eyebrow-row"><span className={fresh ? "pill pill-live" : "pill pill-smoke pill-idle"} id="status">{fresh ? "LIVE" : "IDLE"}</span><span className="eyebrow" id="h-metered">x402 carbon meter · {NETWORK.name}</span></div>
+      <div className="eyebrow-row"><span className={status === "LIVE" ? "pill pill-live" : "pill pill-smoke pill-idle"} id="status">{status}</span><span className="eyebrow" id="h-metered">x402 carbon meter · {NETWORK.name}</span></div>
       <h1 className="big"><span className="odo" id="big"></span><span className="unit">g CO₂e</span></h1>
       <p className="line" id="line"></p>
     </section>
