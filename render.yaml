@@ -1,0 +1,28 @@
+# Render Blueprint for the demo paid API (apps/paid-api) on Avalanche Fuji. Render dashboard: New > Blueprint.
+# Free plan: sleeps after 15 min idle (wakes in up to ~1 min) and the disk is wiped on restart, so the SQLite
+# accrual queue only lives as long as the instance. Fuji only. The meter key is the only key this service may hold
+# (review B1): never add the demo agent key or any other *_PRIVATE_KEY here, the API refuses to start.
+services:
+  - type: web
+    name: decarbonai-paid-api
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: npm ci
+    startCommand: npm run api
+    # 503 while the meter cannot settle (pool paused, low gas, low allowance), so a deploy fails closed.
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DECARBONAI_NETWORK
+        value: fuji
+      - key: TRUST_PROXY
+        value: "1"
+      # Fuji METER_ROLE-only key. Entered once in the dashboard, never committed.
+      - key: METER_PRIVATE_KEY
+        sync: false
+      # Fuji merchant payTo wallet (address only), the payTo in deployments/fuji.json.
+      - key: PAY_TO_ADDRESS
+        sync: false

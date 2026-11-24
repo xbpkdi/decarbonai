@@ -10,7 +10,11 @@ import { demoConfig } from "@/lib/server/demo";
  * Refuses unless every setting is present and well formed (lib/server/demo.ts).
  * Env: DEMO_AGENT_PRIVATE_KEY (funded with test USDC on Fuji), DEMO_API_URL (paid-api base URL),
  * NEXT_PUBLIC_DEMO_AGENT_ID (ERC-8004 id the payments are attributed to).
+ *
+ * The demo API runs on Render free, which sleeps when idle and takes up to a minute to wake, so the paid
+ * call gets 90 s and GET wakes the API (its /health) when a page with a demo button opens.
  */
+export const maxDuration = 120;
 const WINDOW_MS = 60_000;
 const PER_IP = 4;
 const GLOBAL = 20;
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
   url.searchParams.set("model", "claude-sonnet");
   const started = Date.now();
   try {
-    const res = await agent.fetch(url, { signal: AbortSignal.timeout(45_000) });
+    const res = await agent.fetch(url, { signal: AbortSignal.timeout(90_000) });
     const body = await res.json().catch(() => null);
     const settlement = settlementFrom(res);
     if (!res.ok) return Response.json({ error: `Paid API answered ${res.status}.` }, { status: 502 });
@@ -63,5 +67,17 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     return Response.json({ error: `Payment failed: ${(e as Error).message.slice(0, 160)}` }, { status: 502 });
+  }
+}
+
+/** Warm-up: wakes the demo API. Free, no payment, no key used. */
+export async function GET() {
+  const demo = demoConfig();
+  if (!demo) return Response.json({ ok: false }, { status: 503 });
+  try {
+    const res = await fetch(new URL("/health", demo.api), { cache: "no-store", signal: AbortSignal.timeout(90_000) });
+    return Response.json({ ok: res.ok });
+  } catch {
+    return Response.json({ ok: false }, { status: 502 });
   }
 }
