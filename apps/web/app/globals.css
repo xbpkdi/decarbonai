@@ -120,6 +120,7 @@ html[data-chain="idle"] .chip-net .dot-live, html[data-chain="idle"] .foot .dot-
 .pill-mock { border: 1px solid color-mix(in srgb, var(--warn) 70%, transparent); color: var(--warn); }
 .pill-smoke { background: var(--tile); color: var(--text-2); }
 .pill-sim { background: var(--warn); color: #1a1204; letter-spacing: 0.06em; font-family: var(--f-mono); font-size: 11px; font-weight: 600; }
+.pill-replay { border: 1px solid var(--mint); color: var(--mint); letter-spacing: 0.06em; font-family: var(--f-mono); font-size: 11px; font-weight: 600; }
 .pill-idle { letter-spacing: 0.06em; font-family: var(--f-mono); font-size: 11px; }
 .batch { font-family: var(--f-mono); font-size: 11px; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 0 6px; margin-left: 6px; }
 .demo-off { font-size: 13px; color: var(--text-3); }

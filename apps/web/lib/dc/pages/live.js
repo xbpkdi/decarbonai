@@ -45,7 +45,7 @@ export default function init(DC) {
   let replayLine = "";
   function paintStatus() {
     const eb = $("#h-metered");
-    if (DC.replaying) { pill.textContent = "REPLAY"; pill.className = "pill pill-sim"; eb.textContent = replayLine; return; }
+    if (DC.replaying) { pill.textContent = "REPLAY"; pill.className = "pill pill-replay"; eb.textContent = replayLine; return; }
     if (DC.mock) { pill.textContent = "SIMULATED"; pill.className = "pill pill-sim"; eb.textContent = "Simulated stream · rehearsal only, not on-chain"; return; }
     const last = state.feed[0];
     const fresh = DC.isFresh();
