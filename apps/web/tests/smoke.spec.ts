@@ -138,3 +138,38 @@ test("mock receipt is not presented as verified", async ({ page }) => {
   await expect(page.locator(".verified")).toContainText("Simulated checks.");
   await expect(page.locator('#info a[href*="/tx/"], #checks a[href*="/tx/"]')).toHaveCount(0);
 });
+
+// UX 7: the receipt shows the calls it covers, by meter batch, adding up to "Calls covered".
+test("receipt lists the calls it covers by meter batch", async ({ page }) => {
+  await page.goto("/receipt/1");
+  await expect(page.locator("#cov")).toBeVisible({ timeout: 15_000 });
+  const calls = await page.locator("#covBs .cov-dots i").count();
+  await expect(page.locator("#info dd").nth(3)).toHaveText(`${calls} paid x402 calls`);
+  await expect(page.locator('#covBs a[href*="/tx/0x"]')).toHaveCount(await page.locator("#covBs .cov-b").count());
+});
+
+// UX 8: an agent with no calls gets one next-step card, not zero stats and empty tables.
+test("agent with no calls shows one empty state", async ({ page }) => {
+  await page.goto("/agent/1");
+  await expect(page.locator("#empty")).toBeVisible({ timeout: 15_000 });
+  for (const sel of ["#stats", ".nx", "#secTl", "#secRc"]) await expect(page.locator(sel)).toBeHidden();
+  await expect(page.locator("#emActs a").first()).toHaveAttribute("href", /\/agent\/\d+|\/developers/);
+});
+
+// UX 8: a receipt number that is not minted says so, with real counts, and the header ticker is filled.
+test("missing receipt explains itself", async ({ page }) => {
+  const res = await page.goto("/receipt/9999");
+  expect(res?.status()).toBe(404);
+  await expect(page.locator("h1")).toHaveText("No. 9999 isn't minted.");
+  await expect(page.locator(".r404-list a").first()).toHaveAttribute("href", "/receipt/1");
+  await expect(page.locator("[data-ticker]").first()).toHaveAttribute("aria-label", /\d/, { timeout: 15_000 });
+});
+
+// UX 9: at 1440 the feed and latest receipt share a row.
+test("live feed and latest receipt side by side at 1440", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/");
+  await page.waitForTimeout(2000);
+  const [feed, latest] = await Promise.all([".feed", "#latest"].map((s) => page.locator(s).evaluate((e) => e.getBoundingClientRect().top)));
+  expect(Math.abs(feed - latest)).toBeLessThan(2);
+});

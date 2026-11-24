@@ -51,3 +51,12 @@
 .your-agents { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; font-size: 14px; }
 .your-agents a { font-family: var(--f-mono); color: var(--mint); border: 1px solid var(--line-2); border-radius: 999px; padding: 3px 10px; }
 .your-agents a[aria-current="page"] { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); }
+
+/* Agent with no metered calls: one empty-state card; the zero stats, timeline, next receipt and receipts table stay hidden. */
+.empty-ag { padding: 28px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: center; }
+.empty-ag h2 { font-size: 34px; margin-top: 8px; }
+.empty-ag p { margin-top: 10px; max-width: 64ch; line-height: 1.55; }
+.empty-ag .acts { display: flex; gap: 10px; flex-wrap: wrap; }
+main[data-empty] .nx, main[data-empty] #stats, main[data-empty] #secTl, main[data-empty] #secRc { display: none; }
+main[data-empty] .rep { margin-top: 0; }
+@media (max-width: 900px) { .empty-ag { grid-template-columns: 1fr; } }

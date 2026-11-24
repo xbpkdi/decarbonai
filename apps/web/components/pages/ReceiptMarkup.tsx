@@ -7,6 +7,13 @@ export function ReceiptMarkup() {
     <div className="info" id="info"></div>
   </section>
 
+  <section className="section" aria-labelledby="h-cov" id="cov" hidden>
+    <div className="card cov">
+      <div className="cov-h"><h2 id="h-cov">What this receipt covers</h2><span className="dim" id="covSub"></span></div>
+      <div className="cov-bs" id="covBs"></div>
+    </div>
+  </section>
+
   <section className="section verify-grid" aria-labelledby="h-v">
     <div className="card bar-red">
       <div className="card-h"><h2 id="h-v">Verify on-chain</h2><button type="button" className="btn btn-outline btn-sm" id="rerun">Run again</button></div>

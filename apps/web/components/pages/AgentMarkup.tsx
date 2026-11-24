@@ -37,6 +37,13 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
   </header>
 
   <div className="wrap">
+    <section className="section" id="empty" aria-labelledby="h-empty" hidden>
+      <div className="card empty-ag">
+        <div><span className="eyebrow" id="emEb"></span><h2 className="display" id="h-empty">No metered calls yet.</h2><p className="muted" id="emNote"></p></div>
+        <div className="acts" id="emActs"></div>
+      </div>
+    </section>
+
     <section className="section" aria-label="Carbon ledger">
       <div className="stats" id="stats"></div>
       <div className="rep">
@@ -45,7 +52,7 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
       </div>
     </section>
 
-    <section className="section" aria-labelledby="h-tl">
+    <section className="section" id="secTl" aria-labelledby="h-tl">
       <div className="section-title"><h2 id="h-tl">Footprint timeline</h2>
         <div className="tl-legend"><span><i style={{ background: "var(--smoke)" }}></i>Metered, not yet covered</span><span><i style={{ background: "var(--mint)" }}></i>{UNBACKED ? "Covered by a mock-retirement receipt" : "Covered by a receipt"}</span><span className="hide-sm"><i style={{ background: "var(--avax)" }}></i>New call</span></div></div>
       <div className="card">
@@ -54,7 +61,7 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
       <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Every paid call is a dot. When a pool fills, the calls it covered recrystallise in green under their receipt number. Hover a dot to see its meter batch tx.</p>
     </section>
 
-    <section className="section" aria-labelledby="h-rc">
+    <section className="section" id="secRc" aria-labelledby="h-rc">
       <div className="section-title"><h2 id="h-rc">Receipts</h2><span className="dim" style={{ fontSize: "13px" }}>Soulbound ERC-5192 tokens. They cannot be transferred or sold.</span></div>
       <div className="card" style={{ overflowX: "auto", position: "relative" }}><table className="tbl"><thead><tr><th>Receipt</th><th>Minted</th><th className="r">Amount</th><th className="r">Calls</th><th className="r">Tx</th></tr></thead><tbody id="rc"></tbody></table></div>
     </section>

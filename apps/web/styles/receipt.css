@@ -43,3 +43,37 @@
 li[data-s="fail"] .st { background: transparent; border-color: var(--avax); color: var(--avax); }
 li[data-s="fail"] .res { color: var(--avax); }
 .qr svg { display: block; width: 200px; height: 200px; }
+
+/* What this receipt covers: one tile per meter batch, one diamond per call. */
+.cov { padding: 22px; }
+.cov-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px 16px; flex-wrap: wrap; }
+.cov-h h2 { font-size: 18px; font-weight: 600; }
+.cov-h .dim { font-size: 13px; }
+.cov-bs { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 18px; }
+.cov-b { border: 1px solid var(--line); border-radius: var(--r-tile); padding: 12px; background: var(--surface-2); min-width: 0; }
+.cov-dots { display: flex; flex-wrap: wrap; gap: 5px; min-height: 30px; align-content: flex-start; padding: 1px; }
+.cov-dots i { width: 8px; height: 8px; transform: rotate(45deg); background: var(--mint); border-radius: 1px; }
+.cov-m { font-family: var(--f-mono); font-size: 12px; color: var(--text-2); margin-top: 6px; }
+.cov-m:nth-child(2) { margin-top: 10px; }
+.cov-m b { color: var(--text); font-weight: 500; }
+@media (max-width: 640px) { .cov-bs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* /receipt/<n> that is not minted: the receipts that exist and the next one forming. */
+.missing { padding-top: 96px; }
+.missing h1 { font-size: clamp(56px, 8vw, 120px); margin-top: 12px; }
+.r404 { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 40px; align-items: center; margin-top: 28px; }
+.r404-coin { width: 220px; height: 220px; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--mint) 50%, transparent); position: relative; overflow: hidden; background: var(--tile); }
+.r404-coin .lq { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(var(--mint), color-mix(in srgb, var(--mint) 35%, transparent)); }
+.r404-coin span { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--f-display); font-size: 34px; text-shadow: 0 1px 8px #000; }
+.r404 .lead { font-size: 18px; line-height: 1.55; color: var(--text-2); max-width: 60ch; }
+.r404 .lead b { color: var(--text); font-weight: 600; }
+.r404-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.r404-list a { font-family: var(--f-mono); font-size: 13px; color: var(--mint); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+.r404-list a:hover { border-color: var(--mint); }
+.r404 .acts { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+@media (max-width: 640px) {
+  .missing { padding-top: 48px; }
+  .r404 { grid-template-columns: 1fr; gap: 24px; }
+  .r404-coin { width: 160px; height: 160px; }
+  .r404-coin span { font-size: 26px; }
+}

@@ -30,6 +30,20 @@ export default function init(DC) {
     </dl>
     <div class="acts">${DC.mock ? "" : `<a class="btn btn-primary" href="${NET.explorer}/tx/${r.tx}" target="_blank" rel="noreferrer">View on Snowtrace ↗</a>`}<a class="btn btn-outline" href="/receipts">All receipts</a><span class="pill pill-settled pill-dot">ERC-5192 locked</span></div>`;
 
+  // What this receipt covers: the calls the runtime assigned to it (the agent's oldest open calls), grouped by meter batch.
+  const mine = (state.history[r.agent] || []).filter((h) => h.receipt === r.n);
+  const batches = [];
+  for (const h of mine) { const b = batches[batches.length - 1]; if (b && b.tx === h.tx) { b.n++; b.mg += h.mg; } else batches.push({ tx: h.tx, t: h.t, n: 1, mg: h.mg }); }
+  if (batches.length) {
+    const found = mine.length === r.calls ? fmt.count(r.calls) : `${fmt.count(mine.length)} of ${fmt.count(r.calls)}`;
+    $("#covSub").textContent = `${found} metered calls in ${batches.length} meter batch${batches.length === 1 ? "" : "es"} · agent #${r.agent} · ${DC.mock ? "simulated batches" : "each batch links to its CarbonAccrued tx"}`;
+    $("#covBs").innerHTML = batches.map((b) => `<div class="cov-b"><div class="cov-dots" aria-hidden="true">${"<i></i>".repeat(b.n)}</div>
+      <div class="cov-m"><b>${fmt.count(b.n)}</b> call${b.n === 1 ? "" : "s"} · ${fmt.g(b.mg, 1)} g</div>
+      <div class="cov-m">${new Date(b.t).toISOString().slice(11, 19)} UTC</div>
+      <div class="cov-m">${DC.hashLink(b.tx, 6, 4)}</div></div>`).join("");
+    $("#cov").hidden = false;
+  }
+
   // tilt
   const tilt = $("#tilt"), coin = $("#tilt .coin");
   if (!reduced) {
