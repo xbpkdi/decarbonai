@@ -30,3 +30,18 @@
   @media (max-width: 900px) { .two, .tools { grid-template-columns: 1fr; } .sur { grid-template-columns: 1fr; } .sur > div { border-left: 0; border-top: 1px solid var(--line); } .install code { font-size: 14px; } }
 .install code { font-size: 15px; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
 .install-note { font-size: 13px; margin-top: 10px; }
+/* Recorded call: the last real metered call, shown while live demo payments are off. */
+.run .out .rec { font-family: var(--f-ui); line-height: 1.5; display: flex; flex-direction: column; gap: 14px; }
+.rec-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12px; }
+.rec-h .pill { font-family: var(--f-mono); font-size: 12px; max-width: 100%; height: auto; min-height: 26px; white-space: normal; line-height: 1.4; padding-top: 3px; padding-bottom: 3px; }
+.rec ol { list-style: none; margin: 0; padding: 0; }
+.rec li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); align-items: start; }
+.rec li:first-child { border-top: 0; }
+.rec .n { width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line-2); display: grid; place-items: center; font-family: var(--f-mono); font-size: 11px; color: var(--text-2); }
+.rec .t { font-weight: 600; font-size: 14px; }
+.rec .s { color: var(--text-3); font-size: 13px; margin-top: 3px; }
+.rec .v { font-family: var(--f-mono); font-size: 13px; color: var(--text-2); text-align: right; white-space: nowrap; }
+.rec .v.lime { color: var(--mint); }
+.rec-tx { font-family: var(--f-mono); font-size: 13px; color: var(--avax); }
+.run-off { color: var(--text-3) !important; box-shadow: none !important; }
+@media (max-width: 480px) { .rec li { grid-template-columns: 22px minmax(0, 1fr); } .rec .v { grid-column: 2; text-align: left; } }

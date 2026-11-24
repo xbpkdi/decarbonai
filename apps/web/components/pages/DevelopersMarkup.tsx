@@ -26,7 +26,7 @@ export function DevelopersMarkup({ demo }: { demo: boolean }) {
           <pre className="code" id="code"></pre>
         </div>
         <div className="card run bar-red">
-          <div className="card-h"><h3>Response</h3><button type="button" className="btn btn-primary btn-sm" id="run">Run</button></div>
+          <div className="card-h"><h3>Response</h3><button type="button" className={demo ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm run-off"} id="run">{demo ? "Run" : "Run · off"}</button></div>
           <div className="out" id="out"><div className="empty">Press Run. The agent receives a 402 with the carbon line in the quote, pays once in {TOKEN.name} ({NETWORK.testnet ? "our faucet token, " : ""}{short(DEPLOYMENT.paymentToken ?? "")}), and gets a simulated completion plus a Snowtrace link.</div></div>
           <div className="sur" id="sur"><div><div className="k2">{demo ? "Call price" : "Example price"}</div><div className="v2" id="price">$0.010</div></div><div><div className="k2">Carbon surcharge</div><div className="v2" id="surV" style={{ color: "var(--avax)" }}>{demo ? "$0" : "–"}</div></div><div><div className="k2">gCO₂e</div><div className="v2" id="gV" style={{ color: "var(--mint)" }}>{demo ? "0 g" : "–"}</div></div></div>
         </div>

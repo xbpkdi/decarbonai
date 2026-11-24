@@ -1,6 +1,12 @@
-.head-grid { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; flex-wrap: wrap; }
-  .totals { display: flex; gap: 36px; }
-  .totals .v { font-family: var(--f-display); font-size: 44px; line-height: 1; }
+.head-grid { display: flex; justify-content: space-between; align-items: center; gap: 32px; flex-wrap: wrap; }
+  .head-grid > div:first-child { flex: 1 1 520px; min-width: 0; }
+  /* The four totals sit in the hero's right half as a 2x2 block. */
+  .totals { flex: 0 1 380px; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--line); border-radius: var(--r-card); background: color-mix(in srgb, var(--surface) 60%, transparent); }
+  .totals > div { padding: 18px 22px; border-left: 1px solid var(--line); border-top: 1px solid var(--line); min-width: 0; }
+  .totals > div:nth-child(odd) { border-left: 0; }
+  .totals > div:nth-child(-n + 2) { border-top: 0; }
+  .totals .v { font-family: var(--f-display); font-size: 48px; line-height: 1; }
+  .totals .v.lime { color: var(--mint); }
   .totals .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); margin-top: 6px; }
   .bar { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -8,6 +14,7 @@
   .chip .n { font-family: var(--f-mono); font-size: 11px; color: var(--text-3); }
   .chip[aria-pressed="true"] { border-color: var(--mint); color: var(--mint); background: color-mix(in srgb, var(--mint) 8%, transparent); }
   .wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
+  @media (min-width: 1024px) { .wall { grid-template-columns: repeat(4, minmax(0, 1fr)); } .spec .coin, .forming .gc { width: 180px; } }
   .spec { padding: 26px 22px 18px; display: flex; flex-direction: column; align-items: center; gap: 16px; transition: border-color 0.2s, transform 0.3s var(--ease); }
   .spec:hover { border-color: color-mix(in srgb, var(--mint) 50%, transparent); transform: translateY(-3px); }
   .spec .coin { width: 160px; }
@@ -15,4 +22,11 @@
   .spec .meta .no { font-family: var(--f-mono); font-weight: 600; color: var(--text); }
   .spec .meta .d { color: var(--text-3); text-align: right; }
   .spec.hidden { display: none; }
-  @media (max-width: 640px) { .wall { grid-template-columns: 1fr 1fr; gap: 12px; } .spec { padding: 18px 12px 12px; } .spec .coin { width: 120px; } .totals .v { font-size: 34px; } }
+  /* Forming coin: dashed, not minted. */
+  .fx-rich .spec.forming, .spec.forming { border-style: dashed; border-color: color-mix(in srgb, var(--mint) 35%, transparent); background: transparent; box-shadow: none; }
+  .forming .gc { width: 160px; aspect-ratio: 1; border-radius: 50%; border: 2px dashed color-mix(in srgb, var(--mint) 55%, transparent); position: relative; overflow: hidden; background: var(--tile); }
+  .forming .gc .lq { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(color-mix(in srgb, var(--mint) 55%, transparent), color-mix(in srgb, var(--mint) 15%, transparent)); transition: height 0.8s var(--ease); }
+  .forming .gc .t { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 4px; }
+  .forming .gc b { font-family: var(--f-display); font-weight: 400; font-size: 40px; line-height: 1; text-shadow: 0 2px 10px #000; }
+  .forming .gc i { font-family: var(--f-mono); font-size: 11px; font-style: normal; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-2); text-shadow: 0 1px 6px #000; }
+  @media (max-width: 640px) { .wall { grid-template-columns: 1fr 1fr; gap: 12px; } .spec { padding: 18px 12px 12px; } .spec .coin, .forming .gc { width: 120px; } .forming .gc b { font-size: 30px; } .totals { flex-basis: 100%; } .totals > div { padding: 14px 16px; } .totals .v { font-size: 34px; } }

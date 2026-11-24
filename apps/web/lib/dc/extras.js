@@ -1,18 +1,19 @@
-/* Interactions: fan lines, terminal proof on Developers, stats strip, Methodology flow chain,
-   Agent "pay one call". Runs after rich.js. */
+/* Interactions: fan lines, terminal proof on Developers, Methodology flow chain,
+   Agent "pay one call". Runs after rich.js. Nothing here loops: motion runs once or on a real event. */
 export default function init(DC) {
   const page = document.querySelector("main")?.dataset.page || "index";
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
   // ---------- fan lines: many agent points converge on one pool point and turn green ----------
+  // Drawn still. Pulses travel the lines once per real accrual; the cursor bends them while it moves.
   function fanLines(host, { onSolid = false, target = [0.86, 0.5], count = 64, seed = 3 } = {}) {
     const c = document.createElement("canvas");
     c.className = "fan";
     c.setAttribute("aria-hidden", "true");
     host.prepend(c);
     const ctx = c.getContext("2d");
-    let W = 0, H = 0, mx = -1e4, my = -1e4, lines = [], pulses = [], visible = true, colA, colB, t = 0;
+    let W = 0, H = 0, mx = -1e4, my = -1e4, lines = [], pulses = [], visible = true, colA, colB, running = false;
     let s = seed * 9301;
     const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
     function size() {
@@ -25,7 +26,6 @@ export default function init(DC) {
         const y = edge < 0.55 ? (rnd() < 0.5 ? -10 + rnd() * H * 0.2 : H * 0.8 + rnd() * H * 0.2) : rnd() * H;
         return { x, y, bend: (rnd() - 0.5) * H * 0.5 };
       });
-      pulses = Array.from({ length: 9 }, () => ({ i: Math.floor(rnd() * count), p: rnd(), v: 0.18 + rnd() * 0.22 }));
       colA = onSolid ? "rgba(20,26,6," : "rgba(125,133,128,";
       colB = onSolid ? "rgba(20,26,6," : `rgba(${css("--mint-rgb")},`;
     }
@@ -51,9 +51,10 @@ export default function init(DC) {
           ctx.stroke();
         }
       }
-      // pulses travel toward the pool
+      // pulses travel toward the pool once, then disappear
+      pulses = pulses.filter((P) => (P.p += P.v * dt) <= 1);
       for (const P of pulses) {
-        P.p += P.v * dt; if (P.p > 1) { P.p = 0; P.i = Math.floor(Math.random() * lines.length); }
+        if (P.p < 0) continue;
         const [x, y] = pt(lines[P.i], P.p);
         ctx.fillStyle = P.p < 0.55 ? colA + "0.8)" : colB + "1)";
         ctx.beginPath(); ctx.arc(x, y, P.p < 0.55 ? 1.6 : 2.4, 0, 7); ctx.fill();
@@ -61,44 +62,32 @@ export default function init(DC) {
       // the pool point
       const tx = W * target[0], ty = H * target[1];
       ctx.fillStyle = colB + (onSolid ? "0.5)" : "0.9)");
-      ctx.beginPath(); ctx.arc(tx, ty, 5 + Math.sin(t * 2) * 1.2, 0, 7); ctx.fill();
-      ctx.strokeStyle = colB + "0.35)"; ctx.beginPath(); ctx.arc(tx, ty, 14 + Math.sin(t * 2) * 2, 0, 7); ctx.stroke();
+      ctx.beginPath(); ctx.arc(tx, ty, 5, 0, 7); ctx.fill();
+      ctx.strokeStyle = colB + "0.35)"; ctx.beginPath(); ctx.arc(tx, ty, 14, 0, 7); ctx.stroke();
     }
-    let last = performance.now();
+    // Frames run only while pulses are in flight; otherwise one still frame per change.
+    let last = 0;
     function loop(now) {
-      const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
-      if (visible) draw(reduced ? 0 : dt);
-      if (!reduced) requestAnimationFrame(loop);
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      draw(dt);
+      running = pulses.length > 0 && visible;
+      if (running) requestAnimationFrame(loop);
     }
-    size(); requestAnimationFrame(loop);
-    new ResizeObserver(size).observe(host);
+    const kick = () => { if (!running) { running = true; last = performance.now(); requestAnimationFrame(loop); } };
+    const still = () => requestAnimationFrame(() => draw(0));
+    size(); still();
+    new ResizeObserver(() => { size(); still(); }).observe(host);
     new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(host);
-    host.addEventListener("pointermove", (e) => { const r = host.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; });
-    host.addEventListener("pointerleave", () => { mx = my = -1e4; });
+    host.addEventListener("pointermove", (e) => { const r = host.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; if (!running) still(); });
+    host.addEventListener("pointerleave", () => { mx = my = -1e4; if (!running) still(); });
+    DC.on("accrual", () => {
+      if (reduced || DC.replaying || !visible || pulses.length) return;
+      pulses = Array.from({ length: 9 }, (_, k) => ({ i: Math.floor(Math.random() * lines.length), p: -k * 0.08, v: 0.35 + Math.random() * 0.2 }));
+      kick();
+    });
   }
 
-  // ---------- stats strip ----------
-  function statsStrip(afterEl) {
-    const { state } = DC;
-    const el = document.createElement("section");
-    el.className = "strip";
-    el.setAttribute("aria-label", "Pool totals");
-    const cells = [
-      ["Paid calls", () => state.calls, 0, ""],
-      [`g CO₂e ${DC.RETIRED.toLowerCase()}`, () => state.retiredMg / 1000, 0, "lime"],
-      ["Receipts sealed", () => state.receipts.length, 0, ""],
-      ["Agents metered", () => DC.AGENTS.length, 0, ""],
-    ];
-    el.innerHTML = `<div class="wrap strip-in">${cells.map(([k, , , c], i) => `<div class="cell ${c}"><span class="odo" data-i="${i}"></span><span class="k">${k}</span></div>`).join("")}</div>`;
-    afterEl.after(el);
-    const odos = cells.map(([, f, d], i) => DC.odometer(el.querySelector(`[data-i="${i}"]`), { decimals: d, value: DC.failed ? null : 0 }));
-    const paint = () => cells.forEach(([, f], i) => odos[i].set(DC.failed ? null : f()));
-    // roll up from zero once the strip is on screen
-    new IntersectionObserver(([e], o) => { if (e.isIntersecting) { setTimeout(paint, 120); o.disconnect(); } }, { threshold: 0.3 }).observe(el);
-    DC.on("accrual", paint); DC.on("retired", paint);
-  }
-
-  // ---------- Developers: Claude Code terminal proof in the hero ----------
+  // ---------- Developers: Claude Code terminal proof in the hero (plays once on screen; Replay plays it again) ----------
   function terminal(host) {
     const term = document.createElement("div");
     term.className = "term";
@@ -135,7 +124,6 @@ export default function init(DC) {
         body.insertAdjacentHTML("beforeend", `<div class="ln in">${html}</div>`);
         if (DC.mock && html.includes("settled")) DC.payOnce(42);
       }
-      await wait(9000); if (alive()) play();
     }
     term.querySelector(".term-replay").addEventListener("click", play);
     new IntersectionObserver(([e], o) => { if (e.isIntersecting) { play(); o.disconnect(); } }, { threshold: 0.4 }).observe(term);
@@ -169,7 +157,11 @@ export default function init(DC) {
   // ---------- per page ----------
   function start() {
     const foot = document.querySelector(".foot-band");
-    if (foot) fanLines(foot, { onSolid: true, target: [0.58, 0.52], count: 48, seed: 7 });
+    if (foot) {
+      fanLines(foot, { onSolid: true, target: [0.58, 0.52], count: 48, seed: 7 });
+      // The logo mark assembles once when the band comes into view.
+      new IntersectionObserver(([e], o) => { if (e.isIntersecting) { foot.classList.add("drawn"); o.disconnect(); } }, { threshold: 0.4 }).observe(foot);
+    }
 
     if (page === "developers") {
       const head = document.querySelector(".page-head");
@@ -182,9 +174,6 @@ export default function init(DC) {
       wrap.classList.add("hero-split");
       terminal(wrap);
     }
-    if (["receipts", "methodology"].includes(page)) {
-      statsStrip(document.querySelector(".page-head"));
-    }
     if (page === "methodology") {
       const wrap = document.querySelector(".page-head .wrap");
       const left = document.createElement("div");
@@ -196,12 +185,13 @@ export default function init(DC) {
     if (page === "agent") {
       const id = Number(document.querySelector("main").dataset.id);
       // Live: only the demo agent's page can pay, with the server-side test wallet. Mock: any agent.
-      if (!DC.mock && DC.demoAgentId !== id) return;
+      // Payments off: say so on every agent page, as Developers does, instead of leaving the control silently missing.
       const title = document.querySelector("#h-tl")?.parentElement;
       if (!DC.mock && !DC.demoReady) {
         title?.insertAdjacentHTML("beforeend", `<span class="demo-off">Live payments from this page are switched off on this deployment.</span>`);
         return;
       }
+      if (!DC.mock && DC.demoAgentId !== id) return;
       title?.insertAdjacentHTML("beforeend", `<button class="btn btn-primary btn-sm" id="payOne" type="button">Pay one call as #${id}</button>`);
       const btn = document.getElementById("payOne");
       btn?.addEventListener("click", async () => {
@@ -212,7 +202,8 @@ export default function init(DC) {
             ? `Paid $${(c.price / 1e6).toFixed(3)} + ${DC.fmt.usd(c.sur, 5)} carbon · +${(c.mg / 1000).toFixed(2)} g`
             : `Paid on ${DC.NET.short}: +${(c.mg / 1000).toFixed(2)} g. CarbonAccrued lands with the next meter batch.`);
         } catch (e) {
-          DC.toast(e.message);
+          // A server refusal carries its own message; anything else is a bug, never shown raw.
+          DC.toast(e instanceof TypeError || !e?.message ? "Payment could not be sent. Nothing was paid." : e.message);
         } finally {
           btn.disabled = false;
         }

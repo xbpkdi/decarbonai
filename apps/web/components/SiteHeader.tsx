@@ -45,6 +45,7 @@ export function SiteHeader() {
               <span className="dot-live" />
               {NETWORK.name}
               <span className="blk tnum" data-block />
+              <span className="idle mono" data-idle />
             </a>
             <span className="ticker" title="Total estimated CO₂e metered, all agents">
               <span className="odo" data-ticker />

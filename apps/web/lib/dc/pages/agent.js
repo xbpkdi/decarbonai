@@ -19,6 +19,7 @@ export default function init(DC) {
       $("#note").textContent = DC.READ_FAILED;
       $("#stats").innerHTML = ["Paid calls", "Carbon metered", DC.RETIRED, "Surcharge paid"].map((k) => `<div class="card stat"><div class="k">${k}</div><div class="v">–</div><div class="n">not read</div></div>`).join("");
       $("#toGo").textContent = "–";
+      $("#nxNote").textContent = DC.READ_FAILED;
       DC.scaleBar($("#scale"), 0);
       $("#rc").innerHTML = `<tr><td colspan="5" class="muted">${DC.READ_FAILED}</td></tr>`;
       return;
@@ -32,8 +33,14 @@ export default function init(DC) {
       [DC.RETIRED, fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
       ["Surcharge paid", fmt.usd(ac.sur, 3), "", `${DC.TOKEN.symbol}, pulled into the pool in batches`, ""],
     ].map(([k, v, u, n, c]) => `<div class="card stat ${c}"><div class="k">${k}</div><div class="v tnum">${v}${u ? `<span class="u">${u}</span>` : ""}</div><div class="n">${n}</div></div>`).join("");
-    const p = Math.min(state.pending[a.id], THRESHOLD_MG);
+    // Hero: the next receipt forming. Receipt numbers are global, so the next one is the highest minted + 1.
+    const p = Math.min(state.pending[a.id] || 0, THRESHOLD_MG);
+    const next = state.receipts.reduce((m, r) => Math.max(m, r.n), 0) + 1;
+    const since = rs.length ? ` since ${fmt.no(rs[0].n)}` : " so far";
     $("#toGo").textContent = fmt.count(Math.round((THRESHOLD_MG - p) / 1000));
+    $("#nxNo").textContent = fmt.no(next);
+    $("#nxFill").style.height = `${(p / THRESHOLD_MG) * 100}%`;
+    $("#nxNote").textContent = `${fmt.mass(p)} of ${fmt.mass(THRESHOLD_MG)} metered${since}. Mints as a soulbound ${DC.NET.testnet ? "testnet " : ""}receipt${DC.UNBACKED ? " (mock credit)" : ""} at ${fmt.mass(THRESHOLD_MG)}.`;
     DC.scaleBar($("#scale"), p);
     $("#rc").innerHTML = rs.map((r) => `<tr><td><a href="/receipt/${r.n}" class="mono" style="color:var(--mint)">${fmt.no(r.n)}</a></td><td class="muted">${fmt.dt(r.t)}</td><td class="r">${fmt.mass(r.mg)}</td><td class="r">${fmt.count(r.calls)}</td><td class="r">${hashLink(r.tx)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No receipts yet.</td></tr>`;
   }
@@ -87,18 +94,27 @@ export default function init(DC) {
     if (hover) { ctx.strokeStyle = colors["--mint"]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hover.x, hover.y, 7, 0, 7); ctx.stroke(); }
     requestAnimationFrame(draw);
   }
-  host.addEventListener("pointermove", (e) => {
+  function pick(e, reach) {
     const r = host.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    let best = null, bd = 18;
+    let best = null, bd = reach;
     for (const p of pts) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
     hover = best;
     if (best) {
       tip.innerHTML = `<div class="mono dim">${fmt.dt(best.c.t)}</div><div style="margin-top:3px"><b>${(best.c.mg / 1000).toFixed(2)} g</b> CO₂e · ${best.c.receipt ? `<span style="color:var(--mint)">covered by ${fmt.no(best.c.receipt)}</span>` : '<span class="dim">pending</span>'}</div><div class="mono" style="color:var(--avax);margin-top:3px">${DC.short(best.c.tx, 10, 6)} ↗</div>`;
       tip.style.left = best.x + "px"; tip.style.top = best.y + "px"; tip.classList.add("on");
     } else tip.classList.remove("on");
+  }
+  // Mouse: hover shows the tooltip, click opens the tx. Touch: the first tap on a dot shows it, a second tap opens it.
+  let touchOpen = true;
+  host.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") pick(e, 18); });
+  host.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse") { touchOpen = true; return; }
+    const prev = hover;
+    pick(e, 24);
+    touchOpen = Boolean(prev && hover === prev);
   });
-  host.addEventListener("pointerleave", () => { hover = null; tip.classList.remove("on"); });
-  host.addEventListener("click", () => { if (hover && !DC.mock) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
+  host.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { hover = null; tip.classList.remove("on"); } });
+  host.addEventListener("click", () => { if (hover && touchOpen && !DC.mock) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
   readColors(); build(); requestAnimationFrame(draw);
   new ResizeObserver(build).observe(host);
 

@@ -80,6 +80,15 @@ claude mcp add decarbonai \\
   const showCode = () => ($("#code").innerHTML = CODE[cur]);
   const showMcp = () => ($("#mcpCode").innerHTML = MCP[curM]);
   showCode(); showMcp();
+  // Arrow keys move between tabs (ARIA tabs pattern).
+  document.querySelectorAll('[role="tablist"]').forEach((list) => list.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const tabs = [...list.querySelectorAll('[role="tab"]')], i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+    next.focus(); next.click();
+  }));
   document.querySelectorAll("[data-code]").forEach((b) => b.addEventListener("click", () => { cur = b.dataset.code; document.querySelectorAll("[data-code]").forEach((x) => x.setAttribute("aria-selected", x === b)); showCode(); }));
   document.querySelectorAll("[data-mcp]").forEach((b) => b.addEventListener("click", () => { curM = b.dataset.mcp; document.querySelectorAll("[data-mcp]").forEach((x) => x.setAttribute("aria-selected", x === b)); showMcp(); }));
 
@@ -94,12 +103,36 @@ claude mcp add decarbonai \\
 
   // Run: live pays the demo API on Fuji for real (server-side test wallet); mock simulates the round trip.
   const runBtn = $("#run");
+  runBtn.className = "btn btn-primary btn-sm";
   runBtn.innerHTML = `${I.play}<span>Run</span>`;
   if (!DC.mock && !DC.demoReady) {
     // Not configured: say so up front instead of failing on click.
     runBtn.disabled = true;
     runBtn.title = "Live demo payments are switched off on this deployment";
-    $("#out").innerHTML = `<div class="empty"><div>Live demo payments are switched off on this deployment, so Run is paused.<br>Past ${NET.name} activity is on <a href="/" style="color:var(--mint)">Live</a>.</div></div>`;
+    runBtn.className = "btn btn-outline btn-sm run-off";
+    runBtn.innerHTML = "<span>Run · off</span>";
+    $("#out").innerHTML = recorded() || `<div class="empty"><div>Live demo payments are switched off on this deployment, so Run is paused.<br>Past ${NET.name} activity is on <a href="/" style="color:var(--mint)">Live</a>.</div></div>`;
+  }
+
+  // With payments off, show the last real metered call instead of an empty panel: on-chain facts only, labelled as recorded.
+  function recorded() {
+    const acc = DC.events.accruals;
+    if (!acc.length) return "";
+    const last = acc.reduce((a, b) => (b.block > a.block ? b : a));
+    const batch = acc.filter((a) => a.tx === last.tx);
+    const mg = batch.reduce((s, a) => s + a.mg, 0), sur = batch.reduce((s, a) => s + a.sur, 0);
+    const pend = DC.state.pending[last.agent] || 0;
+    const who = last.agent ? `Agent #${last.agent}` : "An unregistered payer";
+    return `<div class="rec">
+      <div class="rec-h"><span class="pill pill-mock">Recorded · ${new Date(last.t).toISOString().slice(0, 16).replace("T", " ")} UTC · not a live call</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
+      <ol>
+        <li><span class="n">1</span><div><div class="t">${who} paid over x402</div><div class="s">${DC.TOKEN.name} on ${NET.short}, settled by the facilitator first</div></div><div class="v">payer ${DC.short(last.payer)}</div></li>
+        <li><span class="n">2</span><div><div class="t">Meter posted CarbonAccrued</div><div class="s">${batch.length} call${batch.length > 1 ? "s" : ""} in this meter batch</div></div><div class="v lime">+${(mg / 1000).toFixed(2)} g CO₂e</div></li>
+        <li><span class="n">3</span><div><div class="t">Surcharge counted in the pool</div><div class="s">Pulled from the payTo wallet in batches</div></div><div class="v">${fmt.usd(sur, 5)} ${DC.TOKEN.symbol}</div></li>
+        <li><span class="n">4</span><div><div class="t">${last.agent ? `Agent #${last.agent}'s account` : "Payer's account"}</div><div class="s">Next ${DC.UNBACKED ? "mock " : ""}receipt at ${fmt.mass(DC.THRESHOLD_MG)}</div></div><div class="v lime">${fmt.g(pend, 1)} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g</div></li>
+      </ol>
+      <a class="rec-tx" href="${NET.explorer}/tx/${last.tx}" target="_blank" rel="noreferrer">View tx ${DC.short(last.tx, 8, 6)} on ${NET.explorer.includes("snowtrace") ? "Snowtrace" : "the explorer"} ↗</a>
+    </div>`;
   }
   let busy = false;
   const show = (lines, delays) => {
@@ -133,7 +166,7 @@ claude mcp add decarbonai \\
         DC.toast("Paid on Fuji. The pool's CarbonAccrued lands with the next meter batch.");
       }
     } catch (e) {
-      $("#out").innerHTML = `<div class="l on"><span class="red">${esc(e.message)}</span></div>`;
+      $("#out").innerHTML = `<div class="l on"><span class="red">${esc(e instanceof TypeError || !e?.message ? "Payment could not be sent. Nothing was paid." : e.message)}</span></div>`;
     } finally {
       busy = false; runBtn.disabled = false;
     }

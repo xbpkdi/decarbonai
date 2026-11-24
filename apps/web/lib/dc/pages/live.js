@@ -36,26 +36,30 @@ export default function init(DC) {
   function queueHero() {
     if (heroQueued) return;
     heroQueued = true;
-    setTimeout(() => { heroQueued = false; big.set(state.totalMg / 1000); paintHero(); paintPool(); paintStatus(); }, 1000);
+    setTimeout(() => { heroQueued = false; big.set(state.totalMg / 1000); paintHero(); paintPool(); paintStatus(); }, DC.replaying ? 250 : 1000);
   }
   paintHero(); paintPool();
 
-  // ---------- status: LIVE / IDLE / SIMULATED ----------
+  // ---------- status: LIVE / IDLE / SIMULATED / REPLAY ----------
   const pill = $("#status");
+  let replayLine = "";
   function paintStatus() {
     const eb = $("#h-metered");
+    if (DC.replaying) { pill.textContent = "REPLAY"; pill.className = "pill pill-sim"; eb.textContent = replayLine; return; }
     if (DC.mock) { pill.textContent = "SIMULATED"; pill.className = "pill pill-sim"; eb.textContent = "Simulated stream · rehearsal only, not on-chain"; return; }
     const last = state.feed[0];
     const fresh = DC.isFresh();
     pill.textContent = DC.failed ? "NO DATA" : fresh ? "LIVE" : "IDLE";
     pill.className = fresh ? "pill pill-live" : "pill pill-smoke pill-idle";
-    eb.textContent = `x402 carbon meter · ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t)}` : ""}`;
+    eb.textContent = `x402 carbon meter · ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t).replace(/ /g, "\u00a0")}` : ""}`;
   }
   paintStatus();
   setInterval(paintStatus, 30_000);
 
   // ---------- feed ----------
   const feed = $("#feed");
+  let top = null; // the newest row's meter batch, so calls from one tx fold together
+  const fillFeed = () => { feed.innerHTML = ""; top = null; DC.groupByTx(state.feed).slice(0, 14).forEach((c) => feed.appendChild(row(c, false))); };
   const today = new Date().toDateString();
   const when = (t) => (new Date(t).toDateString() === today ? fmt.time(t) : `${new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${fmt.time(t).slice(0, 5)}`);
   function row(c, fresh) {
@@ -72,9 +76,8 @@ export default function init(DC) {
       <td class="r">${hashLink(c.tx, 6, 4)}</td>`;
     return tr;
   }
-  DC.groupByTx(state.feed).slice(0, 14).forEach((c) => feed.appendChild(row(c, false)));
+  fillFeed();
   if (DC.failed) feed.innerHTML = `<tr><td colspan="7" class="muted">${DC.READ_FAILED}</td></tr>`;
-  let top = null;
   function pushRow(c) {
     // Calls from the same meter batch fold into the row above.
     if (top && top.tx === c.tx && top.agent === c.agent && feed.firstChild) {
@@ -121,7 +124,8 @@ export default function init(DC) {
       gsap.fromTo("#latest .coin", { scale: 0.7, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.6, ease: "back.out(1.6)" });
     }
   }
-  paintLatest(state.receipts.find((r) => r.agent === F) || state.receipts[0], false);
+  const latestFor = () => state.receipts.find((r) => r.agent === F) || state.receipts[0];
+  paintLatest(latestFor(), false);
 
   // ---------- Capture scene (canvas 2D) ----------
   const canvas = $("#scene"), ctx = canvas.getContext("2d");
@@ -145,7 +149,7 @@ export default function init(DC) {
     if (narrow) {
       // Phone: a zig-zag so the vessel stays large.
       nodes = [{ x: W * 0.22, y: H * 0.2 }, { x: W * 0.72, y: H * 0.2 }, { x: W * 0.32, y: H * 0.62 }, { x: W * 0.78, y: H * 0.62 }];
-      R = Math.min(64, W * 0.17);
+      R = Math.max(12, Math.min(64, W * 0.17)); // never below the vessel's inner ring, even before first layout
     } else {
       const cy = H * 0.44;
       nodes = [{ x: W * 0.08, y: cy }, { x: W * 0.31, y: cy }, { x: W * 0.62, y: cy }, { x: W * 0.9, y: cy }];
@@ -154,7 +158,8 @@ export default function init(DC) {
     document.querySelectorAll(".node-label").forEach((el) => {
       const i = Number(el.dataset.node), n = nodes[i];
       const off = i === 2 ? R + 14 : 34;
-      const w = narrow ? 150 : 220;
+      // Labels never wider than the gap between neighbouring nodes, so they cannot run into each other.
+      const w = narrow ? 150 : Math.max(120, Math.min(220, nodes[1].x - nodes[0].x - 12));
       // Keep edge labels inside the panel.
       el.style.left = `${Math.max(w / 2 + 8, Math.min(W - w / 2 - 8, n.x))}px`; el.style.top = n.y + off + "px";
       el.style.width = `${w}px`;
@@ -332,6 +337,94 @@ export default function init(DC) {
     $("#lbl-pay").innerHTML = `${c.price != null ? `${fmt.usd(c.price, 3)} + ` : ""}<span class="red">${fmt.usd(c.sur, 5)} carbon</span>`;
   }
   paintPay(state.feed[0]);
+
+  // ---------- Replay: the recorded chain session through this same stage ----------
+  // Every event is a real CarbonAccrued / Retired read from the chain, in order. Speed is 8x and idle gaps
+  // over a minute play as 3 s each; the page says so while it plays, then returns to the live state.
+  const SPEED = 8, GAP_MS = 60_000, GAP_PLAY = 3000, HOLD = 3000;
+  const evs = [
+    ...DC.events.accruals.map((v) => ({ k: 0, v })),
+    ...DC.events.retirements.map((v) => ({ k: 1, v })),
+  ].sort((x, y) => x.v.block - y.v.block || x.k - y.k);
+  if (!DC.mock && !DC.failed && evs.length) setupReplay();
+
+  function setupReplay() {
+    const bar = $("#replay"), note = $("#rpNote");
+    const utc = (t, o) => new Date(t).toLocaleString("en-GB", { timeZone: "UTC", ...o });
+    const day = (t) => utc(t, { day: "numeric", month: "short" });
+    const hm = (t) => new Date(t).toISOString().slice(11, 16);
+    const first = evs[0].v.t, end = evs[evs.length - 1].v.t;
+    const days = day(first) === day(end) ? day(first) : `${day(first)} – ${day(end)}`;
+    const gaps = [];
+    let clock = 0, prev = first;
+    for (const e of evs) {
+      const d = e.v.t - prev;
+      if (d > GAP_MS) { gaps.push({ at: clock + GAP_PLAY / 2, ms: d }); clock += GAP_PLAY; } else clock += d / SPEED;
+      e.at = clock; prev = e.v.t;
+    }
+    const total = Math.max(clock, 1);
+    const pos = (at) => `${((at / total) * 100).toFixed(2)}%`;
+    const idle = (ms) => (ms >= 86_400_000 ? `${Math.round(ms / 86_400_000)} d` : ms >= 3_600_000 ? `${Math.round(ms / 3_600_000)} h` : `${Math.round(ms / 60_000)} min`);
+    const calls = DC.events.accruals.length;
+    const label = `▶ Replay ${days}`;
+    bar.innerHTML = `<button class="rp-play" type="button" aria-label="Replay the ${fmt.count(calls)} recorded ${DC.NET.short} calls from ${days}, eight times faster">${label}</button>
+      <div class="rp-trk" aria-hidden="true"><div class="base"></div><div class="fill"></div>
+        ${evs.filter((e, i) => e.k === 0 && !evs.slice(0, i).some((x) => x.k === 0 && x.v.tx === e.v.tx)).map((e) => `<i data-at="${e.at}" style="left:${pos(e.at)}"></i>`).join("")}
+        ${evs.filter((e) => e.k === 1).map((e) => `<b data-at="${e.at}" style="left:${pos(e.at)}" title="Receipt ${fmt.no(e.v.n)}"></b>`).join("")}
+        ${gaps.map((g) => `<s style="left:${pos(g.at)}">⏩ ${idle(g.ms)} idle</s>`).join("")}
+      </div>
+      <div class="rp-clk"><span id="rpClock">${utc(first, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span> UTC · ${SPEED}×</div>`;
+    bar.hidden = false;
+    const btn = bar.querySelector(".rp-play"), fill = bar.querySelector(".fill"), clockEl = bar.querySelector("#rpClock");
+    const marks = [...bar.querySelectorAll("[data-at]")];
+    let timer = null, holdT = null;
+
+    function play() {
+      if (!DC.beginReplay()) return;
+      try { sessionStorage.setItem("dc-replayed", "1"); } catch {}
+      replayLine = `Replaying ${fmt.count(calls)} real ${DC.NET.short} calls from ${days} · ${DC.isFresh() ? "new events wait until it ends" : `chain idle since ${day(end)} ${hm(end)} UTC`}`;
+      note.hidden = false; btn.textContent = "■ Stop replay";
+      marks.forEach((m) => m.classList.remove("on"));
+      fillFeed(); big.set(0); paintHero(); paintPool(); paintLatest(null, false); paintPay(null); paintStatus();
+      const t0 = performance.now();
+      let i = 0;
+      timer = setInterval(() => {
+        const now = performance.now() - t0;
+        fill.style.width = pos(Math.min(now, total));
+        while (i < evs.length && evs[i].at <= now) {
+          const e = evs[i++];
+          clockEl.textContent = utc(e.v.t, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          marks.filter((m) => Number(m.dataset.at) === e.at).forEach((m) => m.classList.add("on"));
+          if (e.k === 0) DC.replayAccrual(e.v);
+          else DC.replayRetire(e.v, 900);
+        }
+        if (i >= evs.length) { clearInterval(timer); timer = null; holdT = setTimeout(stop, HOLD); }
+      }, 50);
+    }
+    function stop() {
+      clearInterval(timer); clearTimeout(holdT); timer = holdT = null;
+      if (!DC.replaying) return;
+      DC.endReplay();
+    }
+    on("restore", () => {
+      note.hidden = true; btn.textContent = label;
+      retiring = false;
+      const sp = $("#poolState"); sp.textContent = "Filling"; sp.classList.remove("retiring");
+      fill.style.width = "0"; marks.forEach((m) => m.classList.remove("on"));
+      fillFeed(); big.set(state.totalMg / 1000); paintHero(); paintPool(); paintLatest(latestFor(), false); paintPay(state.feed[0]); paintStatus();
+    });
+    btn.addEventListener("click", () => (DC.replaying ? stop() : play()));
+
+    // Auto-play once per tab, only while the chain is idle and the stage is on screen.
+    let seen = false;
+    try { seen = sessionStorage.getItem("dc-replayed") === "1"; } catch {}
+    if (seen || reduced || DC.isFresh()) return;
+    new IntersectionObserver(([e], o) => {
+      if (!e.isIntersecting) return;
+      o.disconnect();
+      setTimeout(() => { if (!DC.replaying && !DC.isFresh()) play(); }, 1500);
+    }, { threshold: 0.6 }).observe($(".scene"));
+  }
 
   // Rehearsal keys (simulated stream only)
   if (!DC.mock) return;
