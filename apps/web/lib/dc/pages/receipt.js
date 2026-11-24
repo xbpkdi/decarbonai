@@ -66,6 +66,9 @@ export default function init(DC) {
   let runId = 0;
   async function run() {
     const id = ++runId;
+    // Hold the card's height while the rows reset, so the page does not jump (WebKit has no scroll anchoring).
+    const card = $("#checks").closest(".card") || $("#checks");
+    card.style.minHeight = `${card.offsetHeight}px`;
     $("#checks").innerHTML = steps.map((s, i) => `<li data-s="wait" data-i="${i}"><span class="st">${i + 1}</span><div><div class="t">${s.t}</div><div class="d">${s.d}</div></div><span class="res">waiting</span></li>`).join("");
     const wait = (t) => new Promise((ok) => setTimeout(ok, reduced ? 0 : t));
     const chain = readChain().catch(() => null);
@@ -83,6 +86,7 @@ export default function init(DC) {
       li.querySelector(".st").innerHTML = !pass ? "×" : warn ? "!" : I.check;
       li.querySelector(".res").textContent = !v ? "could not read" : DC.mock ? "simulated" : pass ? s.res[0] : s.res[1];
     }
+    card.style.minHeight = "";
     const note = document.querySelector("[data-verified-note]");
     if (note) note.textContent = DC.mock ? "Nothing was read from chain." : `Lock and active methodology read from chain; ${DC.UNBACKED ? "mock credit" : "backed credit lot"}.`;
   }

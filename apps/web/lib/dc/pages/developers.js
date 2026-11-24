@@ -80,6 +80,15 @@ claude mcp add decarbonai \\
   const showCode = () => ($("#code").innerHTML = CODE[cur]);
   const showMcp = () => ($("#mcpCode").innerHTML = MCP[curM]);
   showCode(); showMcp();
+  // Arrow keys move between tabs (ARIA tabs pattern).
+  document.querySelectorAll('[role="tablist"]').forEach((list) => list.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const tabs = [...list.querySelectorAll('[role="tab"]')], i = tabs.indexOf(document.activeElement);
+    if (i < 0) return;
+    e.preventDefault();
+    const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+    next.focus(); next.click();
+  }));
   document.querySelectorAll("[data-code]").forEach((b) => b.addEventListener("click", () => { cur = b.dataset.code; document.querySelectorAll("[data-code]").forEach((x) => x.setAttribute("aria-selected", x === b)); showCode(); }));
   document.querySelectorAll("[data-mcp]").forEach((b) => b.addEventListener("click", () => { curM = b.dataset.mcp; document.querySelectorAll("[data-mcp]").forEach((x) => x.setAttribute("aria-selected", x === b)); showMcp(); }));
 
@@ -157,7 +166,7 @@ claude mcp add decarbonai \\
         DC.toast("Paid on Fuji. The pool's CarbonAccrued lands with the next meter batch.");
       }
     } catch (e) {
-      $("#out").innerHTML = `<div class="l on"><span class="red">${esc(e.message)}</span></div>`;
+      $("#out").innerHTML = `<div class="l on"><span class="red">${esc(e instanceof TypeError || !e?.message ? "Payment could not be sent. Nothing was paid." : e.message)}</span></div>`;
     } finally {
       busy = false; runBtn.disabled = false;
     }

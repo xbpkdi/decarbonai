@@ -51,7 +51,7 @@ export default function init(DC) {
     const fresh = DC.isFresh();
     pill.textContent = DC.failed ? "NO DATA" : fresh ? "LIVE" : "IDLE";
     pill.className = fresh ? "pill pill-live" : "pill pill-smoke pill-idle";
-    eb.textContent = `x402 carbon meter · ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t)}` : ""}`;
+    eb.textContent = `x402 carbon meter · ${DC.NET.testnet ? `${DC.NET.short} testnet` : DC.NET.name}${!fresh && last ? ` · last activity ${DC.ago(last.t).replace(/ /g, "\u00a0")}` : ""}`;
   }
   paintStatus();
   setInterval(paintStatus, 30_000);
@@ -158,7 +158,8 @@ export default function init(DC) {
     document.querySelectorAll(".node-label").forEach((el) => {
       const i = Number(el.dataset.node), n = nodes[i];
       const off = i === 2 ? R + 14 : 34;
-      const w = narrow ? 150 : 220;
+      // Labels never wider than the gap between neighbouring nodes, so they cannot run into each other.
+      const w = narrow ? 150 : Math.max(120, Math.min(220, nodes[1].x - nodes[0].x - 12));
       // Keep edge labels inside the panel.
       el.style.left = `${Math.max(w / 2 + 8, Math.min(W - w / 2 - 8, n.x))}px`; el.style.top = n.y + off + "px";
       el.style.width = `${w}px`;

@@ -185,12 +185,13 @@ export default function init(DC) {
     if (page === "agent") {
       const id = Number(document.querySelector("main").dataset.id);
       // Live: only the demo agent's page can pay, with the server-side test wallet. Mock: any agent.
-      if (!DC.mock && DC.demoAgentId !== id) return;
+      // Payments off: say so on every agent page, as Developers does, instead of leaving the control silently missing.
       const title = document.querySelector("#h-tl")?.parentElement;
       if (!DC.mock && !DC.demoReady) {
         title?.insertAdjacentHTML("beforeend", `<span class="demo-off">Live payments from this page are switched off on this deployment.</span>`);
         return;
       }
+      if (!DC.mock && DC.demoAgentId !== id) return;
       title?.insertAdjacentHTML("beforeend", `<button class="btn btn-primary btn-sm" id="payOne" type="button">Pay one call as #${id}</button>`);
       const btn = document.getElementById("payOne");
       btn?.addEventListener("click", async () => {
@@ -201,7 +202,8 @@ export default function init(DC) {
             ? `Paid $${(c.price / 1e6).toFixed(3)} + ${DC.fmt.usd(c.sur, 5)} carbon · +${(c.mg / 1000).toFixed(2)} g`
             : `Paid on ${DC.NET.short}: +${(c.mg / 1000).toFixed(2)} g. CarbonAccrued lands with the next meter batch.`);
         } catch (e) {
-          DC.toast(e.message);
+          // A server refusal carries its own message; anything else is a bug, never shown raw.
+          DC.toast(e instanceof TypeError || !e?.message ? "Payment could not be sent. Nothing was paid." : e.message);
         } finally {
           btn.disabled = false;
         }

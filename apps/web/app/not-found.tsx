@@ -1,3 +1,5 @@
+import { ChromeRuntime } from "@/components/ChromeRuntime";
+
 export default function NotFound() {
   return (
     <main className="wrap" style={{ padding: "96px var(--gutter)" }}>
@@ -10,6 +12,7 @@ export default function NotFound() {
           Back to Live
         </a>
       </p>
+      <ChromeRuntime />
     </main>
   );
 }

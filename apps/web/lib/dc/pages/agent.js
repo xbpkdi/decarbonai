@@ -94,18 +94,27 @@ export default function init(DC) {
     if (hover) { ctx.strokeStyle = colors["--mint"]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hover.x, hover.y, 7, 0, 7); ctx.stroke(); }
     requestAnimationFrame(draw);
   }
-  host.addEventListener("pointermove", (e) => {
+  function pick(e, reach) {
     const r = host.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    let best = null, bd = 18;
+    let best = null, bd = reach;
     for (const p of pts) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
     hover = best;
     if (best) {
       tip.innerHTML = `<div class="mono dim">${fmt.dt(best.c.t)}</div><div style="margin-top:3px"><b>${(best.c.mg / 1000).toFixed(2)} g</b> CO₂e · ${best.c.receipt ? `<span style="color:var(--mint)">covered by ${fmt.no(best.c.receipt)}</span>` : '<span class="dim">pending</span>'}</div><div class="mono" style="color:var(--avax);margin-top:3px">${DC.short(best.c.tx, 10, 6)} ↗</div>`;
       tip.style.left = best.x + "px"; tip.style.top = best.y + "px"; tip.classList.add("on");
     } else tip.classList.remove("on");
+  }
+  // Mouse: hover shows the tooltip, click opens the tx. Touch: the first tap on a dot shows it, a second tap opens it.
+  let touchOpen = true;
+  host.addEventListener("pointermove", (e) => { if (e.pointerType === "mouse") pick(e, 18); });
+  host.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse") { touchOpen = true; return; }
+    const prev = hover;
+    pick(e, 24);
+    touchOpen = Boolean(prev && hover === prev);
   });
-  host.addEventListener("pointerleave", () => { hover = null; tip.classList.remove("on"); });
-  host.addEventListener("click", () => { if (hover && !DC.mock) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
+  host.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { hover = null; tip.classList.remove("on"); } });
+  host.addEventListener("click", () => { if (hover && touchOpen && !DC.mock) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
   readColors(); build(); requestAnimationFrame(draw);
   new ResizeObserver(build).observe(host);
 

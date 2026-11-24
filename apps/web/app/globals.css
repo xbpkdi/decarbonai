@@ -199,6 +199,8 @@ a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
 /* ---------- toast ---------- */
 .toast { position: fixed; z-index: 100; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; background: var(--surface-2); border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 16px; font-size: 14px; transition: opacity 0.25s, transform 0.35s var(--ease); pointer-events: none; }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
+/* With the simulated/read-failed banner on screen, toasts sit above it instead of covering it. */
+body:has(.sim-banner) .toast { bottom: 72px; }
 
 /* ---------- responsive ---------- */
 @media (max-width: 1180px) {
@@ -326,6 +328,8 @@ html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
 /* ---------- 6. reveal on scroll ---------- */
 .fx-rich .rv { opacity: 0; transform: translateY(18px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); transition-delay: var(--d, 0ms); }
 .fx-rich .rv.in { opacity: 1; transform: none; }
+/* Printing (and print-to-PDF) shows everything, scrolled into view or not. */
+@media print { .fx-rich .rv { opacity: 1; transform: none; transition: none; } }
 
 
 @media (max-width: 760px) {

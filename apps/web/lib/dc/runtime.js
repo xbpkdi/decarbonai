@@ -41,7 +41,7 @@ function gramsPerCall(model, tin, tout) {
 
 // ---------- mock agents (simulation only) ----------
 const MOCK_AGENTS = [
-  { id: 42, name: "Claude research agent", note: "Buys paid search and market data through the DecarbonAI MCP server.", payer: "0x7a3f9c1e5b2d48a6c0e9f17b3d5a2c8e4f6b1d09", model: "claude-sonnet", tok: [3000, 1500], res: ["/v1/search", "/v1/market/quote", "/v1/filings"], price: 10000, w: 0.66, since: Date.UTC(2026, 10, 12) },
+  { id: 42, name: "Research agent", note: "Buys paid search and market data through the DecarbonAI MCP server.", payer: "0x7a3f9c1e5b2d48a6c0e9f17b3d5a2c8e4f6b1d09", model: "claude-sonnet", tok: [3000, 1500], res: ["/v1/search", "/v1/market/quote", "/v1/filings"], price: 10000, w: 0.66, since: Date.UTC(2026, 10, 12) },
   { id: 17, name: "Weather oracle buyer", note: "Pays a weather API every minute for crop alerts.", payer: "0x2b8e4d6f1a3c5e7092b4d6f8a1c3e5079b2d4f61", model: "gemini-flash", tok: [800, 300], res: ["/v1/forecast", "/v1/rainfall"], price: 2000, w: 0.2, since: Date.UTC(2026, 10, 9) },
   { id: 88, name: "Thai news summariser", note: "Summarises Thai-language news for a Bangkok newsroom.", payer: "0x9d1c3e5a7f2b4d6e8a0c2e4f6b8d1a3c5e7f9b20", model: "gpt-class-standard", tok: [6000, 900], res: ["/v1/summarize", "/v1/translate"], price: 5000, w: 0.14, since: Date.UTC(2026, 10, 15) },
 ];
@@ -190,7 +190,12 @@ export function createDC(cfg) {
     state.pending[c.agent] += c.mg;
     const ac = state.acct[c.agent]; ac.calls++; ac.mg += c.mg; ac.sur += c.sur;
     state.history[c.agent].push({ t: c.t, mg: c.mg, tx: c.tx, receipt: null });
-    state.feed.unshift(c); if (state.feed.length > 30) state.feed.length = 30;
+    // Keep about 30 calls, but only whole meter batches: a cut batch would show fewer calls and grams than its tx.
+    state.feed.unshift(c);
+    while (state.feed.length > 30 && state.feed[state.feed.length - 1].tx !== c.tx) {
+      const tx = state.feed[state.feed.length - 1].tx;
+      while (state.feed[state.feed.length - 1]?.tx === tx) state.feed.pop();
+    }
   }
   // A retirement covers the agent's oldest open calls (`calls` of them on-chain; all open ones in the mock).
   function retire(agentId, t, ev) {
@@ -219,11 +224,13 @@ export function createDC(cfg) {
   const controls = {};
 
   if (mock) {
+    // Agents outside the seeded list (e.g. /agent/360 in mock) pay as a standard Sonnet-class call.
     const makeCall = (a, t) => {
-      const base = gramsPerCall(a.model, a.tok[0], a.tok[1]).g * 1000;
+      const model = a.model || "claude-sonnet", tok = a.tok || [3000, 1500];
+      const base = gramsPerCall(model, tok[0], tok[1]).g * 1000;
       const mg = Math.round(base * (0.82 + rand() * 0.36));
       state.block += 1 + Math.floor(rand() * 3);
-      return { id: hex(8), tx: hex(32), t, agent: a.id, payer: a.payer, mg, sur: surchargeFor(mg), res: a.res[Math.floor(rand() * a.res.length)], price: a.price, block: state.block };
+      return { id: hex(8), tx: hex(32), t, agent: a.id, payer: a.payer, mg, sur: surchargeFor(mg), res: a.res ? a.res[Math.floor(rand() * a.res.length)] : "/v1/infer", price: a.price ?? 10000, block: state.block };
     };
     // History: one week, merged and sorted, so receipts number in time order.
     state.block = 38422936;
@@ -431,13 +438,18 @@ export function bindChrome(DC) {
   on("block", paintBlock);
 
   const body = document.body;
-  document.querySelector("[data-menu]")?.addEventListener("click", () => body.classList.add("sheet-open"));
-  document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", () => body.classList.remove("sheet-open")));
+  const menuBtn = document.querySelector("[data-menu]");
+  const openSheet = () => { body.classList.add("sheet-open"); document.querySelector(".sheet nav a, .sheet [data-close]")?.focus(); };
+  const closeSheet = () => { if (!body.classList.contains("sheet-open")) return; body.classList.remove("sheet-open"); menuBtn?.focus(); };
+  menuBtn?.addEventListener("click", openSheet);
+  document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeSheet));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
 
-  // copy-on-click for hash chips (cmd/ctrl-click opens Snowtrace)
+  // copy-on-click for hash chips (cmd/ctrl-click opens Snowtrace). Touch screens have no Cmd-click: a tap opens the link.
+  const coarse = matchMedia("(pointer: coarse)").matches;
   document.addEventListener("click", (e) => {
     const h = e.target.closest?.(".hash[data-copy]");
-    if (!h || e.metaKey || e.ctrlKey) return;
+    if (!h || e.metaKey || e.ctrlKey || coarse) return;
     e.preventDefault();
     navigator.clipboard?.writeText(h.dataset.copy).catch(() => {});
     h.classList.add("copied"); setTimeout(() => h.classList.remove("copied"), 900);

@@ -78,6 +78,8 @@
     .hero, .pool, .scene, .feed, .latest { grid-column: 1 / -1; }
     .scene { min-height: 300px; }
     .feed .scroll { max-height: none; }
+    .feed td.agent { max-width: none; white-space: normal; }
+    .rp-trk s { display: none; }
     .feed tbody tr:nth-child(n + 9) { display: none; }
   }
   @media (max-width: 640px) {
