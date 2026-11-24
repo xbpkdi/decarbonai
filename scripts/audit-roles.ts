@@ -5,6 +5,7 @@
 import { type Address, type Hex, createPublicClient, getAddress, http, parseAbi } from "viem";
 import { carbonReceiptAbi, dCO2Abi, eRC8004ReputationAdapterAbi, network, retirementPoolAbi } from "@decarbonai/chain";
 import { loadDeployment, rpcUrlFor } from "@decarbonai/chain/node";
+import { safeProblems } from "./lib/safe.ts";
 
 const d = loadDeployment();
 // the event scan makes one call per 100 blocks, so be patient with a rate-limited public RPC
@@ -44,11 +45,13 @@ if (mainnet) check(await client.readContract({ address: d.dco2, abi: dCO2Abi, fu
 if (mainnet) {
   const safeAbi = parseAbi(["function getThreshold() view returns (uint256)", "function getOwners() view returns (address[])"]);
   const safe = { address: d.admin, abi: safeAbi } as const;
+  const code = await client.getCode({ address: d.admin });
   const [threshold, owners] = await Promise.all([
     client.readContract({ ...safe, functionName: "getThreshold" }),
     client.readContract({ ...safe, functionName: "getOwners" }),
   ]).catch(() => [0n, []] as const);
-  check(threshold >= 2n, "admin is a Safe that needs at least 2 signers", `${threshold} of ${owners.length}: ${owners.join(", ")}`);
+  const problems = safeProblems({ hasCode: !!code && code !== "0x", threshold, owners }, { deployer: d.deployer, meter: d.meter, payTo: d.payTo });
+  check(!problems.length, "admin is a 1-of-1 or multisig Safe with no bot wallet as owner", `${threshold} of ${owners.length}: ${owners.join(", ")}${problems.length ? `; ${problems.join("; ")}` : ""}`);
 }
 const [admin, [pendingAdmin]] = await Promise.all([
   client.readContract({ ...pool, functionName: "defaultAdmin" }),
