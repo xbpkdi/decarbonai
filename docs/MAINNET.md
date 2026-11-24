@@ -1,6 +1,6 @@
-# Avalanche C-Chain mainnet: prepared, NOT deployed
+# Avalanche C-Chain mainnet
 
-Nothing has been broadcast to mainnet. Deploying needs an explicit go from the owner after funding.
+Deployed on 24 Nov 2026. Addresses are in [`deployments/avalanche.json`](../deployments/avalanche.json) and the [README](../README.md#deployed-on-avalanche-c-chain-mainnet-chainid-43114). Lot 1 (1 t UCR-423-2022, retired for DecarbonAI) is in the pool. 101 scripted test calls minted receipts #1 and #2, each with carbon-settled ERC-8004 feedback for agent #1855.
 
 ## Config (chainId 43114)
 
@@ -38,7 +38,7 @@ The Safe must then call:
 - `acceptOwnership()` on the three Ownable2Step contracts;
 - optionally `pool.changeDefaultAdminDelay(2 days)`.
 
-Until then the deployer still holds admin. The API refuses to start if its key holds any admin, treasury or pauser right.
+Done on 24 Nov 2026: the Safe holds pool admin and owns all three contracts. The API refuses to start if its key holds any admin, treasury or pauser right.
 
 ## Credit lots (B2 decision: real credit on mainnet)
 
@@ -57,7 +57,7 @@ Until then the deployer still holds admin. The API refuses to start if its key h
 
 - `serialUsed` and `retirementUsed` stop the same retirement from backing two lots.
 - "carbon-settled" ERC-8004 feedback is only written when a backed lot is burned.
-- Research on the existing retirement and current Carbonmark quotes: `~/.orca/bots/new-bot/reports/carbonmark-research-b2.md`. Short version: retirement `0x6693…` is 1 t UCR-419-2023, but it was made with a **sandbox** key, its beneficiary is "test", and the paused Fuji deployment already cites it. Do not reuse it. Buy a fresh production retirement whose beneficiary is "DecarbonAI".
+- Research on the existing retirement and current Carbonmark quotes: `~/.orca/bots/new-bot/reports/carbonmark-research-b2.md`. Short version: retirement `0x6693…` is 1 t UCR-419-2023, but it was made with a **sandbox** key, its beneficiary is "test", and the paused Fuji deployment already cites it. Do not reuse it. Buy a fresh production retirement whose beneficiary is "DecarbonAI". Done: lot 1 is UCR-423-2022, beneficiary DecarbonAI.
 
 ## Cost (simulated on a local anvil fork of mainnet, 21 Nov 2026, base fee 7.5 gwei)
 
@@ -83,7 +83,7 @@ Until then the deployer still holds admin. The API refuses to start if its key h
 
 The x402 facilitator pays settlement gas. The cost of the first real tonne itself is in the research report: the Carbonmark API needs a $50 minimum card top-up, while the x402 retire endpoint takes about $0.10 USDC on Base.
 
-## Runbook (after "go")
+## Runbook (as used for the 24 Nov deploy)
 
 The step-by-step runbook (funding, commands, checks) is kept with the owner, outside the repo. The order is fixed:
 
