@@ -1,0 +1,15 @@
+{
+  "registry": "UCR",
+  "projectId": "UCR-423",
+  "projectName": "228 MW Bundled Wind Projects in RJ, MP and Maharashtra, India",
+  "serial": "UCR-423-2022 / 8453-0x58c8764d321f659b8b0662b594e38b9529e95cd00c3b44dea313dbba5317ba45-0",
+  "vintage": 2022,
+  "certificateURI": "https://app.carbonmark.com/retirements/id/8453-0x58c8764d321f659b8b0662b594e38b9529e95cd00c3b44dea313dbba5317ba45-0",
+  "retirementTx": "eip155:8453:0x58c8764d321f659b8b0662b594e38b9529e95cd00c3b44dea313dbba5317ba45",
+  "quantityKg": 1000,
+  "creditId": "UCR-423-2022",
+  "retirementId": "8453-0x58c8764d321f659b8b0662b594e38b9529e95cd00c3b44dea313dbba5317ba45-0",
+  "beneficiary": "DecarbonAI",
+  "paidUsdc": "0.083832",
+  "retiredAt": "2026-11-24T05:38:35.000Z"
+}
