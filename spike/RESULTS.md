@@ -3,8 +3,9 @@
 See [README](../README.md) for project status, acknowledgments, and roadmap.
 
 
-## Carbonmark REST — succeeded
+## Carbonmark REST — succeeded (sandbox)
 
+- Made with the **sandbox** API key: beneficiary "test", never billed. It is a test retirement, not a real DecarbonAI retirement, and must not back a lot (see `docs/MAINNET.md`).
 - Host used: `https://v19.api.carbonmark.com` (`v1.api.carbonmark.com` TLS cert expired May 2024)
 - Marketplace listings had `liquidSupply: 0`; used `assetPriceType=klimaprotocol`
 - GET `/orders?quote_uuid=` returns an **array**
@@ -32,4 +33,4 @@ Faucet: https://core.app/tools/testnet-faucet/?subnet=c&network=fuji
 
 ## Klima x402
 
-Discover on `v1.x402.klimalabs.com` works (carbon classes + liquidity). Full gasless `actions/retire` needs `KLIMA_PRIVATE_KEY` and Base Sepolia USDC — not completed. Carbonmark rail already retired via Klima protocol inventory on Base (`8453`).
+Discover on `v1.x402.klimalabs.com` works (carbon classes + liquidity). Full gasless `actions/retire` needs `KLIMA_PRIVATE_KEY` and Base Sepolia USDC — not completed. The Carbonmark sandbox retirement above drew on Klima protocol inventory on Base (`8453`).

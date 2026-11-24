@@ -181,4 +181,4 @@ Prepared but **not deployed**. [`docs/MAINNET.md`](docs/MAINNET.md) has the role
 
 ## v1 (legacy)
 
-v1 retired Carbonmark credits on Base from a web checkout and mirrored a receipt to `CertificateReceipt` on Fuji ([`0x9dd6…7cc1`](https://testnet.snowtrace.io/address/0x9dd6ae803cab0bd07b4cbc09fab3bc30f7357cc1)). Its `POST /api/offset` spent real credits with no auth. That route, the v1 pages and the local `.data` certificate store were removed; old `/certificate/…` links show a notice.
+v1 ran a Carbonmark **sandbox** retirement on Base from a web checkout (sandbox API key, beneficiary "test", never billed; not a real DecarbonAI retirement) and mirrored a receipt to `CertificateReceipt` on Fuji ([`0x9dd6…7cc1`](https://testnet.snowtrace.io/address/0x9dd6ae803cab0bd07b4cbc09fab3bc30f7357cc1)). Its `POST /api/offset` could trigger retirements with no auth. That route, the v1 pages and the local `.data` certificate store were removed; old `/certificate/…` links show a notice.
