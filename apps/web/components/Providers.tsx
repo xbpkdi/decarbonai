@@ -20,7 +20,7 @@ const connectors = connectorsForWallets(
 const wagmiConfig = createConfig({
   chains: [NETS.mainnet.chain, NETS.fuji.chain],
   connectors,
-  transports: { [NETS.mainnet.chain.id]: http(NETS.mainnet.rpc), [NETS.fuji.chain.id]: http(NETS.fuji.rpc) },
+  transports: { 43114: http(NETS.mainnet.rpc), 43113: http(NETS.fuji.rpc) },
   ssr: true,
 });
 

@@ -437,6 +437,15 @@ export function bindChrome(DC) {
   const paintBlock = (b) => document.querySelectorAll("[data-block]").forEach((el) => (el.textContent = b && !DC.mock ? `#${fmt.count(b)}` : ""));
   paintBlock(state.block);
   on("block", paintBlock);
+  // Mainnet: what is left of the backed lot, from the Retired events read.
+  const paintLot = () => {
+    const lot = DC.NET.lot;
+    if (!lot || DC.failed || DC.mock || DC.replaying) return;
+    const used = state.receipts.filter((r) => r.lot === lot.id).reduce((s, r) => s + r.mg, 0) / 1e6;
+    document.querySelectorAll("[data-lot-left]").forEach((el) => (el.textContent = ` · ${fmt.count(Math.max(0, lot.quantityKg - used))} kg left`));
+  };
+  paintLot();
+  on("retired", paintLot);
 
   const body = document.body;
   const menuBtn = document.querySelector("[data-menu]");

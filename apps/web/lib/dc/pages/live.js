@@ -21,7 +21,7 @@ export default function init(DC) {
 
   function paintHero() {
     if (DC.failed) { $("#line").textContent = DC.READ_FAILED; return; }
-    $("#line").innerHTML = `metered across <b>${fmt.count(state.calls)}</b> paid ${DC.NET.testnet ? "testnet" : "x402"} calls · <b class="mint">${fmt.mass(state.retiredMg)}</b> ${DC.RETIRED.toLowerCase()} · <b>${fmt.usd(state.surcharge, 3)}</b> carbon surcharge`;
+    $("#line").innerHTML = `metered across <b>${fmt.count(state.calls)}</b> ${DC.NET.calls} · <b class="mint">${fmt.mass(state.retiredMg)}</b> ${DC.RETIRED.toLowerCase()} · <b>${fmt.usd(state.surcharge, 3)}</b> carbon surcharge`;
   }
   function paintPool() {
     if (DC.failed) { DC.scaleBar($("#scale"), 0); $("#pooled").textContent = "Pool not read"; $("#lbl-pool").textContent = "Not read"; return; }
@@ -346,7 +346,8 @@ export default function init(DC) {
     ...DC.events.accruals.map((v) => ({ k: 0, v })),
     ...DC.events.retirements.map((v) => ({ k: 1, v })),
   ].sort((x, y) => x.v.block - y.v.block || x.k - y.k);
-  if (!DC.mock && !DC.failed && evs.length) setupReplay();
+  // The replay is a Fuji feature: mainnet has only the scripted test calls.
+  if (!DC.mock && !DC.failed && DC.NET.testnet && evs.length) setupReplay();
 
   function setupReplay() {
     const bar = $("#replay"), note = $("#rpNote");

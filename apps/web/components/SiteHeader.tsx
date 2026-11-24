@@ -45,7 +45,8 @@ export function SiteHeader() {
             <span className="chip-net">
               <span className="dot-live" />
               <NetSwitch />
-              <a className="blk tnum" data-block title="Open the RetirementPool on the explorer" href={`${net.explorer}/address/${net.deployment.retirementPool}`} target="_blank" rel="noreferrer" />
+              {/* biome-ignore lint/a11y/useAnchorContent: the runtime writes the block number into it; aria-label covers the empty moment */}
+              <a className="blk tnum" data-block aria-label="Latest block; opens the RetirementPool on the explorer" title="Open the RetirementPool on the explorer" href={`${net.explorer}/address/${net.deployment.retirementPool}`} target="_blank" rel="noreferrer" />
               <span className="idle mono" data-idle />
             </span>
             <span className="ticker" title="Total estimated CO₂e metered, all agents">

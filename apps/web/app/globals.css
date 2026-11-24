@@ -128,6 +128,10 @@ html[data-chain="idle"] .chip-net .dot-live, html[data-chain="idle"] .foot .dot-
 .batch { font-family: var(--f-mono); font-size: 11px; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 0 6px; margin-left: 6px; }
 .demo-off { font-size: 13px; color: var(--text-3); }
 a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
+/* Mainnet: the retired credit behind the lot, with its certificate. */
+.lot-note { margin-top: 8px; font-size: 14px; color: var(--text-2); }
+.lot-note a { color: var(--mint); }
+.lot-note a:hover { text-decoration: underline; text-underline-offset: 3px; }
 /* Network toggle inside the chip: the shown network reads bright, the other one dim. */
 .net-switch { display: inline-flex; align-items: center; gap: 2px; }
 .net-switch a { padding: 3px 8px; border-radius: 999px; color: var(--text-3); transition: color 0.15s, background 0.15s; }

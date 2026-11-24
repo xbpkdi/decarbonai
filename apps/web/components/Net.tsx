@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect } from "react";
-import { DEFAULT_NET, NET_COOKIE, NET_IDS, type Net, type NetId, NETS, netHref } from "@/lib/config";
+import { DEFAULT_NET, NET_IDS, type Net, type NetId, NETS, netHref } from "@/lib/config";
 
 const NetContext = createContext<Net>(NETS[DEFAULT_NET]);
 const KEY = "dc-network";
@@ -14,11 +14,10 @@ function remember(id: NetId) {
   try {
     localStorage.setItem(KEY, id);
   } catch {}
-  document.cookie = `${NET_COOKIE}=${id}; path=/; max-age=31536000; samesite=lax`;
 }
 
 /**
- * Keeps the choice in the URL, the cookie and localStorage:
+ * Keeps the choice in the URL and localStorage (middleware.ts keeps the cookie from ?network=):
  * - localStorage says another network than this page (cookie lost): reload on that one;
  * - on Fuji, ?network=fuji stays in the address bar and is added to internal links when clicked.
  */
@@ -57,6 +56,7 @@ export function NetSwitch() {
   const net = useNet();
   const path = usePathname();
   return (
+    // biome-ignore lint/a11y/useSemanticElements: two links styled as a toggle inside the chip
     <span className="net-switch" role="group" aria-label="Network">
       {NET_IDS.map((id) => (
         <a
