@@ -34,15 +34,16 @@
   .scene-keys kbd { font-family: inherit; border: 1px solid var(--line-2); border-radius: 4px; padding: 0 5px; }
 
   /* Replay: the recorded chain session played through this stage, labelled as a replay. */
-  .rp-note { position: absolute; right: 20px; top: 14px; font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--warn); }
+  .rp-note { position: absolute; right: 20px; top: 14px; font-family: var(--f-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mint); }
   .rp { flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 10px 20px; border-top: 1px solid var(--line); position: relative; z-index: 1; }
   .rp[hidden] { display: none; }
-  .rp-play { height: 32px; padding: 0 14px; border-radius: 999px; border: 0; background: var(--warn); color: #1a1204; font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
-  .rp-play:focus-visible { outline: 2px solid var(--warn); outline-offset: 3px; }
+  .rp-play { height: 32px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--mint); background: transparent; color: var(--mint); font-family: var(--f-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+  .rp-play:hover { background: rgba(var(--mint-rgb), 0.1); }
+  .rp-play:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
   .rp-trk { position: relative; height: 28px; }
   .rp-trk .base, .rp-trk .fill { position: absolute; left: 0; top: 15px; height: 2px; }
   .rp-trk .base { right: 0; background: var(--line-2); }
-  .rp-trk .fill { width: 0; background: var(--warn); }
+  .rp-trk .fill { width: 0; background: var(--mint); }
   .rp-trk i { position: absolute; top: 10px; width: 2px; height: 12px; margin-left: -1px; background: var(--text-3); }
   .rp-trk i.on { background: var(--text); }
   .rp-trk b { position: absolute; top: 11px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; border: 2px solid var(--avax); background: var(--surface); }
