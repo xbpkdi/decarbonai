@@ -108,7 +108,10 @@ html[data-chain="idle"] .chip-net .dot-live, html[data-chain="idle"] .foot .dot-
 .btn-primary { background: var(--mint); color: var(--mint-ink); }
 .btn-primary:hover { background: var(--mint-deep); color: #fff; box-shadow: 0 0 24px var(--mint-glow); }
 .btn-outline { border-color: var(--line-2); background: transparent; color: var(--text); }
-.btn-outline:hover { background: var(--surface-2); }
+/* Outline buttons stay outlines: hover and press only tint the fill, firm up the border and text, and press 1px. */
+.btn-outline:not(:disabled):hover { background: rgba(var(--mint-rgb), 0.06); border-color: color-mix(in srgb, var(--mint) 60%, transparent); color: var(--mint); }
+.btn-outline:not(:disabled):active { background: rgba(var(--mint-rgb), 0.1); transform: translateY(1px); }
+.btn-outline:focus-visible { outline: 2px solid var(--mint); outline-offset: 3px; }
 .btn-outline.connected { border-color: color-mix(in srgb, var(--mint) 60%, transparent); color: var(--mint); font-family: var(--f-mono); font-weight: 500; }
 .btn-chain { color: var(--avax); font-weight: 600; padding: 0; height: auto; }
 .btn-chain:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -306,6 +309,9 @@ html { overflow-x: clip; }
 .fx-rich .foot-band::after { content: ""; position: absolute; right: -60px; top: -80px; width: 340px; height: 340px; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.35), transparent); pointer-events: none; }
 .fx-rich .foot-band .btn-primary { background: var(--mint-ink); color: var(--mint); }
 .fx-rich .foot-band .btn-outline { border-color: rgba(6, 18, 12, 0.4); color: var(--mint-ink); }
+.fx-rich .solid .btn-outline:not(:disabled):hover, .fx-rich .foot-band .btn-outline:not(:disabled):hover { background: rgba(6, 18, 12, 0.06); border-color: rgba(6, 18, 12, 0.75); color: var(--mint-ink); }
+.fx-rich .solid .btn-outline:not(:disabled):active, .fx-rich .foot-band .btn-outline:not(:disabled):active { background: rgba(6, 18, 12, 0.1); }
+.fx-rich .solid .btn-outline:focus-visible, .fx-rich .foot-band .btn-outline:focus-visible { outline-color: var(--mint-ink); }
 
 /* ---------- 5. depth and light ---------- */
 .fx-rich .card { background: linear-gradient(180deg, color-mix(in srgb, var(--surface-2) 90%, #fff 3%), var(--surface) 60%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 24px 60px -40px rgba(0, 0, 0, 0.8); transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease), border-color 0.25s; }
@@ -323,6 +329,11 @@ html { overflow-x: clip; }
 .fx-rich .btn::after { content: ""; position: absolute; inset: 0; background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%); transform: translateX(-120%); pointer-events: none; }
 .fx-rich .btn { position: relative; overflow: hidden; }
 .fx-rich .btn:hover::after { transform: translateX(120%); transition: transform 0.7s var(--ease); }
+/* Outline buttons skip the lift and the gloss sweep (the sweep read as a solid flash); they press 1px instead. */
+.fx-rich .btn-outline { transition: transform 0.1s var(--ease), background 0.15s, border-color 0.15s, color 0.15s; }
+.fx-rich .btn-outline:hover { transform: none; }
+.fx-rich .btn-outline:not(:disabled):active { transform: translateY(1px); }
+.fx-rich .btn-outline::after { display: none; }
 .fx-rich .page-head::before { opacity: 0; }
 .fx-rich .nav { background: color-mix(in srgb, var(--ink) 94%, transparent); }
 /* Anchors and focus land below the sticky nav + tape. */
