@@ -93,3 +93,13 @@
     .scene-keys { display: none; }
     .hero .line { font-size: 15px; }
   }
+
+/* Laptops and 1440 projectors: feed and latest receipt side by side, with a compact receipt card. */
+@media (min-width: 1200px) and (max-width: 1599px) {
+  .feed { grid-column: span 7; }
+  .latest { grid-column: span 5; grid-template-columns: minmax(0, 140px) minmax(0, 1fr); gap: 30px; align-items: center; padding: 18px 20px; }
+  .latest .coin-wrap { max-width: 140px; }
+  .latest h2 { font-size: 26px; }
+  .latest dl { gap: 6px 12px; font-size: 13px; }
+  .feed tbody tr:nth-child(n + 7) { display: none; }
+}

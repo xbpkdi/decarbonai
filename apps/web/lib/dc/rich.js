@@ -67,10 +67,8 @@ export default function init(DC) {
     if (!cfg.word) return;
     const mega = `<div class="mega${page === "index" ? " mega-live" : ""}" aria-hidden="true">${cfg.word}<span class="dot">.</span></div>`;
     if (page === "index") {
-      const row = document.querySelector(".hero .eyebrow-row");
-      row.style.alignItems = "flex-end";
-      row.querySelector(".pill").insertAdjacentHTML("afterend", mega);
-      row.querySelector(".eyebrow").style.paddingBottom = "8px";
+      // Status pill and eyebrow share one row above the headline.
+      document.querySelector(".hero .eyebrow-row").insertAdjacentHTML("afterend", mega);
     } else {
       const head = document.querySelector(".page-head .eyebrow");
       head?.insertAdjacentHTML("afterend", mega);

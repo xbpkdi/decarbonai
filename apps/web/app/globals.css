@@ -51,6 +51,8 @@ html { scrollbar-color: var(--line-2) transparent; scrollbar-width: thin; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 .wrap { width: 100%; max-width: var(--maxw); margin: 0 auto; padding: 0 var(--gutter); }
+/* 1920 projectors: use the width instead of 300 px gutters. */
+@media (min-width: 1800px) { :root { --maxw: 1520px; } }
 main { flex: 1; }
 
 /* ---------- type ---------- */
@@ -182,7 +184,7 @@ a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
 .odo .s { display: inline-block; }
 
 /* ---------- footer ---------- */
-.foot { margin-top: 96px; position: relative; border-top: 1px solid var(--line); background: var(--surface); }
+.foot { margin-top: 32px; position: relative; border-top: 1px solid var(--line); background: var(--surface); }
 .foot::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--smoke) 20%, var(--smoke-2) 40%, var(--mint) 70%, transparent); }
 .foot-band { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 48px 0 40px; border-bottom: 1px solid var(--line); }
 .foot-band .display { font-size: clamp(32px, 4vw, 52px); max-width: 22ch; line-height: 1.02; }
@@ -278,7 +280,7 @@ html { overflow-x: clip; }
 .fx-rich .page-head { padding-top: 40px; }
 /* Live keeps the 16:9 fit: the headline sits beside the eyebrow at a smaller size. */
 .fx-rich #rt.mega { text-transform: none; white-space: nowrap; letter-spacing: 0; }
-.fx-rich .mega.mega-live { font-size: min(64px, 6.2vh); margin: 0; line-height: 0.9; }
+.fx-rich .mega.mega-live { font-size: min(64px, 6.2vh); margin: min(10px, 1vh) 0 0; line-height: 0.9; }
 
 /* ---------- 4. solid colour block ---------- */
 .fx-rich .solid { background: var(--mint) !important; border-color: var(--mint) !important; color: var(--mint-ink); box-shadow: 0 30px 80px -30px rgba(var(--mint-rgb), 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35) !important; }
@@ -299,7 +301,7 @@ html { overflow-x: clip; }
 .fx-rich .solid .tbl th { background: rgba(6, 18, 12, 0.08); color: rgba(6, 18, 12, 0.6); }
 .fx-rich .solid .tbl td { border-color: rgba(6, 18, 12, 0.15); }
 /* footer CTA band */
-.fx-rich .foot-band { background: var(--mint); color: var(--mint-ink); border-radius: 22px; padding: 44px 48px; margin-top: 56px; border: 0; position: relative; overflow: hidden; }
+.fx-rich .foot-band { background: var(--mint); color: var(--mint-ink); border-radius: 22px; padding: 44px 48px; margin-top: 32px; border: 0; position: relative; overflow: hidden; }
 .fx-rich .foot-band::after { content: ""; position: absolute; right: -60px; top: -80px; width: 340px; height: 340px; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.35), transparent); pointer-events: none; }
 .fx-rich .foot-band .btn-primary { background: var(--mint-ink); color: var(--mint); }
 .fx-rich .foot-band .btn-outline { border-color: rgba(6, 18, 12, 0.4); color: var(--mint-ink); }
@@ -337,7 +339,6 @@ html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
   .fx-rich .mega { font-size: clamp(64px, 20vw, 120px); }
   .fx-rich .foot-band { padding: 32px 24px; border-radius: 18px; }
   .fx-rich .hero .eyebrow-row { flex-wrap: wrap; row-gap: 6px; }
-  .fx-rich .hero .eyebrow-row .eyebrow { flex-basis: 100%; padding-bottom: 0 !important; }
   .fx-rich .mega.mega-live { font-size: 52px; }
 }
 @media (prefers-reduced-motion: reduce) {

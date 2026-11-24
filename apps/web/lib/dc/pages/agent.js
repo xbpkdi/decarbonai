@@ -25,6 +25,11 @@ export default function init(DC) {
       return;
     }
     const ac = state.acct[a.id], rs = state.receipts.filter((r) => r.agent === a.id);
+    // No calls: one card with where to go next instead of zero stats, an empty timeline and empty tables.
+    const empty = !ac.calls;
+    document.querySelector("main").toggleAttribute("data-empty", empty);
+    $("#empty").hidden = !empty;
+    if (empty) paintEmpty();
     const retiredMg = rs.reduce((s, r) => s + r.mg, 0);
     $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}; our meter batches the surcharges into the pool.` : "No calls recorded by this pool.");
     $("#stats").innerHTML = [
@@ -43,6 +48,18 @@ export default function init(DC) {
     $("#nxNote").textContent = `${fmt.mass(p)} of ${fmt.mass(THRESHOLD_MG)} metered${since}. Mints as a soulbound ${DC.NET.testnet ? "testnet " : ""}receipt${DC.UNBACKED ? " (mock credit)" : ""} at ${fmt.mass(THRESHOLD_MG)}.`;
     DC.scaleBar($("#scale"), p);
     $("#rc").innerHTML = rs.map((r) => `<tr><td><a href="/receipt/${r.n}" class="mono" style="color:var(--mint)">${fmt.no(r.n)}</a></td><td class="muted">${fmt.dt(r.t)}</td><td class="r">${fmt.mass(r.mg)}</td><td class="r">${fmt.count(r.calls)}</td><td class="r">${hashLink(r.tx)}</td></tr>`).join("") || `<tr><td colspan="5" class="muted">No receipts yet.</td></tr>`;
+  }
+  function paintEmpty() {
+    const metered = AGENTS.filter((x) => x.id !== a.id && state.acct[x.id]?.calls).sort((x, y) => state.acct[y.id].calls - state.acct[x.id].calls);
+    const top = metered[0];
+    const label = (x) => `#${x.id}${x.title !== `Agent #${x.id}` ? ` (${x.name})` : ""}`;
+    const facts = (x) => { const n = state.receipts.filter((r) => r.agent === x.id).length; return `${fmt.count(state.acct[x.id].calls)} calls, ${fmt.count(n)} ${DC.NET.testnet ? "testnet " : ""}receipt${n === 1 ? "" : "s"}`; };
+    const who = !top ? `No agent has been metered on ${DC.NET.short} yet.`
+      : metered.length === 1 ? `The only agent metered so far is ${label(top)}: ${facts(top)}.`
+      : `${metered.length} agents have been metered so far; the most active is ${label(top)}: ${facts(top)}.`;
+    $("#emEb").textContent = `Agent #${a.id} · ${DC.NET.name}`;
+    $("#emNote").textContent = `This pool has recorded no x402 calls for agent #${a.id}, so there is no footprint, timeline or receipt to show. ${who}`;
+    $("#emActs").innerHTML = `${top ? `<a class="btn btn-primary" href="/agent/${top.id}">Open agent #${top.id}</a>` : ""}<a class="btn btn-outline" href="/developers">How an agent gets metered</a>`;
   }
   paint();
 
