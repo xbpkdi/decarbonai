@@ -39,6 +39,8 @@ export function Runtime({ page, snapshot }: { page: PageKey; snapshot: Snapshot 
   useEffect(() => {
     if (booted) return; // React dev mode runs effects twice; the runtime owns the DOM after the first.
     booted = true;
+    // Wake the sleeping demo API before someone presses Run / Pay one call.
+    if (demoReady && (page === "developers" || page === "agent")) fetch("/api/demo/pay").catch(() => {});
     (async () => {
       const [{ createDC, bindChrome }, rich, extras, pageMod, gsap] = await Promise.all([
         import("@/lib/dc/runtime.js"),
