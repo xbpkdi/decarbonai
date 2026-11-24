@@ -1,7 +1,8 @@
 .install { display: flex; align-items: center; gap: 14px; padding: 10px 10px 10px 20px; margin-top: 28px; max-width: 640px; }
   .install code { flex: 1; font-family: var(--f-mono); font-size: 17px; overflow-x: auto; white-space: nowrap; }
   .install .dollar { font-family: var(--f-mono); color: var(--text-3); }
-  .copy.ok { background: var(--mint) !important; color: var(--mint-ink) !important; border-color: var(--mint) !important; }
+  .copy.ok { background: rgba(var(--mint-rgb), 0.12) !important; color: var(--mint) !important; border-color: var(--mint) !important; }
+  .solid .copy.ok { background: rgba(6, 18, 12, 0.1) !important; color: var(--mint-ink) !important; border-color: var(--mint-ink) !important; }
 
   .two > *, .tools > * { min-width: 0; }
   .two { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 20px; align-items: stretch; }
