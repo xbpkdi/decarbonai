@@ -137,7 +137,7 @@ export default function init(DC) {
   function readColors() {
     const cs = getComputedStyle(document.documentElement);
     const v = (n) => cs.getPropertyValue(n).trim();
-    colors = { line: v("--line-2"), text: v("--text"), text3: v("--text-3"), mint: v("--mint"), avax: v("--avax"), surface: v("--surface"), tile: v("--tile") };
+    colors = { line: v("--line-2"), text: v("--text"), text3: v("--text-3"), mint: v("--mint"), avax: v("--avax"), surface: v("--surface"), tile: v("--tile"), mono: v("--font-mono") };
   }
   function layout() {
     const r = host.getBoundingClientRect();
@@ -226,7 +226,7 @@ export default function init(DC) {
       ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(n.x, n.y, 22, 0, 7); ctx.stroke();
     });
     // glyphs: agent (smoke dot cluster), x402 ($), seal (ring)
-    ctx.fillStyle = colors.text; ctx.font = "600 15px JetBrains Mono, monospace"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillStyle = colors.text; ctx.font = `600 15px ${colors.mono}, monospace`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.fillText("AI", A.x, A.y + 1); ctx.fillText("$", B.x, B.y + 1);
     ctx.fillStyle = colors.avax;
     if (sealFlash > 0) { ctx.globalAlpha = sealFlash; ctx.beginPath(); ctx.arc(S.x, S.y, 22, 0, 7); ctx.fill(); ctx.globalAlpha = 1; sealFlash -= dt * 0.8; }

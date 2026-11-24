@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Archivo, JetBrains_Mono, Noto_Sans_Thai } from "next/font/google";
+import localFont from "next/font/local";
 import { Providers } from "@/components/Providers";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -11,10 +11,11 @@ import { demoConfig } from "@/lib/server/demo";
 const DEMO_READY = Boolean(demoConfig());
 import "./globals.css";
 
-const anton = Anton({ weight: "400", subsets: ["latin"], variable: "--font-anton", display: "swap" });
-const archivo = Archivo({ weight: ["400", "500", "600", "700"], subsets: ["latin"], variable: "--font-archivo", display: "swap" });
-const mono = JetBrains_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], variable: "--font-mono", display: "swap" });
-const thai = Noto_Sans_Thai({ weight: ["400", "500", "600"], subsets: ["thai"], variable: "--font-thai", display: "swap" });
+// Self-hosted (from google/fonts, subset to the ranges Google Fonts serves) so builds never fetch fonts.
+const anton = localFont({ src: "./fonts/Anton-Regular.woff2", weight: "400", variable: "--font-anton", display: "swap" });
+const archivo = localFont({ src: "./fonts/Archivo-Variable.woff2", weight: "100 900", variable: "--font-archivo", display: "swap" });
+const mono = localFont({ src: "./fonts/JetBrainsMono-Variable.woff2", weight: "400 800", variable: "--font-mono", display: "swap" });
+const thai = localFont({ src: "./fonts/NotoSansThai-Variable.woff2", weight: "100 900", variable: "--font-thai", display: "swap" });
 
 const description = `${NETWORK.testnet ? `Demo on ${NETWORK.name}` : `x402 carbon meter on ${NETWORK.name}`}. An x402 payment includes a carbon surcharge; a trusted meter records the estimated grams in batches, and each 1 kg burns a ${UNBACKED ? "mock credit" : "backed credit"} and mints a soulbound receipt.`;
 

@@ -67,7 +67,7 @@ export default function init(DC) {
   const host = $("#tl"), cv = $("#tlc"), ctx = cv.getContext("2d"), tip = $("#tip");
   let W, H, pts = [], hover = null, colors;
   const fresh = new Map();
-  function readColors() { const cs = getComputedStyle(document.documentElement); colors = Object.fromEntries(["--smoke", "--mint", "--avax", "--line", "--text-3", "--mint-glow"].map((k) => [k, cs.getPropertyValue(k).trim()])); }
+  function readColors() { const cs = getComputedStyle(document.documentElement); colors = Object.fromEntries(["--smoke", "--mint", "--avax", "--line", "--text-3", "--mint-glow", "--font-mono"].map((k) => [k, cs.getPropertyValue(k).trim()])); }
   function rnd(i) { const x = Math.sin(i * 12.9898) * 43758.5453; return x - Math.floor(x); }
   function build() {
     const r = host.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
@@ -81,7 +81,7 @@ export default function init(DC) {
     // retired bands
     const groups = {};
     pts.forEach((p) => { if (p.c.receipt) (groups[p.c.receipt] ||= []).push(p.x); });
-    ctx.font = "500 11px JetBrains Mono, monospace"; ctx.textAlign = "center";
+    ctx.font = `500 11px ${colors["--font-mono"]}, monospace`; ctx.textAlign = "center";
     Object.entries(groups).forEach(([n, xs]) => {
       const x0 = Math.min(...xs) - 4, x1 = Math.max(...xs) + 4;
       ctx.fillStyle = colors["--mint-glow"]; ctx.globalAlpha = 0.35; ctx.fillRect(x0, 34, x1 - x0, H - 50); ctx.globalAlpha = 1;
