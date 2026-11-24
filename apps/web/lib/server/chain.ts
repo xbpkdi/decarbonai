@@ -2,16 +2,20 @@ import "server-only";
 import { carbonReceiptAbi, reputationRegistryAbi, retirementPoolAbi } from "@decarbonai/chain";
 import { unstable_cache } from "next/cache";
 import { BaseError, ContractFunctionRevertedError, createPublicClient, decodeEventLog, encodeEventTopics, http, type Address, type Hex } from "viem";
-import { DEPLOYMENT as D, NETWORK, RPC_URL, SUPERSEDED_ADAPTERS } from "@/lib/config";
+import { type Net, type NetId, NETS } from "@/lib/config";
 import type { Snapshot, SnapAccrual, SnapRetirement } from "@/lib/types";
 
-const RPC = process.env.RPC_URL || RPC_URL;
-export const client = createPublicClient({ chain: NETWORK.chain, transport: http(RPC) });
+// RPC_URL overrides the Fuji RPC (server side); MAINNET_RPC_URL the mainnet one (lib/config.ts).
+const clients = {
+  mainnet: createPublicClient({ chain: NETS.mainnet.chain, transport: http(NETS.mainnet.rpc) }),
+  fuji: createPublicClient({ chain: NETS.fuji.chain, transport: http(process.env.RPC_URL || NETS.fuji.rpc) }),
+};
+export const clientFor = (net: Net) => clients[net.id];
 
 type Row = { topics: Hex[]; data: Hex; blockNumber: Hex; timeStamp: Hex; transactionHash: Hex; logIndex: Hex };
 
 /** Etherscan-compatible log index (Routescan powers Snowtrace). Public RPCs cap eth_getLogs at 100 blocks. */
-async function logs(address: Address, topics: (Hex | null)[], fromBlock: number): Promise<Row[]> {
+async function logs(net: Net, address: Address, topics: (Hex | null)[], fromBlock: number): Promise<Row[]> {
   const out: Row[] = [];
   const params = new URLSearchParams({ module: "logs", action: "getLogs", address, fromBlock: String(fromBlock), toBlock: "latest", offset: "1000" });
   topics.forEach((t, i) => {
@@ -21,7 +25,7 @@ async function logs(address: Address, topics: (Hex | null)[], fromBlock: number)
   });
   for (let page = 1; page < 50; page++) {
     params.set("page", String(page));
-    const res = await fetch(`${NETWORK.logsApi}?${params}`, { cache: "no-store" });
+    const res = await fetch(`${net.logsApi}?${params}`, { cache: "no-store" });
     const json = (await res.json()) as { status: string; message: string; result: Row[] | string };
     if (json.status !== "1") {
       if (String(json.message).toLowerCase().includes("no records")) break;
@@ -34,9 +38,10 @@ async function logs(address: Address, topics: (Hex | null)[], fromBlock: number)
   return out.sort((a, b) => Number(BigInt(a.blockNumber) - BigInt(b.blockNumber)) || Number(a.logIndex || 0) - Number(b.logIndex || 0));
 }
 
-function poolLogs<N extends "CarbonAccrued" | "Retired">(eventName: N) {
+function poolLogs<N extends "CarbonAccrued" | "Retired">(net: Net, eventName: N) {
+  const D = net.deployment;
   const topics = encodeEventTopics({ abi: retirementPoolAbi, eventName } as never) as Hex[];
-  return logs(D.retirementPool, topics, D.deployBlock).then((rows) =>
+  return logs(net, D.retirementPool, topics, D.deployBlock).then((rows) =>
     rows.map((l) => ({
       args: decodeEventLog({ abi: retirementPoolAbi, eventName, topics: l.topics as [Hex, ...Hex[]], data: l.data === ("" as Hex) ? "0x" : l.data }).args as Record<string, unknown>,
       block: Number(BigInt(l.blockNumber)),
@@ -46,11 +51,14 @@ function poolLogs<N extends "CarbonAccrued" | "Retired">(eventName: N) {
   );
 }
 
-async function readSnapshot(): Promise<Snapshot> {
+async function readSnapshot(id: NetId): Promise<Snapshot> {
+  const net = NETS[id];
+  const D = net.deployment;
+  const client = clientFor(net);
   const pool = { address: D.retirementPool, abi: retirementPoolAbi } as const;
   const [accruedLogs, retiredLogs, block, totals] = await Promise.all([
-    poolLogs("CarbonAccrued"),
-    poolLogs("Retired"),
+    poolLogs(net, "CarbonAccrued"),
+    poolLogs(net, "Retired"),
     client.getBlockNumber(),
     client.multicall({
       allowFailure: false,
@@ -86,7 +94,7 @@ async function readSnapshot(): Promise<Snapshot> {
   }));
   const [totalAccruedMg, totalRetiredMg, totalSurcharge, thresholdMg, pricePerTonne] = totals.map(Number);
   return {
-    network: NETWORK.id,
+    network: net.id,
     block: Number(block),
     thresholdMg,
     pricePerTonne,
@@ -97,12 +105,13 @@ async function readSnapshot(): Promise<Snapshot> {
   };
 }
 
-/** One shared read every few seconds, whoever asks. */
-export const getSnapshot = unstable_cache(readSnapshot, ["snapshot", NETWORK.id, D.retirementPool ?? ""], { revalidate: 4 });
+/** One shared read per network every few seconds, whoever asks (the network id is part of the cache key). */
+const cachedSnapshot = unstable_cache(readSnapshot, ["snapshot", NETS.mainnet.deployment.retirementPool, NETS.fuji.deployment.retirementPool], { revalidate: 4 });
+export const getSnapshot = (net: Net) => cachedSnapshot(net.id);
 
-export async function getSnapshotSafe(): Promise<Snapshot | null> {
+export async function getSnapshotSafe(net: Net): Promise<Snapshot | null> {
   try {
-    return await getSnapshot();
+    return await getSnapshot(net);
   } catch (e) {
     console.warn("snapshot read failed:", (e as Error).message);
     return null;
@@ -122,7 +131,9 @@ export type ReceiptCheck = {
   lot: number;
 };
 
-export async function verifyReceipt(n: number): Promise<ReceiptCheck> {
+export async function verifyReceipt(net: Net, n: number): Promise<ReceiptCheck> {
+  const D = net.deployment;
+  const client = clientFor(net);
   const c = { address: D.carbonReceipt, abi: carbonReceiptAbi } as const;
   try {
     const [r, owner, locked] = await Promise.all([
@@ -143,11 +154,13 @@ export async function verifyReceipt(n: number): Promise<ReceiptCheck> {
 export type AgentFeedback = { current: number; superseded: number };
 
 /** ERC-8004 entries this deployment's adapter wrote for the agent, and those of superseded adapters. Null: not read. */
-export async function agentFeedback(id: bigint): Promise<AgentFeedback | null> {
+export async function agentFeedback(net: Net, id: bigint): Promise<AgentFeedback | null> {
+  const D = net.deployment;
+  const client = clientFor(net);
   const count = (adapter: Address) =>
     client.readContract({ address: D.erc8004ReputationRegistry, abi: reputationRegistryAbi, functionName: "getLastIndex", args: [id, adapter] }).then(Number);
   try {
-    const [current, ...old] = await Promise.all([D.reputationAdapter, ...SUPERSEDED_ADAPTERS].map(count));
+    const [current, ...old] = await Promise.all([D.reputationAdapter, ...net.superseded].map(count));
     return { current, superseded: old.reduce((s, n) => s + n, 0) };
   } catch {
     return null;
@@ -161,9 +174,9 @@ const ownerOfAbi = [
 ] as const;
 
 /** Whether the ERC-8004 registry has this agent id. Null: not read. */
-export async function agentRegistered(id: bigint): Promise<boolean | null> {
+export async function agentRegistered(net: Net, id: bigint): Promise<boolean | null> {
   try {
-    await client.readContract({ address: D.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] });
+    await clientFor(net).readContract({ address: net.deployment.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] });
     return true;
   } catch (e) {
     return reverted(e) ? false : null;
@@ -171,9 +184,11 @@ export async function agentRegistered(id: bigint): Promise<boolean | null> {
 }
 
 /** ERC-8004 identities currently held by `owner` (Transfer logs to the address, re-checked with ownerOf). */
-export async function ownedAgents(owner: Address): Promise<number[]> {
+export async function ownedAgents(net: Net, owner: Address): Promise<number[]> {
+  const D = net.deployment;
+  const client = clientFor(net);
   const topic = `0x${owner.slice(2).toLowerCase().padStart(64, "0")}` as Hex;
-  const rows = await logs(D.erc8004IdentityRegistry, [TRANSFER, null, topic], 0);
+  const rows = await logs(net, D.erc8004IdentityRegistry, [TRANSFER, null, topic], 0);
   const ids = [...new Set(rows.filter((r) => r.topics[3]).map((r) => BigInt(r.topics[3])))];
   const owners = await Promise.all(
     ids.map((id) => client.readContract({ address: D.erc8004IdentityRegistry, abi: ownerOfAbi, functionName: "ownerOf", args: [id] }).catch((e) => {

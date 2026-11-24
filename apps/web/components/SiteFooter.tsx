@@ -1,10 +1,12 @@
-import { CONTRACT_LIST, CREDIT_NOTE, DEPLOYMENT, NETWORK, REPO_URL, short } from "@/lib/config";
+import { type Net, REPO_URL, short } from "@/lib/config";
 import { HEADLINE } from "@/lib/copy";
 
 // The Offset mark sits in front of the word "carbon".
 const [LEAD, TAIL = ""] = HEADLINE.split(/\s+(?=carbon\b)/i);
 
-export function SiteFooter() {
+export function SiteFooter({ net }: { net: Net }) {
+  const { contractList: CONTRACT_LIST, creditNote: CREDIT_NOTE, deployment: DEPLOYMENT } = net;
+  const NETWORK = net;
   return (
     <footer className="foot">
       <div className="wrap">

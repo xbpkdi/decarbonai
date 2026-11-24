@@ -6,7 +6,8 @@ import { coreWallet, injectedWallet, metaMaskWallet, rabbyWallet, walletConnectW
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
 import { WagmiProvider, createConfig, http } from "wagmi";
-import { NETWORK, RPC_URL } from "@/lib/config";
+import { NetProvider } from "@/components/Net";
+import { type NetId, NETS } from "@/lib/config";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "";
 
@@ -16,18 +17,22 @@ const connectors = connectorsForWallets(
   { appName: "DecarbonAI", projectId: projectId || "decarbonai-local" },
 );
 
-const chain = NETWORK.chain;
-const wagmiConfig = createConfig({ chains: [chain], connectors, transports: { [chain.id]: http(RPC_URL) } as Record<typeof chain.id, ReturnType<typeof http>>, ssr: true });
+const wagmiConfig = createConfig({
+  chains: [NETS.mainnet.chain, NETS.fuji.chain],
+  connectors,
+  transports: { [NETS.mainnet.chain.id]: http(NETS.mainnet.rpc), [NETS.fuji.chain.id]: http(NETS.fuji.rpc) },
+  ssr: true,
+});
 
 const theme = darkTheme({ accentColor: "#c6f36b", accentColorForeground: "#141a06", borderRadius: "medium", overlayBlur: "small" });
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ net, children }: { net: NetId; children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient());
   return (
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
-        <RainbowKitProvider theme={theme} initialChain={chain} appInfo={{ appName: "DecarbonAI" }}>
-          {children}
+        <RainbowKitProvider theme={theme} initialChain={NETS[net].chain} appInfo={{ appName: "DecarbonAI" }}>
+          <NetProvider id={net}>{children}</NetProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

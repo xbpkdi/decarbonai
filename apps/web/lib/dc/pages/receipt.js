@@ -71,7 +71,7 @@ export default function init(DC) {
   ];
   async function readChain() {
     if (DC.mock) return { exists: true, locked: true, methodologyActive: true, backed: true };
-    const res = await fetch(`/api/receipt/${r.n}`, { cache: "no-store" });
+    const res = await fetch(`/api/receipt/${r.n}?network=${NET.id}`, { cache: "no-store" });
     if (!res.ok) throw new Error("read failed");
     const v = await res.json();
     return v.exists ? v : null;
