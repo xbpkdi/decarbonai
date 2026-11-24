@@ -1,4 +1,4 @@
-import { NETWORK, DEPLOYMENT, TOKEN } from "@/lib/config";
+import { NETWORK, DEPLOYMENT, MAINNET_PROOF, TOKEN } from "@/lib/config";
 
 /* Server-rendered markup for the Methodology page; lib/dc/pages/methodology.js fills and animates it. */
 export function MethodologyMarkup() {
@@ -54,24 +54,19 @@ export function MethodologyMarkup() {
 
     <section className="section">
       <div className="warnbox" role="note">
-        <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>What this is not, yet</h2>
+        <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>Limits (v0)</h2>
         <ul>
-          <li>These are v0 approximations for the demo, not a port of EcoLogits. The EcoLogits port is the next version and gets a new on-chain hash.</li>
-          <li>Grid intensity is one global average (400 g/kWh). Per-region intensity needs the provider to say where a call ran.</li>
-          <li>The meter is a trusted reporter in v0: the API operator submits the grams. Signed usage from providers is on the roadmap.</li>
-          {NETWORK.testnet && (
-            <>
-              <li>The demo API returns simulated text. Payments use our {TOKEN.name} faucet token, not Circle USDC.</li>
-              <li>The x402 payment settles first. The meter batches the accruals on-chain afterwards.</li>
-              <li>No ERC-8004 feedback is written on {NETWORK.short}. Nothing is on mainnet, and nothing real has been retired.</li>
-            </>
-          )}
+          <li>Factors are rough v0 estimates with one global grid average (400 g/kWh). EcoLogits comes next, under a new hash.</li>
+          <li>We run the meter, so you trust us on the grams it reports.</li>
           {NETWORK.testnet ? (
-            <li>DCO2 on {NETWORK.short} is a testnet mock credit. It is not backed by a real tonne. Planned for mainnet: each lot would be minted 1:1 against a credit retired off-chain (custodial bridge v0), with the registry serial stored in the lot.</li>
+            <li>On {NETWORK.short}, DCO2 is a mock credit, payments use {TOKEN.name} and the API returns placeholder text.</li>
           ) : (
-            <li>DCO2 lots are minted 1:1 against credits retired off-chain through a custodial bridge (v0), with the registry serial stored in the lot. The bridge operator is trusted in v0.</li>
+            <li>Each DCO2 lot is minted 1:1 against a real retired credit. You trust us to keep it 1:1; the lot stores the registry serial.</li>
           )}
         </ul>
+        <p className="mainnet" id="mainnet">
+          <b>Mainnet:</b> we retired 1 t of {MAINNET_PROOF.credit} for DecarbonAI (<a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer">certificate ↗</a>). It backs the <a href={MAINNET_PROOF.pool} target="_blank" rel="noreferrer">pool on Avalanche C-Chain ↗</a>, which has minted receipts <a href={MAINNET_PROOF.receiptTxs[0]} target="_blank" rel="noreferrer">#1 ↗</a> and <a href={MAINNET_PROOF.receiptTxs[1]} target="_blank" rel="noreferrer">#2 ↗</a> from it. Both wrote carbon-settled ERC-8004 feedback for agent #1855.
+        </p>
       </div>
     </section>
   </div>
