@@ -17,11 +17,14 @@ Nothing has been broadcast to mainnet. Deploying needs an explicit go from the o
 
 | Role | Address | Key |
 |---|---|---|
-| Deployer (throwaway: holds nothing after hand-off) | `0x644be9036Cb1C9c672E7594ff3bb316AC9290B90` | local `.env` `MAINNET_PRIVATE_KEY` |
-| Admin + Treasury + Pauser | **owner's Safe multisig**, `ADMIN_ADDRESS` (required; the script refuses the deployer) | Safe signers |
-| Meter (`METER_ROLE` only, API server) | `0x312B2A1acacd57c3399dFC130202aFf025CDf2F7` | local `.env` `MAINNET_METER_PRIVATE_KEY` |
-| payTo (x402 revenue, funds surcharges) | `0xa6339Cd237b7aF717C1D43630e7A643375622e5f` (or a Safe) | local `.env` `MAINNET_PAY_TO_PRIVATE_KEY` |
-| Demo agent | `0x493451eC85D69d23ce549B8b1a3b602aE3fcDBF9` | local `.env` `MAINNET_AGENT_PRIVATE_KEY` |
+| Deployer (throwaway: holds nothing after hand-off) | `0xBc889999FF5A350E7893e673d0D610D94a16B651` | local `.env` `MAINNET_PRIVATE_KEY` |
+| Admin + Treasury + Pauser | **owner's Safe, 1-of-1** (owner decision 24 Nov 2026: one signer, the owner's personal wallet), `ADMIN_ADDRESS` (required; the script refuses the deployer) | the owner's personal wallet |
+| Meter (`METER_ROLE` only, API server) | `0x1A96F7c923c245782c97173fCE555fDb2EC47E8c` | local `.env` `MAINNET_METER_PRIVATE_KEY` |
+| payTo (x402 revenue, funds surcharges) | `0xf70CA95402f4Ee5093cd370DEC41b0AB67AD804b` (or a Safe) | local `.env` `MAINNET_PAY_TO_PRIVATE_KEY` |
+| Demo agent | `0x013f46Cca6D2E88715CC64a1f247fd36a388402F` | local `.env` `MAINNET_AGENT_PRIVATE_KEY` |
+| Base buyer (retires lot 1 on Base, not on Avalanche) | `0x7a98A0d9F9baA5037CaCF957dc9c8307CDD81806` | local `.env` `BASE_BUYER_PRIVATE_KEY` |
+
+Keys rotated 24 Nov 2026: never fund the old addresses (0x644b…0B90, 0x312B…F2F7, 0xa633…2e5f, 0x4934…BF9). The five wallets above are bots: none may be an owner of the admin Safe (the deploy script and `audit:roles` refuse it).
 
 The deploy script:
 
@@ -75,7 +78,7 @@ Until then the deployer still holds admin. The API refuses to start if its key h
 | Deployer | **0.25 AVAX** |
 | Meter | **0.15 AVAX** |
 | payTo | **0.01 AVAX** |
-| Safe signer | ~0.01 AVAX |
+| Safe signer (owner's personal wallet) | ~0.01 AVAX |
 | Agent | **~$5 USDC** (100 calls ≈ $1.06) |
 
 The x402 facilitator pays settlement gas. The cost of the first real tonne itself is in the research report: the Carbonmark API needs a $50 minimum card top-up, while the x402 retire endpoint takes about $0.10 USDC on Base.
@@ -84,12 +87,12 @@ The x402 facilitator pays settlement gas. The cost of the first real tonne itsel
 
 The step-by-step runbook (funding, commands, checks) is kept with the owner, outside the repo. The order is fixed:
 
-1. Safe on C-Chain with at least 2 signers (the deploy script refuses anything else).
+1. Safe on C-Chain: 1 owner (the owner's personal wallet), threshold 1. The deploy script refuses an EOA, threshold 0, a 1-of-N Safe with N > 1, and any bot wallet as owner. Trade-off: one lost or compromised personal wallet is full admin (pool admin, treasury, pauser, all three contract owners), with no second signer to stop it.
 2. `npm run retire:lot1 -- --dry-run --from <buyer>`, then `--execute`; check the certificate by eye. If it is interrupted: `--resume`, never a second `--execute`.
 3. Deploy: simulate, read every printed parameter, then broadcast. If the broadcast stops half way, run the same command with `--resume` **instead of** `--broadcast`.
 4. Safe accepts (`acceptDefaultAdminTransfer`, 3x `acceptOwnership`), then `DECARBONAI_NETWORK=avalanche npm run audit:roles` must pass.
 5. Only then fund the agent: `setup:merchant`, `setup:agent`, `smoke:fuji`, `demo:burst`.
 
-What the deploy script enforces on 43114: `DEPLOYER_PRIVATE_KEY` only (no fallback), ADMIN is a Safe with threshold >= 2 and no hot key among its owners, TREASURY = PAUSER = ADMIN, canonical USDC and ERC-8004 registries, backed DCO2, the default tunables, a `LOT_FILE` written by klima-retire, and no existing `deployments/avalanche.json`. A simulation writes no deployment file.
+What the deploy script enforces on 43114: `DEPLOYER_PRIVATE_KEY` only (no fallback), ADMIN is a Safe that is 1-of-1 or has threshold >= 2 (`MAINNET_MIN_SAFE_THRESHOLD` = 1; never 1-of-N) and no bot wallet among its owners, TREASURY = PAUSER = ADMIN, canonical USDC and ERC-8004 registries, backed DCO2, the default tunables, a `LOT_FILE` written by klima-retire, and no existing `deployments/avalanche.json`. A simulation writes no deployment file.
 
 All TS entry points (`paid-api`, MCP server, scripts) pick the deployment from `DECARBONAI_NETWORK` (`fuji` default | `avalanche`, reading `deployments/avalanche.json`).

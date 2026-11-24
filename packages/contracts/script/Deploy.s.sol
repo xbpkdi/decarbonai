@@ -21,13 +21,14 @@ interface ISafe {
 ///
 /// Roles (B1): the deployer is a throwaway key. It ends with no role once ADMIN accepts:
 ///   ADMIN     DEFAULT_ADMIN of the pool (AccessControlDefaultAdminRules, 2-step) and owner of DCO2,
-///             CarbonReceipt and the adapter (Ownable2Step). A Safe multisig on mainnet.
+///             CarbonReceipt and the adapter (Ownable2Step). A Safe on mainnet.
 ///   TREASURY  can withdraw pool USDC.   PAUSER  can pause.
 ///   METER     METER_ROLE only: reports accruals. Hot key on the API server.
 ///   PAY_TO    x402 payTo (merchant revenue) and surcharge funder; approves the pool once.
 ///
 /// Mainnet (43114) is strict so that a stray variable cannot change the deployment: ADMIN must be a Safe with
-/// at least 2 signers, none of them one of our hot keys; TREASURY and PAUSER are ADMIN; token and registries
+/// threshold >= MAINNET_MIN_SAFE_THRESHOLD (a 1-of-1 Safe only, never 1-of-N), none of its owners one of our
+/// bot wallets; TREASURY and PAUSER are ADMIN; token and registries
 /// are the canonical ones; DCO2 is backed by the LOT_FILE of klima-retire; every other tunable is the default.
 /// It refuses to run once deployments/avalanche.json exists.
 ///
@@ -51,11 +52,22 @@ contract Deploy is Script {
 
     address internal constant MAINNET_USDC = 0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E;
 
+    /// @dev Owner decision 24 Nov 2026: the admin Safe is 1-of-1 (the owner's personal wallet). Raise this to
+    ///      require a multisig again.
+    uint256 internal constant MAINNET_MIN_SAFE_THRESHOLD = 1;
+    /// @dev Our mainnet bot wallets (keys in .env), refused as Safe owners on top of DEPLOYER/METER/PAY_TO.
+    ///      Update on every key rotation.
+    address internal constant MAINNET_DEPLOYER = 0xBc889999FF5A350E7893e673d0D610D94a16B651;
+    address internal constant MAINNET_METER = 0x1A96F7c923c245782c97173fCE555fDb2EC47E8c;
+    address internal constant MAINNET_PAY_TO = 0xf70CA95402f4Ee5093cd370DEC41b0AB67AD804b;
+    address internal constant MAINNET_AGENT = 0x013f46Cca6D2E88715CC64a1f247fd36a388402F;
+    address internal constant MAINNET_BASE_BUYER = 0x7a98A0d9F9baA5037CaCF957dc9c8307CDD81806;
+
     error PaymentTokenRequiredOnMainnet();
     error AdminRequiredOnMainnet();
     error RolesNotSeparated();
     error AdminNotASafe(address admin);
-    error SafeNeedsTwoSigners(uint256 threshold, uint256 owners);
+    error BadSafeThreshold(uint256 threshold, uint256 owners);
     error HotKeyIsSafeOwner(address owner);
     error FixedOnMainnet(string name);
     error LotFileRequiredOnMainnet();
@@ -202,12 +214,19 @@ contract Deploy is Script {
         } catch {
             revert AdminNotASafe(p.admin);
         }
-        if (threshold < 2 || owners.length < 2) revert SafeNeedsTwoSigners(threshold, owners.length);
+        // threshold 1 is only a 1-of-1: with more owners any one of them could act alone
+        if (
+            threshold == 0 || threshold < MAINNET_MIN_SAFE_THRESHOLD || threshold > owners.length
+                || (threshold == 1 && owners.length != 1)
+        ) revert BadSafeThreshold(threshold, owners.length);
         for (uint256 i; i < owners.length; ++i) {
-            if (owners[i] == p.deployer || owners[i] == p.meter || owners[i] == p.payTo) {
-                revert HotKeyIsSafeOwner(owners[i]);
-            }
+            if (_isBotWallet(owners[i], p)) revert HotKeyIsSafeOwner(owners[i]);
         }
+    }
+
+    function _isBotWallet(address a, Params memory p) internal pure returns (bool) {
+        return a == p.deployer || a == p.meter || a == p.payTo || a == MAINNET_DEPLOYER || a == MAINNET_METER
+            || a == MAINNET_PAY_TO || a == MAINNET_AGENT || a == MAINNET_BASE_BUYER;
     }
 
     /// @dev The lot file must be what klima-retire writes after proving a retirement on Base.

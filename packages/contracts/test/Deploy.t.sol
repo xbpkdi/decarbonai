@@ -11,10 +11,9 @@ contract SafeStub {
     uint256 public getThreshold;
     address[] internal _owners;
 
-    constructor(uint256 threshold, address a, address b) {
+    constructor(uint256 threshold, address[] memory owners) {
         getThreshold = threshold;
-        _owners.push(a);
-        _owners.push(b);
+        _owners = owners;
     }
 
     function getOwners() external view returns (address[] memory) {
@@ -54,6 +53,16 @@ contract DeployScriptTest is Test {
         _deploy_mainnetGuards();
         _deploy_mainnetStrict();
         _deploy_requiresDeployerKey(); // last: there is no unsetEnv
+    }
+
+    function _owners(address a) internal pure returns (address[] memory o) {
+        o = new address[](1);
+        o[0] = a;
+    }
+
+    function _owners(address a, address b) internal pure returns (address[] memory o) {
+        o = new address[](2);
+        (o[0], o[1]) = (a, b);
     }
 
     function _read() internal view returns (string memory) {
@@ -205,7 +214,7 @@ contract DeployScriptTest is Test {
 
     /// @dev A valid mainnet environment; every stray variable a sourced .env could add is back to unset.
     function _mainnetEnv() internal {
-        _env(address(new SafeStub(2, makeAddr("s1"), makeAddr("s2"))));
+        _env(address(new SafeStub(2, _owners(makeAddr("s1"), makeAddr("s2")))));
         vm.setEnv("PAYMENT_TOKEN", vm.toString(USDC));
         vm.setEnv("DCO2_BACKED", "true");
         vm.setEnv("LOT_FILE", _lotPath());
@@ -285,18 +294,41 @@ contract DeployScriptTest is Test {
 
         _refusedAdmin(makeAddr("eoa"), abi.encodeWithSelector(Deploy.AdminNotASafe.selector, makeAddr("eoa")));
         _refusedAdmin(USDC, abi.encodeWithSelector(Deploy.AdminNotASafe.selector, USDC)); // a contract, no Safe
+        _withAdmin(address(new SafeStub(1, _owners(makeAddr("owner"))))); // the owner's 1-of-1 Safe deploys
+        script.run();
         _refusedAdmin(
-            address(new SafeStub(1, makeAddr("s1"), makeAddr("s2"))),
-            abi.encodeWithSelector(Deploy.SafeNeedsTwoSigners.selector, 1, 2)
+            address(new SafeStub(1, _owners(makeAddr("s1"), makeAddr("s2")))), // 1-of-2: either signer alone
+            abi.encodeWithSelector(Deploy.BadSafeThreshold.selector, 1, 2)
         );
         _refusedAdmin(
-            address(new SafeStub(2, makeAddr("s1"), vm.addr(PK))),
+            address(new SafeStub(0, _owners(makeAddr("owner")))),
+            abi.encodeWithSelector(Deploy.BadSafeThreshold.selector, 0, 1)
+        );
+        _refusedAdmin(
+            address(new SafeStub(1, new address[](0))), abi.encodeWithSelector(Deploy.BadSafeThreshold.selector, 1, 0)
+        );
+        _refusedAdmin(
+            address(new SafeStub(2, _owners(makeAddr("s1"), vm.addr(PK)))),
             abi.encodeWithSelector(Deploy.HotKeyIsSafeOwner.selector, vm.addr(PK))
         );
         _refusedAdmin(
-            address(new SafeStub(2, makeAddr("meter"), makeAddr("s2"))),
+            address(new SafeStub(2, _owners(makeAddr("meter"), makeAddr("s2")))),
             abi.encodeWithSelector(Deploy.HotKeyIsSafeOwner.selector, makeAddr("meter"))
         );
+        // the five mainnet bot wallets, as the single owner, even when not the env's deployer/meter/payTo
+        address[5] memory bots = [
+            0xBc889999FF5A350E7893e673d0D610D94a16B651, // deployer
+            0x1A96F7c923c245782c97173fCE555fDb2EC47E8c, // meter
+            0xf70CA95402f4Ee5093cd370DEC41b0AB67AD804b, // payTo
+            0x013f46Cca6D2E88715CC64a1f247fd36a388402F, // demo agent
+            0x7a98A0d9F9baA5037CaCF957dc9c8307CDD81806 // Base buyer
+        ];
+        for (uint256 i; i < bots.length; ++i) {
+            _refusedAdmin(
+                address(new SafeStub(1, _owners(bots[i]))),
+                abi.encodeWithSelector(Deploy.HotKeyIsSafeOwner.selector, bots[i])
+            );
+        }
 
         _refused("LOT_FILE", "", abi.encodeWithSelector(Deploy.LotFileRequiredOnMainnet.selector));
         string memory tx_ = string.concat("eip155:8453:", LOT_TX);
@@ -312,11 +344,15 @@ contract DeployScriptTest is Test {
         vm.chainId(31337);
     }
 
-    function _refusedAdmin(address admin, bytes memory why) internal {
+    function _withAdmin(address admin) internal {
         _mainnetEnv();
         vm.setEnv("ADMIN_ADDRESS", vm.toString(admin));
         vm.setEnv("TREASURY_ADDRESS", vm.toString(admin));
         vm.setEnv("PAUSER_ADDRESS", vm.toString(admin));
+    }
+
+    function _refusedAdmin(address admin, bytes memory why) internal {
+        _withAdmin(admin);
         vm.expectRevert(why);
         script.run();
     }
