@@ -8,7 +8,9 @@ Every paid agent call carries its own carbon. DecarbonAI is an x402 middleware f
 
 Once an agent has accrued 1 kg, the pool retires DCO2 credits and mints the agent a **soulbound receipt** (ERC-5192). When the burned lot is backed by a real off-chain retirement, it also writes **"carbon-settled" feedback to the agent's ERC-8004 reputation**. No human in the loop.
 
-**Web:** https://decarbonai.vercel.app
+**Web:** https://decarbonai.vercel.app (interactive demo on Fuji)
+
+**Mainnet:** live on Avalanche C-Chain since 24 Nov 2026, backed by a real retired tonne. See [below](#deployed-on-avalanche-c-chain-mainnet-chainid-43114).
 
 ## Acknowledgments
 
@@ -57,11 +59,11 @@ sequenceDiagram
 
 | Role | Holds | Can | Fuji | Mainnet |
 |---|---|---|---|---|
-| Admin | pool `DEFAULT_ADMIN` (2-step, `AccessControlDefaultAdminRules`), owner of DCO2 / CarbonReceipt / adapter (`Ownable2Step`) | config, methodology, mint lots, rescue | deployer EOA | **Safe multisig**, accepts the hand-off |
+| Admin | pool `DEFAULT_ADMIN` (2-step, `AccessControlDefaultAdminRules`), owner of DCO2 / CarbonReceipt / adapter (`Ownable2Step`) | config, methodology, mint lots, rescue | deployer EOA | Safe `0x01f0…0F90` (1-of-1) |
 | Treasury | `TREASURY_ROLE` | `withdraw` surcharge USDC | = admin | Safe |
 | Pauser | `PAUSER_ROLE` | pause | = admin | Safe |
-| Meter | `METER_ROLE` **only** | `accrue` / `accrueBatch` | `0x0018…A20E` | own key on the API server |
-| payTo | nothing on-chain; approves the pool | receives x402 revenue; funds surcharges | `0x47CE…AaFcD` | own key or Safe |
+| Meter | `METER_ROLE` **only** | `accrue` / `accrueBatch` | `0x0018…A20E` | `0x1A96…7E8c` |
+| payTo | nothing on-chain; approves the pool | receives x402 revenue; funds surcharges | `0x47CE…AaFcD` | `0xf70C…804b` |
 
 - The API refuses to start if its key holds any admin, treasury or pauser right, or if `surchargeFunder(meter) != PAY_TO_ADDRESS`.
 - A compromised meter can't touch pool funds. It is also bounded by:
@@ -89,6 +91,22 @@ All contracts are verified on Routescan/Snowtrace. Source of truth: [`deployment
 - Superseded deployments, all **paused**:
   - pool `0x4c6c…7252`: its lot cited a Carbonmark test retirement;
   - pool `0x7818…Eef0`: the pre-review build.
+
+## Deployed on Avalanche C-Chain mainnet (chainId 43114)
+
+Source of truth: [`deployments/avalanche.json`](deployments/avalanche.json). Same config as Fuji, but with Circle USDC and backed DCO2.
+
+| Contract | Address |
+|---|---|
+| RetirementPool | [`0x32b7a17Ea7af98E7f161ab82A068D421Da9230DF`](https://snowtrace.io/address/0x32b7a17Ea7af98E7f161ab82A068D421Da9230DF) |
+| CarbonReceipt | [`0x0d95bd10703a48a8D92cf319211BB31B1b7f6452`](https://snowtrace.io/address/0x0d95bd10703a48a8D92cf319211BB31B1b7f6452) |
+| DCO2 (custodial v0, backed) | [`0x283Ca3Ba04a3D127FDF89cB3477c4Dccac8f0791`](https://snowtrace.io/address/0x283Ca3Ba04a3D127FDF89cB3477c4Dccac8f0791) |
+| ERC8004ReputationAdapter | [`0x4b01806b88B93e7609Ab562EDBc51a89E229FC7F`](https://snowtrace.io/address/0x4b01806b88B93e7609Ab562EDBc51a89E229FC7F) |
+| Admin, treasury, pauser (Safe, 1-of-1) | [`0x01f0a08Ef7f0799c66e91CD323f78e9571F70f90`](https://snowtrace.io/address/0x01f0a08Ef7f0799c66e91CD323f78e9571F70f90) |
+
+- **Lot 1:** 1 t of UCR-423-2022 (228 MW wind, India), retired for DecarbonAI on 24 Nov 2026. [Carbonmark certificate](https://app.carbonmark.com/retirements/id/8453-0x58c8764d321f659b8b0662b594e38b9529e95cd00c3b44dea313dbba5317ba45-0). Details: [`deployments/avalanche-lot1.json`](deployments/avalanche-lot1.json).
+- **Receipts:** 101 scripted test calls produced receipts [#1](https://snowtrace.io/tx/0x08a33b4b509754ae318ebbb19370b36a590412f5eae5dd0179bff398bc9a8510) and [#2](https://snowtrace.io/tx/0x35c4e8fd1095eb000cbba1752caf470c05c59fa19f2713663c128004210d65cd), each with carbon-settled ERC-8004 feedback for agent **#1855**. Lot 1 had 998 kg left afterwards.
+- The Safe has accepted the pool admin role and owns DCO2, CarbonReceipt and the adapter.
 
 ### Credit supply
 
@@ -168,7 +186,7 @@ The public Fuji RPC limits `eth_getLogs` to 100 blocks, so `packages/chain` read
 
 ## Known limits
 
-- **Fuji DCO2 is a mock** (above). Mainnet lots will be custodial v0: trust in the owner's 1:1 mint, with public proof links.
+- **Fuji DCO2 is a mock** (above). Mainnet lots are custodial v0: you trust the owner's 1:1 mint, and the proof links are public.
 - **Trusted, bounded meter.** The pool cannot see the x402 transfer, so `METER_ROLE` reports usage. It is capped per accrual and per day, priced above a floor, and can never move pool funds; `paymentId` dedupe stops double counting.
 - **Estimates are v0 factors** (`packages/core`), not EcoLogits yet, and are priced from declared `maxOutputTokens` before the call runs.
 - **Simulated completion.** The demo API returns placeholder text. The payment, carbon accrual and retirement are real transactions.
@@ -177,7 +195,7 @@ The public Fuji RPC limits `eth_getLogs` to 100 blocks, so `packages/chain` read
 
 ## Mainnet
 
-Prepared but **not deployed**. [`docs/MAINNET.md`](docs/MAINNET.md) has the roles, costs and runbook. Every TS entry point selects the network with `DECARBONAI_NETWORK=fuji|avalanche`.
+Deployed 24 Nov 2026 ([addresses above](#deployed-on-avalanche-c-chain-mainnet-chainid-43114)). [`docs/MAINNET.md`](docs/MAINNET.md) has the roles, costs and how to add a lot. Every TS entry point selects the network with `DECARBONAI_NETWORK=fuji|avalanche`.
 
 ## v1 (legacy)
 
