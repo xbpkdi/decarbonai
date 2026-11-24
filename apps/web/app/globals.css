@@ -75,7 +75,13 @@ h1, h2, h3, p { margin: 0; }
 .chip-net { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; font-size: 13px; font-weight: 500; white-space: nowrap; }
 .chip-net .blk { font-family: var(--f-mono); font-size: 12px; color: var(--text-3); }
 .dot-live { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--avax); flex-shrink: 0; }
-.dot-live::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--avax); opacity: 0; animation: ping 2s var(--ease) infinite; }
+.dot-live::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 2px solid var(--avax); opacity: 0; }
+/* The ping says "live": it runs only while the chain moved in the last 15 minutes (set by the runtime). */
+html[data-chain="live"] .dot-live::after { animation: ping 2s var(--ease) infinite; }
+html[data-chain="idle"] .chip-net .dot-live, html[data-chain="idle"] .foot .dot-live { background: var(--smoke); }
+.chip-net .idle { font-size: 11px; color: var(--text-3); }
+.chip-net .idle:empty { display: none; }
+@media (max-width: 1279px) { .nav .chip-net .idle { display: none; } }
 @keyframes ping { 0% { transform: scale(0.5); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
 .ticker { display: inline-flex; align-items: baseline; gap: 6px; height: 32px; padding: 0 12px; align-items: center; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); font-size: 13px; white-space: nowrap; }
 .ticker .odo { font-family: var(--f-mono); font-weight: 600; color: var(--mint); font-size: 13px; }
@@ -248,9 +254,10 @@ html { overflow-x: clip; }
 
 /* ---------- 2. carbon tape ---------- */
 .tape { display: none; }
-.fx-rich .tape { display: block; position: sticky; top: var(--nav-h); z-index: 45; height: var(--tape-h); overflow: hidden; border-bottom: 1px solid var(--line); background: var(--ink); font-family: var(--f-mono); font-size: 12.5px; mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent); }
-.tape-track { display: flex; width: max-content; height: 100%; align-items: center; animation: tape 70s linear infinite; }
-.tape:hover .tape-track { animation-play-state: paused; }
+.fx-rich .tape { display: block; position: sticky; top: var(--nav-h); z-index: 45; height: var(--tape-h); overflow: hidden; border-bottom: 1px solid var(--line); background: var(--ink); font-family: var(--f-mono); font-size: 12.5px; mask-image: linear-gradient(90deg, #000 94%, transparent); }
+/* A static, dated row of the last events: it does not loop. A new event slides in once. */
+.tape-track { display: flex; width: max-content; height: 100%; align-items: center; }
+.tape-lbl { flex: none; display: inline-flex; align-items: center; height: 100%; padding: 0 16px 0 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); border-right: 1px solid var(--line); white-space: nowrap; }
 .tape-item { display: inline-flex; align-items: center; gap: 10px; padding: 0 22px; white-space: nowrap; color: var(--text-2); border-right: 1px solid var(--line); }
 .tape-item .rd { width: 7px; height: 7px; border-radius: 50%; background: var(--avax); box-shadow: 0 0 8px var(--avax); }
 .tape-item .dm { width: 8px; height: 8px; background: var(--mint); transform: rotate(45deg); box-shadow: 0 0 10px var(--mint); }
@@ -258,8 +265,7 @@ html { overflow-x: clip; }
 .tape-item .g { color: var(--text); font-weight: 600; }
 .tape-item.ret { color: var(--mint); }
 .tape-item.fresh { animation: tapein 0.8s var(--ease); }
-@keyframes tapein { from { background: rgba(var(--mint-rgb), 0.18); } }
-@keyframes tape { to { transform: translateX(-50%); } }
+@keyframes tapein { from { background: rgba(var(--mint-rgb), 0.18); transform: translateX(-24px); opacity: 0; } }
 
 /* ---------- 3. big type moments ---------- */
 .mega { display: none; }
@@ -301,8 +307,11 @@ html { overflow-x: clip; }
 .fx-rich a.card:hover, .fx-rich .card.lift:hover { transform: translateY(-4px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 30px 60px -30px rgba(var(--mint-rgb), 0.25); }
 @property --spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 .fx-rich .key { border-color: transparent !important; }
-.fx-rich .key::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none; background: conic-gradient(from var(--spin), var(--mint), var(--teal) 18%, transparent 36%, transparent 64%, var(--teal) 82%, var(--mint)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fx-spin 9s linear infinite; }
+.fx-rich .key::after { content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1.5px; pointer-events: none; background: conic-gradient(from var(--spin), var(--mint), var(--teal) 18%, transparent 36%, transparent 64%, var(--teal) 82%, var(--mint)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: fx-spin 2.4s var(--ease) 1; }
+/* One sweep on load, one more each time its data changes (.again toggles between two identical keyframes). */
+.fx-rich .key.again::after { animation-name: fx-spin2; }
 @keyframes fx-spin { to { --spin: 360deg; } }
+@keyframes fx-spin2 { to { --spin: 360deg; } }
 .fx-rich .btn-primary { box-shadow: 0 10px 30px -10px rgba(var(--mint-rgb), 0.7); position: relative; overflow: hidden; }
 .fx-rich .btn { transition: transform 0.2s var(--ease), background 0.15s, box-shadow 0.25s; }
 .fx-rich .btn:hover { transform: translateY(-1px); }
@@ -345,12 +354,13 @@ html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
 .mark-inline .m { fill: var(--mint); }
 .mark-inline .r { fill: #e84142; transform-origin: 16px 16px; }
 .fx-rich .foot-band .mark-inline .m { fill: var(--mint-ink); }
-.fx-rich .mark-inline .g { animation: mk-g 4.8s var(--ease) infinite; }
-.fx-rich .mark-inline .m { animation: mk-m 4.8s var(--ease) infinite; }
-.fx-rich .mark-inline .r { animation: mk-r 4.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
-@keyframes mk-g { 0%, 8% { transform: translate(-7px, -7px); opacity: 0; } 28%, 86% { transform: none; opacity: 1; } 100% { transform: translate(-7px, -7px); opacity: 0; } }
-@keyframes mk-m { 0%, 12% { transform: translate(7px, 7px); opacity: 0; } 32%, 86% { transform: none; opacity: 1; } 100% { transform: translate(7px, 7px); opacity: 0; } }
-@keyframes mk-r { 0%, 34% { transform: scale(0.2); opacity: 0; } 44%, 84% { transform: scale(1); opacity: 1; } 92%, 100% { transform: scale(0.2); opacity: 0; } }
+/* The mark assembles once when the footer band comes into view (extras.js adds .drawn), then stays. */
+.fx-rich .drawn .mark-inline .g { animation: mk-g 1.6s var(--ease) both; }
+.fx-rich .drawn .mark-inline .m { animation: mk-m 1.6s var(--ease) both; }
+.fx-rich .drawn .mark-inline .r { animation: mk-r 1.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+@keyframes mk-g { 0%, 20% { transform: translate(-7px, -7px); opacity: 0; } 80%, 100% { transform: none; opacity: 1; } }
+@keyframes mk-m { 0%, 30% { transform: translate(7px, 7px); opacity: 0; } 90%, 100% { transform: none; opacity: 1; } }
+@keyframes mk-r { 0%, 60% { transform: scale(0.2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
 /* fan lines live behind the content of their host */
 .fan { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
@@ -383,17 +393,6 @@ html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
 .term .red { color: #e84142; }
 .term .lime { color: var(--mint); }
 
-/* stats strip */
-.strip { display: none; }
-.fx-rich .strip { display: block; border-bottom: 1px solid var(--line); background: linear-gradient(180deg, rgba(var(--mint-rgb), 0.05), transparent); }
-.strip-in { display: grid; grid-template-columns: repeat(4, 1fr); }
-.strip .cell { padding: 26px 0 24px 24px; border-left: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
-.strip .cell:first-child { border-left: 0; padding-left: 0; }
-.strip .odo { --cell: 1.08em; --clip-t: 0.1em; --clip-b: 0.08em; --fade: 14%; font-family: var(--f-display); font-size: clamp(44px, 4.4vw, 72px); color: var(--text); }
-.strip .cell.lime .odo { color: var(--mint); text-shadow: 0 0 30px var(--mint-glow); }
-.strip .k { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
-.fx-rich .totals { display: none; }
-@media (max-width: 760px) { .strip-in { grid-template-columns: 1fr 1fr; } .strip .cell:nth-child(3) { border-left: 0; padding-left: 0; } .strip .cell { padding: 18px 0 16px 16px; } }
 
 /* methodology chain */
 .chain { padding: 22px 24px; }

@@ -13,15 +13,31 @@ export default function init(DC) {
     el.innerHTML = `${DC.coinHTML(r)}<div class="meta"><span class="no">${fmt.no(r.n)}</span><span class="d">${fmt.date(r.t)}</span><span class="muted">${a.title}</span><span class="d">${fmt.count(r.calls)} calls</span></div>`;
     return el;
   }
+  const CALLS = `Paid ${DC.NET.testnet ? "testnet" : "x402"} calls`;
   function paintTotals() {
     if (DC.failed) {
-      $("#totals").innerHTML = ["Receipts", `CO₂e ${DC.RETIRED.toLowerCase()}`, "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
+      $("#totals").innerHTML = [CALLS, DC.RETIRED, "Receipts sealed", "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
       $("#wall").innerHTML = `<p class="muted">${DC.READ_FAILED}</p>`;
       return;
     }
     const kg = state.receipts.reduce((s, r) => s + r.mg, 0) / 1e6;
-    $("#totals").innerHTML = `<div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts</div></div><div><div class="v tnum" style="color:var(--mint)">${fmt.count(kg)}<span style="font-family:var(--f-ui);font-size:18px;color:var(--text-2)"> kg</span></div><div class="k">CO₂e ${DC.RETIRED.toLowerCase()}</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
-    if (!state.receipts.length) $("#wall").innerHTML = `<p class="muted">No receipts yet. The first one is minted when an agent's pool reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`;
+    $("#totals").innerHTML = `<div><div class="v tnum">${fmt.count(state.calls)}</div><div class="k">${CALLS}</div></div><div><div class="v tnum lime">${fmt.count(kg)} kg</div><div class="k">${DC.RETIRED}</div></div><div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts sealed</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
+    if (!state.receipts.length && !$("#wall .spec")) $("#wall").insertAdjacentHTML("afterbegin", `<p class="muted">No receipts yet. The first one is minted when an agent's pool reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`);
+  }
+
+  // The next coin, forming: the featured agent's real pending grams. Dashed and "not minted", so it never reads as a receipt.
+  const F = DC.FEATURED;
+  const ghost = document.createElement("a");
+  ghost.className = "card spec forming";
+  ghost.href = `/agent/${F}`;
+  ghost.dataset.agent = F;
+  function paintGhost() {
+    const pend = Math.min(state.pending[F] || 0, DC.THRESHOLD_MG);
+    const next = state.receipts.reduce((m, r) => Math.max(m, r.n), 0) + 1;
+    const a = agentById(F);
+    ghost.setAttribute("aria-label", `${fmt.no(next)} forming, not minted: ${fmt.mass(pend)} of ${fmt.mass(DC.THRESHOLD_MG)}, agent ${a.id}`);
+    ghost.innerHTML = `<div class="gc"><div class="lq" style="height:${(pend / DC.THRESHOLD_MG) * 100}%"></div><div class="t"><i>Forming</i><b>${fmt.count(Math.round(pend / 1000))} g</b><i>of ${fmt.mass(DC.THRESHOLD_MG)}</i></div></div>
+      <div class="meta"><span class="no">${fmt.no(next)}</span><span class="d">not minted</span><span class="muted">${a.title}</span><span class="d">${fmt.count(Math.round((DC.THRESHOLD_MG - pend) / 1000))} g to go</span></div>`;
   }
   function paintChips() {
     const opts = [["all", "All agents", DC.failed ? "–" : state.receipts.length], ...agentsWithReceipts().map((a) => [String(a.id), `#${a.id} ${a.name}`, state.receipts.filter((r) => r.agent === a.id).length])];
@@ -31,6 +47,7 @@ export default function init(DC) {
   const agentsWithReceipts = () => DC.AGENTS.filter((a) => state.receipts.some((r) => r.agent === a.id));
   state.receipts.forEach((r) => $("#wall").appendChild(card(r)));
   paintTotals(); paintChips();
+  if (!DC.failed && !DC.mock && F) { paintGhost(); $("#wall").appendChild(ghost); on("accrual", paintGhost); }
   $("#chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (!b) return; filter = b.dataset.v; paintChips(); applyFilter(); });
 
   // "Simulate a retirement" only exists on the simulated stream.
@@ -40,6 +57,7 @@ export default function init(DC) {
     $("#wall > p")?.remove();
     const el = card(r);
     $("#wall").prepend(el);
+    if (ghost.isConnected) paintGhost();
     paintTotals(); paintChips(); applyFilter();
     if (window.gsap && !reduced) {
       gsap.from(el, { y: -60, opacity: 0, duration: 0.7, ease: "bounce.out" });

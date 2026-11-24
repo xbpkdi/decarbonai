@@ -27,5 +27,27 @@ export default function init(DC) {
       surcharge = ceil(${fmt.count(mg)} mg × ${fmt.usd(DC.PRICE_PER_TONNE, 2)} per tonne ÷ 10⁹) = <b style="color:var(--avax)">${fmt.usd(surchargeFor(mg), 5)}</b>`;
   }
   calc();
+  check();
   $("#ft").innerHTML = Object.entries(FACTORS.models).map(([k, m]) => `<tr><td>${m.label} <span class="mono dim" style="font-size:12px">${k}</span></td><td class="r">${m.out}</td><td class="r">${m.in}</td><td class="r"><b style="font-weight:600">${((m.out / 1000) * FACTORS.grid * FACTORS.pue).toFixed(2)} g</b></td></tr>`).join("");
+
+  // Check it against the chain: this page's formula, fed what scripts/demo-burst.ts declares
+  // (reasoning-heavy, 1,000 max output tokens, a "burst call N" prompt of ~3 tokens), must equal a real CarbonAccrued.
+  function check() {
+    if (DC.mock || DC.failed) return;
+    const c = { model: "reasoning-heavy", tin: 3, tout: 1000 };
+    const mg = Math.round(DC.gramsPerCall(c.model, c.tin, c.tout).g * 1000);
+    const acc = DC.events.accruals;
+    const batch = (a) => acc.filter((b) => b.tx === a.tx).length;
+    const same = acc.filter((a) => a.mg === mg);
+    // Prefer a call that was alone in its meter batch: its tx shows exactly this amount.
+    const hit = same.find((a) => batch(a) === 1) || same[0];
+    if (!hit) return;
+    const ok = hit.mg === mg;
+    $("#chk").innerHTML = `<div class="box"><div class="k">This page's formula</div><div class="sub mono">${FACTORS.models[c.model].label} · ${c.tin} in · ${fmt.count(c.tout)} out</div><div class="v tnum">${fmt.count(mg)}<small>mg</small></div></div>
+      <div class="eq" aria-hidden="true">=</div>
+      <div class="box"><div class="k">On-chain CarbonAccrued</div><div class="sub mono">${DC.hashLink(hit.tx, 8, 6)} · block ${fmt.count(hit.block)}</div><div class="v tnum">${fmt.count(hit.mg)}<small>mg</small></div></div>
+      <div class="ok${ok ? "" : " no"}"><b aria-hidden="true">${ok ? "✓" : "✗"}</b><span class="mono dim">${ok ? "match" : "no match"}</span></div>`;
+    $("#chkNote").textContent = `${fmt.count(same.length)} of ${fmt.count(acc.length)} metered calls on ${NET.short} carry exactly ${fmt.count(mg)} mg. The meter is a trusted reporter in v0: this shows the formula is the one it ran, not that the tokens were really used.`;
+    $("#check").hidden = false;
+  }
 }

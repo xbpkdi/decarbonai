@@ -25,13 +25,17 @@ export function LiveMarkup({ status }: { status: "LIVE" | "IDLE" | "NO DATA" }) 
     </section>
 
     <section className="scene card" aria-label="Animation: metered calls filling a payer's account in the pool">
-      <canvas id="scene" aria-hidden="true" tabIndex={-1}></canvas>
-      <div className="scene-legend" aria-hidden="true"><span><i style={{ background: "var(--smoke)" }}></i>Emitted</span><span><i style={{ background: "var(--mint)" }}></i>Pooled</span><span><i style={{ background: "var(--avax)" }}></i>On-chain</span></div>
-      <div className="scene-keys" aria-hidden="true" hidden><kbd>B</kbd> burst 100 calls · <kbd>P</kbd> pause</div>
-      <div className="node-label" data-node="0"><div className="t">AI agent</div><div className="s" id="lblAgent" /><div className="v" id="lblVia">x402 payer</div></div>
-      <div className="node-label" data-node="1"><div className="t">x402 payment</div><div className="s">{TOKEN.name} ({TOKEN.symbol}) on {NETWORK.short}</div><div className="v" id="lbl-pay"></div></div>
-      <div className="node-label" data-node="2"><div className="t">Retirement pool</div><div className="s">CarbonAccrued</div><div className="v" id="lbl-pool"></div></div>
-      <div className="node-label" data-node="3"><div className="t">Seal</div><div className="s">{BURN} · ERC-5192</div><div className="v" id="lbl-seal"></div></div>
+      <div className="scene-stage">
+        <canvas id="scene" aria-hidden="true" tabIndex={-1}></canvas>
+        <div className="scene-legend" aria-hidden="true"><span><i style={{ background: "var(--smoke)" }}></i>Emitted</span><span><i style={{ background: "var(--mint)" }}></i>Pooled</span><span><i style={{ background: "var(--avax)" }}></i>On-chain</span></div>
+        <div className="scene-keys" aria-hidden="true" hidden><kbd>B</kbd> burst 100 calls · <kbd>P</kbd> pause</div>
+        <div className="rp-note" id="rpNote" hidden>Replay of real {NETWORK.short} events · not live</div>
+        <div className="node-label" data-node="0"><div className="t">AI agent</div><div className="s" id="lblAgent" /><div className="v" id="lblVia">x402 payer</div></div>
+        <div className="node-label" data-node="1"><div className="t">x402 payment</div><div className="s">{TOKEN.name} ({TOKEN.symbol}) on {NETWORK.short}</div><div className="v" id="lbl-pay"></div></div>
+        <div className="node-label" data-node="2"><div className="t">Retirement pool</div><div className="s">CarbonAccrued</div><div className="v" id="lbl-pool"></div></div>
+        <div className="node-label" data-node="3"><div className="t">Seal</div><div className="s">{BURN} · ERC-5192</div><div className="v" id="lbl-seal"></div></div>
+      </div>
+      <div className="rp" id="replay" hidden></div>
     </section>
 
     <section className="feed card" aria-labelledby="h-feed">

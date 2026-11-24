@@ -14,6 +14,12 @@ export function MethodologyMarkup() {
   </header>
 
   <div className="wrap">
+    <section className="section chk-sec" aria-labelledby="h-chk" id="check" hidden>
+      <div className="section-title"><h2 id="h-chk">Check it against {NETWORK.short}</h2><span className="dim" style={{ fontSize: "13px" }}>Inputs are what our demo-burst script declares; the result must equal what the meter wrote on-chain</span></div>
+      <div className="card bar-mint chk" id="chk"></div>
+      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }} id="chkNote"></p>
+    </section>
+
     <section className="section" aria-labelledby="h-calc">
       <div className="section-title"><h2 id="h-calc">Price a call</h2><span className="dim" style={{ fontSize: "13px" }}>Same formula as the middleware, which feeds it declared limits</span></div>
       <div className="card calc bar-mint">

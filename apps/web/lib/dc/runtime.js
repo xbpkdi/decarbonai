@@ -212,7 +212,9 @@ export function createDC(cfg) {
   const on = (ev, fn) => ((listeners[ev] ||= []).push(fn), () => (listeners[ev] = listeners[ev].filter((f) => f !== fn)));
   const emit = (ev, data) => (listeners[ev] || []).forEach((fn) => fn(data));
 
-  let paused = false, burstLeft = 0, timer = null;
+  let paused = false, burstLeft = 0, timer = null, replaying = false;
+  // Raw chain events as read (live source only): the Replay and the Fuji checks read these, never invent them.
+  const events = { accruals: [], retirements: [] };
   const retiring = new Set();
   const controls = {};
 
@@ -287,6 +289,7 @@ export function createDC(cfg) {
         if (seen.has(key)) return;
         seen.add(key);
         lastBlock = Math.max(lastBlock, v.block);
+        (k ? events.retirements : events.accruals).push(v);
         if (k === 0) { const c = toCall(v); apply(c); if (live) emit("accrual", c); }
         else if (live) { emit("full", { agent: v.agent }); setTimeout(() => emit("retired", retire(v.agent, v.t, v)), 1400); }
         else retire(v.agent, v.t, v);
@@ -302,7 +305,8 @@ export function createDC(cfg) {
       clearTimeout(timer);
       if (polling) return;
       polling = true;
-      if (!paused && document.visibilityState === "visible") {
+      // New events wait while a replay plays; the next poll after it picks them up.
+      if (!paused && !replaying && document.visibilityState === "visible") {
         try {
           const res = await fetch(`/api/snapshot?since=${lastBlock}`, { cache: "no-store" });
           if (res.ok && failed) return recover();
@@ -325,6 +329,26 @@ export function createDC(cfg) {
     };
   }
 
+  /* Replay: plays the recorded chain events through the page's own listeners, then restores the live state.
+     onEvent(e) is called for each event; the page decides what to animate. */
+  let saved = null;
+  function beginReplay() {
+    if (mock || replaying) return false;
+    saved = structuredClone(state);
+    replaying = true; DC.replaying = true;
+    Object.assign(state, { totalMg: 0, calls: 0, surcharge: 0, retiredMg: 0, feed: [], receipts: [] });
+    for (const id of Object.keys(state.pending)) { state.pending[id] = 0; state.acct[id] = { calls: 0, mg: 0, sur: 0 }; state.history[id] = []; }
+    return true;
+  }
+  const replayAccrual = (v) => { const c = { ...v, res: "x402 call", price: null }; apply(c); emit("accrual", c); };
+  const replayRetire = (v, delay) => { emit("full", { agent: v.agent }); setTimeout(() => { if (replaying) emit("retired", retire(v.agent, v.t, v)); }, delay); };
+  function endReplay() {
+    if (!replaying) return;
+    Object.assign(state, saved);
+    saved = null; replaying = false; DC.replaying = false;
+    emit("restore", state);
+  }
+
   const featuredId = () => {
     if (cfg.featured && state.acct[cfg.featured]) return cfg.featured;
     return state.feed[0]?.agent ?? AGENTS[0]?.id ?? cfg.featured ?? 0;
@@ -341,6 +365,7 @@ export function createDC(cfg) {
     scaleBar: (el, mg) => scaleBar(el, mg, THRESHOLD_MG), creditNote: cfg.creditNote, demoAgentId: cfg.demoAgentId,
     FEATURED: featuredId(), startStream: () => controls.start(), burst: (n) => controls.burst(n), forceRetire: (id) => controls.forceRetire(id),
     payOnce: (id) => controls.payOnce(id), pause: () => (paused = !paused),
+    events, replaying: false, beginReplay, replayAccrual, replayRetire, endReplay,
   };
   window.DC = DC;
   return DC;
@@ -385,8 +410,21 @@ export function bindChrome(DC) {
   }
   const tickers = [...document.querySelectorAll("[data-ticker]")].map((el) => odometer(el, { decimals: 1, value: DC.failed ? null : state.totalMg / 1000 }));
   // Roll at most once a second so digits settle between updates during a burst.
+  // Chrome shows the chain as it is: a replay on the Live stage does not move it.
   let tq = false;
-  on("accrual", () => { if (tq) return; tq = true; setTimeout(() => { tq = false; tickers.forEach((t) => t.set(state.totalMg / 1000)); }, 1000); });
+  on("accrual", () => { if (tq || DC.replaying) return; tq = true; setTimeout(() => { tq = false; if (!DC.replaying) tickers.forEach((t) => t.set(state.totalMg / 1000)); }, 1000); });
+  on("restore", () => tickers.forEach((t) => t.set(state.totalMg / 1000)));
+  // The network chip pings only while the chain is live; idle shows a grey dot and how long it has been idle.
+  const paintChain = () => {
+    if (DC.replaying) return;
+    const live = !DC.failed && DC.isFresh();
+    document.documentElement.dataset.chain = live ? "live" : "idle";
+    const last = state.feed[0];
+    document.querySelectorAll("[data-idle]").forEach((el) => (el.textContent = !live && last ? `idle ${DC.ago(last.t)}` : ""));
+  };
+  paintChain();
+  on("accrual", paintChain); on("restore", paintChain);
+  setInterval(paintChain, 30_000);
   // The simulated stream has no real block height: show none.
   const paintBlock = (b) => document.querySelectorAll("[data-block]").forEach((el) => (el.textContent = b && !DC.mock ? `#${fmt.count(b)}` : ""));
   paintBlock(state.block);

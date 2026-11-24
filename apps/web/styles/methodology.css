@@ -25,3 +25,15 @@
   .warnbox h2 { display: flex; align-items: center; gap: 10px; font-size: 18px; color: var(--warn); }
   .warnbox ul { margin: 12px 0 0; padding-left: 20px; color: var(--text-2); line-height: 1.7; }
   @media (max-width: 900px) { .calc { grid-template-columns: 1fr; } .calc .ctl { border-right: 0; border-bottom: 1px solid var(--line); } .seg { grid-template-columns: repeat(3, 1fr); } .minis { grid-template-columns: 1fr 1fr; } }
+  .chk { display: grid; grid-template-columns: minmax(0, 1.1fr) auto minmax(0, 1fr) auto; gap: 22px; align-items: center; padding: 22px; }
+  .chk .box { border: 1px solid var(--line); border-radius: var(--r-tile); padding: 14px 16px; background: var(--surface-2); min-width: 0; }
+  .chk .k { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); }
+  .chk .sub { margin-top: 8px; font-size: 13px; color: var(--text-2); overflow-wrap: anywhere; }
+  .chk .v { font-family: var(--f-display); font-size: 40px; line-height: 1; margin-top: 8px; }
+  .chk .v small { font-family: var(--f-mono); font-size: 14px; color: var(--text-2); margin-left: 6px; }
+  .chk .eq { font-family: var(--f-display); font-size: 34px; color: var(--text-3); }
+  .chk .ok { display: flex; flex-direction: column; align-items: center; gap: 8px; font-size: 12px; }
+  .chk .ok b { width: 44px; height: 44px; border-radius: 50%; background: var(--mint); color: var(--mint-ink); display: grid; place-items: center; font-size: 22px; }
+  .chk .ok.no b { background: var(--avax); color: #fff; }
+  .chk-sec[hidden] { display: none; }
+  @media (max-width: 900px) { .chk { grid-template-columns: 1fr; gap: 12px; } .chk .eq { justify-self: center; line-height: 1; } .chk .ok { flex-direction: row; justify-content: center; } }

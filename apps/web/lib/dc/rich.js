@@ -8,7 +8,7 @@ export default function init(DC) {
 
   const PAGES = {
     index: { word: LIVE_WORD, solid: "#latest", key: ".pool" },
-    agent: { word: "Footprint", solid: ".rep", key: "#tl" },
+    agent: { word: "Footprint", solid: null, key: "#tl" },
     receipts: { word: "Sealed", solid: ".wall .spec", key: ".bar" },
     receipt: { word: null, solid: null, key: "#checks" },
     developers: { word: "Per call", solid: ".install", key: ".run" },
@@ -34,19 +34,28 @@ export default function init(DC) {
     const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} sealed<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span>${day(r)}</span>`;
     DC.groupByTx(state.feed).slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
     const track = t.querySelector(".tape-track");
+    // A static row headed by the date of the newest event; it does not loop.
+    const label = () => {
+      if (DC.mock) return "Simulated events";
+      const e = state.feed[0];
+      if (!e) return `${DC.NET.short} events`;
+      return `Last ${DC.NET.short} events · ${new Date(e.t).toDateString() === new Date().toDateString() ? "today" : new Date(e.t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+    };
     const render = (fresh) => {
       const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>${DC.failed ? DC.READ_FAILED : `Waiting for the next paid call on ${DC.NET.name}`}</span>`;
-      track.innerHTML = html + html;
-      if (fresh) track.querySelector(".tape-item")?.classList.add("fresh");
+      track.innerHTML = `<span class="tape-lbl">${label()}</span>${html}`;
+      if (fresh && !reduced) track.querySelector(".tape-item")?.classList.add("fresh");
     };
     render(false);
     let last = null;
+    // Replayed events are history, not news: the tape ignores them.
     DC.on("accrual", (c) => {
+      if (DC.replaying) return;
       if (last && last.tx === c.tx) { last.n++; last.mg += c.mg; items[0] = acc(last); }
       else { last = { ...c, n: 1 }; items.unshift(acc(last)); }
       items.length = Math.min(items.length, 40); render(true);
     });
-    DC.on("retired", (r) => { items.unshift(ret(r)); render(true); });
+    DC.on("retired", (r) => { if (DC.replaying) return; items.unshift(ret(r)); render(true); });
   }
 
   function bigType(cfg) {
@@ -71,7 +80,14 @@ export default function init(DC) {
   function solidAndKey(cfg) {
     if (cfg.solid) document.querySelector(cfg.solid)?.classList.add("solid");
     const key = cfg.key && document.querySelector(cfg.key);
-    if (key) (key.classList.contains("card") ? key : key.closest(".card"))?.classList.add("key");
+    const keyCard = key && (key.classList.contains("card") ? key : key.closest(".card"));
+    if (keyCard) {
+      keyCard.classList.add("key");
+      // The border sweeps once on load and once more when real data changes, never in a loop.
+      let swept = performance.now();
+      const sweep = () => { if (DC.replaying || performance.now() - swept < 2400) return; swept = performance.now(); keyCard.classList.toggle("again"); };
+      DC.on("accrual", sweep); DC.on("retired", sweep);
+    }
     if (page === "receipts") {
       // the newest coin stays the solid block, also after a new one drops in
       DC.on("retired", () => setTimeout(() => { document.querySelectorAll(".wall .spec.solid").forEach((s) => s.classList.remove("solid")); document.querySelector(".wall .spec")?.classList.add("solid"); }, 50));
