@@ -63,6 +63,17 @@ export const CREDIT_NOTE = DEPLOYMENT.dco2Backed
   ? "DCO2 lots are minted 1:1 against credits retired off-chain"
   : "DCO2 is a testnet mock credit";
 
+/** Mainnet proof, shown on every build. From deployments/avalanche.json and avalanche-lot1.json (24 Nov 2026). */
+export const MAINNET_PROOF = {
+  credit: "UCR-423-2022",
+  certificate: "https://app.carbonmark.com/retirements/id/8453-0x58c8764d321f659b8b0662b594e38b9529e95cd00c3b44dea313dbba5317ba45-0",
+  pool: "https://snowtrace.io/address/0x32b7a17Ea7af98E7f161ab82A068D421Da9230DF",
+  receiptTxs: [
+    "https://snowtrace.io/tx/0x08a33b4b509754ae318ebbb19370b36a590412f5eae5dd0179bff398bc9a8510",
+    "https://snowtrace.io/tx/0x35c4e8fd1095eb000cbba1752caf470c05c59fa19f2713663c128004210d65cd",
+  ],
+} as const;
+
 /** Adapters of earlier pool deployments that still have entries in the ERC-8004 registry. */
 export const SUPERSEDED_ADAPTERS: Hex[] = NETWORK.testnet ? ["0x3f672742dB74baEAD1716E81C82132d3d3F64CE9"] : [];
 

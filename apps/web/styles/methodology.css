@@ -24,6 +24,9 @@
   .warnbox { border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); background: color-mix(in srgb, var(--warn) 7%, transparent); border-radius: var(--r-card); padding: 22px 24px; }
   .warnbox h2 { display: flex; align-items: center; gap: 10px; font-size: 18px; color: var(--warn); }
   .warnbox ul { margin: 12px 0 0; padding-left: 20px; color: var(--text-2); line-height: 1.7; }
+  .warnbox .mainnet { margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line); color: var(--text-2); line-height: 1.7; }
+  .warnbox .mainnet b { color: var(--text); font-weight: 600; }
+  .warnbox .mainnet a { color: var(--mint); }
   @media (max-width: 900px) { .calc { grid-template-columns: 1fr; } .calc .ctl { border-right: 0; border-bottom: 1px solid var(--line); } .seg { grid-template-columns: repeat(3, 1fr); } .minis { grid-template-columns: 1fr 1fr; } }
   .chk { display: grid; grid-template-columns: minmax(0, 1.1fr) auto minmax(0, 1fr) auto; gap: 22px; align-items: center; padding: 22px; }
   .chk .box { border: 1px solid var(--line); border-radius: var(--r-tile); padding: 14px 16px; background: var(--surface-2); min-width: 0; }

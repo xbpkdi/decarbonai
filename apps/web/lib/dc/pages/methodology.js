@@ -47,7 +47,7 @@ export default function init(DC) {
       <div class="eq" aria-hidden="true">=</div>
       <div class="box"><div class="k">On-chain CarbonAccrued</div><div class="sub mono">${DC.hashLink(hit.tx, 8, 6)} · block ${fmt.count(hit.block)}</div><div class="v tnum">${fmt.count(hit.mg)}<small>mg</small></div></div>
       <div class="ok${ok ? "" : " no"}"><b aria-hidden="true">${ok ? "✓" : "✗"}</b><span class="mono dim">${ok ? "match" : "no match"}</span></div>`;
-    $("#chkNote").textContent = `${fmt.count(same.length)} of ${fmt.count(acc.length)} metered calls on ${NET.short} carry exactly ${fmt.count(mg)} mg. The meter is a trusted reporter in v0: this shows the formula is the one it ran, not that the tokens were really used.`;
+    $("#chkNote").textContent = `${fmt.count(same.length)} of ${fmt.count(acc.length)} metered calls on ${NET.short} carry exactly ${fmt.count(mg)} mg. That proves the meter ran this formula, not that the tokens were used.`;
     $("#check").hidden = false;
   }
 }

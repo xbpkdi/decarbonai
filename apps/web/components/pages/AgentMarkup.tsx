@@ -58,7 +58,7 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
       <div className="card">
         <div className="timeline" id="tl"><canvas id="tlc" aria-label="Every paid call as a dot over time. Ranges covered by a receipt are mint."></canvas><div className="tl-tip" id="tip"></div></div>
       </div>
-      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Every paid call is a dot. When a pool fills, the calls it covered recrystallise in green under their receipt number. Hover a dot to see its meter batch tx.</p>
+      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Each dot is a paid call. Calls covered by a receipt turn green. Hover a dot for its meter batch tx.</p>
     </section>
 
     <section className="section" id="secRc" aria-labelledby="h-rc">
