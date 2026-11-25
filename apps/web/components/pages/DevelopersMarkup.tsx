@@ -36,7 +36,7 @@ export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
     </section>
 
     <section className="section" id="mcp" aria-labelledby="h-mcp">
-      <div className="section-title"><h2 id="h-mcp">Give Claude a wallet (MCP)</h2><span className="dim" style={{ fontSize: "13px" }}>The MCP server in the repo ({NETWORK.short})</span></div>
+      <div className="section-title"><h2 id="h-mcp">Give Claude a wallet (MCP)</h2><span className="dim" style={{ fontSize: "13px" }}>The MCP server in the repo ({NETWORK.testnet ? NETWORK.short : "set up for the Fuji demo"})</span></div>
       <div className="card" style={{ overflow: "hidden" }}>
         <div className="tabs" role="tablist"><button type="button" className="tab" role="tab" aria-selected="true" data-mcp="code">Claude Code</button><button type="button" className="tab" role="tab" aria-selected="false" data-mcp="desktop">Claude Desktop</button><button type="button" className="tab" role="tab" aria-selected="false" data-mcp="cursor">Cursor</button><span className="sp"></span><button type="button" className="btn btn-outline btn-sm copy" id="copyMcp">Copy</button></div>
         <pre className="code" id="mcpCode"></pre>

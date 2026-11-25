@@ -33,7 +33,7 @@ export default function init(DC) {
     const retiredMg = rs.reduce((s, r) => s + r.mg, 0);
     $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}; our meter batches the surcharges into the pool.` : "No calls recorded by this pool.");
     $("#stats").innerHTML = [
-      ["Paid calls", fmt.count(ac.calls), "", "reported by the trusted meter", ""],
+      ["Paid calls", fmt.count(ac.calls), "", "reported by our meter", ""],
       ["Carbon metered", fmt.g(ac.mg, 1), "g", "CO₂e, mid estimate", ""],
       [DC.RETIRED, fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
       ["Surcharge paid", fmt.usd(ac.sur, 3), "", `${DC.TOKEN.symbol}, pulled into the pool in batches`, ""],

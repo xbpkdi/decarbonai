@@ -190,8 +190,8 @@ export default function init(DC) {
       if (!DC.mock && !DC.NET.testnet) {
         // Mainnet has no pay button: point at the recorded call and receipt, and at Fuji for a live one.
         const last = DC.state.history[id]?.at(-1), rc = DC.state.receipts.find((r) => r.agent === id);
-        const rec = [last && `last call ${DC.hashLink(last.tx, 6, 4)}`, rc && `<a href="/receipt/${rc.n}" style="color:var(--mint)">${DC.fmt.no(rc.n)}</a>`].filter(Boolean).join(" · ");
-        title?.insertAdjacentHTML("beforeend", `<span class="demo-off">${rec ? `Recorded: ${rec}. ` : ""}Pay one call runs on <a href="/agent?network=fuji" style="color:var(--mint)">Fuji testnet</a> with test USDC.</span>`);
+        const rec = [last && `Last call ${DC.hashLink(last.tx, 6, 4)}`, rc && `latest receipt <a href="/receipt/${rc.n}" style="color:var(--mint)">${DC.fmt.no(rc.n)}</a>`].filter(Boolean).join(" · ");
+        title?.insertAdjacentHTML("beforeend", `<span class="demo-off">${rec ? `${rec}. ` : ""}To pay one call yourself, switch to <a href="/agent?network=fuji" style="color:var(--mint)">Fuji testnet</a> (test USDC).</span>`);
         return;
       }
       if (!DC.mock && !DC.demoReady) {

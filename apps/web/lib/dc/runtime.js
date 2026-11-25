@@ -52,7 +52,9 @@ const fmt = {
   usd: (u, d = 4) => `$${(u / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: d })}`,
   time: (t) => new Date(t).toLocaleTimeString("en-GB", { hour12: false }),
   date: (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-  dt: (t) => new Date(t).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Bangkok" }) + " ICT",
+  // Date and time apart: WebKit joins a combined en-GB date-time with "at", Chromium with a comma.
+  dt: (t) => `${new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Bangkok" })}, ${fmt.tm(t, false)}`,
+  tm: (t, sec = true) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", ...(sec && { second: "2-digit" }), hour12: false, timeZone: "Asia/Bangkok" }) + " ICT",
   no: (n) => `No. ${String(n).padStart(4, "0")}`,
   count: (n) => n.toLocaleString("en-US"),
 };

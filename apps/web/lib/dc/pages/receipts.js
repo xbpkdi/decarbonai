@@ -22,7 +22,7 @@ export default function init(DC) {
     }
     const kg = state.receipts.reduce((s, r) => s + r.mg, 0) / 1e6;
     $("#totals").innerHTML = `<div><div class="v tnum">${fmt.count(state.calls)}</div><div class="k">${CALLS}</div></div><div><div class="v tnum lime">${fmt.count(kg)} kg</div><div class="k">${DC.RETIRED}</div></div><div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts sealed</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
-    if (!state.receipts.length && !$("#wall .spec")) $("#wall").insertAdjacentHTML("afterbegin", `<p class="muted">No receipts yet. The first one is minted when an agent's pool reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`);
+    if (!state.receipts.length && !$("#wall .spec")) $("#wall").insertAdjacentHTML("afterbegin", `<p class="muted">No receipts yet. The first one is minted when an agent's account reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`);
   }
 
   // The next coin, forming: the featured agent's real pending grams. Dashed and "not minted", so it never reads as a receipt.

@@ -98,7 +98,7 @@ export default function init(DC) {
     if (!r) {
       $("#latest").innerHTML = `<div class="coin-wrap" style="opacity:.35">${coinHTML({ n: 0, mg: THRESHOLD_MG }, { seal: false })}</div>
         <div style="min-width:0"><span class="eyebrow">Latest receipt · soulbound</span><h2 id="h-latest" style="margin-top:6px">${DC.failed ? "Receipts not read" : "No receipt yet"}</h2>
-        <p class="muted" style="margin-top:10px;font-size:14px">${DC.failed ? DC.READ_FAILED : `The first receipt is minted when an agent's pool reaches ${fmt.mass(THRESHOLD_MG)}.`}</p></div>`;
+        <p class="muted" style="margin-top:10px;font-size:14px">${DC.failed ? DC.READ_FAILED : `The first receipt is minted when an agent's account reaches ${fmt.mass(THRESHOLD_MG)}.`}</p></div>`;
       $("#lbl-seal").textContent = DC.failed ? "Not read" : "First seal at 1 kg";
       return;
     }
@@ -362,9 +362,9 @@ export default function init(DC) {
 
   function setupReplay() {
     const bar = $("#replay"), note = $("#rpNote");
-    const utc = (t, o) => new Date(t).toLocaleString("en-GB", { timeZone: "UTC", ...o });
-    const day = (t) => utc(t, { day: "numeric", month: "short" });
-    const hm = (t) => new Date(t).toISOString().slice(11, 16);
+    const ict = (t, o) => new Date(t).toLocaleString("en-GB", { timeZone: "Asia/Bangkok", ...o });
+    const day = (t) => ict(t, { day: "numeric", month: "short" });
+    const hm = (t) => ict(t, { hour: "2-digit", minute: "2-digit", hour12: false });
     const first = evs[0].v.t, end = evs[evs.length - 1].v.t;
     const days = day(first) === day(end) ? day(first) : `${day(first)} – ${day(end)}`;
     const gaps = [];
@@ -385,7 +385,7 @@ export default function init(DC) {
         ${evs.filter((e) => e.k === 1).map((e) => `<b data-at="${e.at}" style="left:${pos(e.at)}" title="Receipt ${fmt.no(e.v.n)}"></b>`).join("")}
         ${gaps.map((g) => `<s style="left:${pos(g.at)}">⏩ ${idle(g.ms)} idle</s>`).join("")}
       </div>
-      <div class="rp-clk"><span id="rpClock">${utc(first, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span> UTC · ${SPEED}×</div>`;
+      <div class="rp-clk"><span id="rpClock">${ict(first, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span> ICT · ${SPEED}×</div>`;
     bar.hidden = false;
     const btn = bar.querySelector(".rp-play"), fill = bar.querySelector(".fill"), clockEl = bar.querySelector("#rpClock");
     const marks = [...bar.querySelectorAll("[data-at]")];
@@ -394,7 +394,7 @@ export default function init(DC) {
     function play() {
       if (!DC.beginReplay()) return;
       try { sessionStorage.setItem("dc-replayed", "1"); } catch {}
-      replayLine = `Replaying ${fmt.count(calls)} real ${DC.NET.short} calls from ${days} · ${DC.isFresh() ? "new events wait until it ends" : `chain idle since ${day(end)} ${hm(end)} UTC`}`;
+      replayLine = `Replaying ${fmt.count(calls)} real ${DC.NET.short} calls from ${days} · ${DC.isFresh() ? "new events wait until it ends" : `chain idle since ${day(end)} ${hm(end)} ICT`}`;
       note.hidden = false; btn.textContent = "■ Stop replay";
       marks.forEach((m) => m.classList.remove("on"));
       fillFeed(); big.set(0); paintHero(); paintPool(); paintLatest(null, false); paintPay(null); paintStatus();
@@ -405,7 +405,7 @@ export default function init(DC) {
         fill.style.width = pos(Math.min(now, total));
         while (i < evs.length && evs[i].at <= now) {
           const e = evs[i++];
-          clockEl.textContent = utc(e.v.t, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          clockEl.textContent = ict(e.v.t, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
           marks.filter((m) => Number(m.dataset.at) === e.at).forEach((m) => m.classList.add("on"));
           if (e.k === 0) DC.replayAccrual(e.v);
           else DC.replayRetire(e.v, 900);

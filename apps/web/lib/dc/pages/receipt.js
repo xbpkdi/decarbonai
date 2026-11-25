@@ -42,7 +42,7 @@ export default function init(DC) {
     $("#covSub").textContent = `${found} metered calls in ${batches.length} meter batch${batches.length === 1 ? "" : "es"} · agent #${r.agent} · ${DC.mock ? "simulated batches" : "each batch links to its CarbonAccrued tx"}`;
     $("#covBs").innerHTML = batches.map((b) => `<div class="cov-b"><div class="cov-dots" aria-hidden="true">${"<i></i>".repeat(b.n)}</div>
       <div class="cov-m"><b>${fmt.count(b.n)}</b> call${b.n === 1 ? "" : "s"} · ${fmt.g(b.mg, 1)} g</div>
-      <div class="cov-m">${new Date(b.t).toISOString().slice(11, 19)} UTC</div>
+      <div class="cov-m">${fmt.tm(b.t)}</div>
       <div class="cov-m">${DC.hashLink(b.tx, 6, 4)}</div></div>`).join("");
     $("#cov").hidden = false;
   }

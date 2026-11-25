@@ -133,7 +133,7 @@ claude mcp add decarbonai \\
     const pend = DC.state.pending[last.agent] || 0;
     const who = last.agent ? `Agent #${last.agent}` : "An unregistered payer";
     return `<div class="rec">
-      <div class="rec-h"><span class="pill pill-mock">Recorded${NET.testnet ? "" : " test call"} · ${new Date(last.t).toISOString().slice(0, 16).replace("T", " ")} UTC · not a live call</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
+      <div class="rec-h"><span class="pill pill-mock">Recorded${NET.testnet ? "" : " test call"} · ${fmt.dt(last.t)} · not a live call</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
       <ol>
         <li><span class="n">1</span><div><div class="t">${who} paid over x402</div><div class="s">${DC.TOKEN.name} on ${NET.short}, settled by the facilitator first</div></div><div class="v">payer ${DC.short(last.payer)}</div></li>
         <li><span class="n">2</span><div><div class="t">Meter posted CarbonAccrued</div><div class="s">${batch.length} call${batch.length > 1 ? "s" : ""} in this meter batch</div></div><div class="v lime">+${(mg / 1000).toFixed(2)} g CO₂e</div></li>
