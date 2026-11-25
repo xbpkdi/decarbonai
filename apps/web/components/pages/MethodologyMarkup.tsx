@@ -63,7 +63,7 @@ export function MethodologyMarkup({ net }: { net: Net }) {
           {NETWORK.testnet ? (
             <li>On {NETWORK.short}, DCO2 is a mock credit, payments use {TOKEN.name} and the API returns placeholder text.</li>
           ) : (
-            <li>Each DCO2 lot is minted 1:1 against a real retired credit. You trust us to keep it 1:1; the lot stores the registry serial.</li>
+            <li>Each DCO2 lot is minted 1:1 against a real retired credit. You trust us to keep it 1:1. The lot stores the registry serial.</li>
           )}
         </ul>
         <p className="mainnet" id="mainnet">

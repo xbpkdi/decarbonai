@@ -7,7 +7,8 @@ export default function init(DC) {
   const fa = agentById(F);
   if (!DC.failed) $("#poolAgent").innerHTML = `${fa.name} <span class="mono dim">#${fa.id}</span>`;
   $("#poolAgentLink").href = `/agent/${fa.id}`;
-  $("#lblAgent").textContent = fa.id ? `ERC-8004 #${fa.id}` : "x402 payer";
+  // The id shows once: in the title line for an unnamed agent ("Agent #1855"), else next to ERC-8004.
+  $("#lblAgent").textContent = !fa.id ? "x402 payer" : !DC.mock && fa.title === `Agent #${fa.id}` ? "ERC-8004" : `ERC-8004 #${fa.id}`;
   if (!DC.mock) {
     $("#lblVia").textContent = fa.title;
     $(".feed th.c-res").textContent = "Payer";

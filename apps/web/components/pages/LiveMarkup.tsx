@@ -35,14 +35,14 @@ export function LiveMarkup({ net, status }: { net: Net; status: "LIVE" | "IDLE" 
         <div className="rp-note" id="rpNote" hidden>Replay of recorded {NETWORK.short} events · not live</div>
         <div className="node-label" data-node="0"><div className="t">AI agent</div><div className="s" id="lblAgent" /><div className="v" id="lblVia">x402 payer</div></div>
         <div className="node-label" data-node="1"><div className="t">x402 payment</div><div className="s">{TOKEN.name}{TOKEN.symbol !== TOKEN.name && ` (${TOKEN.symbol})`} on {NETWORK.short}</div><div className="v" id="lbl-pay"></div></div>
-        <div className="node-label" data-node="2"><div className="t">Retirement pool</div><div className="s">CarbonAccrued</div><div className="v" id="lbl-pool"></div></div>
+        <div className="node-label" data-node="2"><div className="t">Retirement pool</div><div className="s">Carbon accrued</div><div className="v" id="lbl-pool"></div></div>
         <div className="node-label" data-node="3"><div className="t">Seal</div><div className="s">{BURN} · ERC-5192</div><div className="v" id="lbl-seal"></div></div>
       </div>
       <div className="rp" id="replay" hidden></div>
     </section>
 
     <section className="feed card" aria-labelledby="h-feed">
-      <div className="card-h"><h2 id="h-feed">Metered calls</h2><span className="dim" style={{ fontSize: "13px" }}>Each row is one meter batch, posted after the payments settle. ×n is the number of calls in it.</span></div>
+      <div className="card-h"><h2 id="h-feed">Metered calls</h2><span className="dim" style={{ fontSize: "13px" }}>Each row is one batch our meter posted on-chain. ×3 means three calls.</span></div>
       <div className="scroll">
         <table className="tbl">
           <thead><tr><th className="c-time">Time (ICT)</th><th>Agent</th><th className="c-res">Paid for</th><th className="r c-price">Price</th><th className="r">Carbon</th><th className="r c-sur">Surcharge</th><th className="r">Tx</th></tr></thead>

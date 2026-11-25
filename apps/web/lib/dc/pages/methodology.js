@@ -45,7 +45,7 @@ export default function init(DC) {
     const ok = hit.mg === mg;
     $("#chk").innerHTML = `<div class="box"><div class="k">This page's formula</div><div class="sub mono">${FACTORS.models[c.model].label} · ${c.tin} in · ${fmt.count(c.tout)} out</div><div class="v tnum">${fmt.count(mg)}<small>mg</small></div></div>
       <div class="eq" aria-hidden="true">=</div>
-      <div class="box"><div class="k">On-chain CarbonAccrued</div><div class="sub mono">${DC.hashLink(hit.tx, 8, 6)} · block ${fmt.count(hit.block)}</div><div class="v tnum">${fmt.count(hit.mg)}<small>mg</small></div></div>
+      <div class="box"><div class="k">On-chain record</div><div class="sub mono">${DC.hashLink(hit.tx, 8, 6)} · block ${fmt.count(hit.block)}</div><div class="v tnum">${fmt.count(hit.mg)}<small>mg</small></div></div>
       <div class="ok${ok ? "" : " no"}"><b aria-hidden="true">${ok ? "✓" : "✗"}</b><span class="mono dim">${ok ? "match" : "no match"}</span></div>`;
     $("#chkNote").textContent = `${fmt.count(same.length)} of ${fmt.count(acc.length)} metered calls on ${NET.short} carry exactly ${fmt.count(mg)} mg. That shows the meter ran this formula, not that the tokens were used.`;
     $("#check").hidden = false;

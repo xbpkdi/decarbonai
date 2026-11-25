@@ -34,7 +34,7 @@ export default function init(DC) {
     $("#empty").hidden = !empty;
     if (empty) paintEmpty();
     const retiredMg = rs.reduce((s, r) => s + r.mg, 0);
-    $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}; our meter batches the surcharges into the pool.` : "No calls recorded by this pool.");
+    $("#note").textContent = a.note || (ac.calls ? `Pays a demo x402 API on ${DC.NET.short}. Our meter moves the surcharge to the pool in batches.` : "No calls recorded by this pool.");
     $("#stats").innerHTML = [
       ["Paid calls", fmt.count(ac.calls), "", "reported by our meter", ""],
       ["Carbon metered", fmt.g(ac.mg, 1), "g", "CO₂e, mid estimate", ""],

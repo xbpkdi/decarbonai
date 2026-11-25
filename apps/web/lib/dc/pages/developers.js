@@ -13,7 +13,7 @@ export default function init(DC) {
 <span class="k">import</span> { FUJI, fujiClient } <span class="k">from</span> <span class="s">"@decarbonai/chain"</span>;
 
 <span class="k">const</span> app = <span class="k">new</span> Hono();
-<span class="c">// The meter batches each payment's grams into CarbonAccrued on the RetirementPool.</span>
+<span class="c">// The meter records each payment's grams on the RetirementPool, in batches.</span>
 <span class="k">const</span> meter = <span class="k">new</span> CarbonMeter(fujiClient(), process.env.METER_PRIVATE_KEY, FUJI, {
   store: <span class="k">new</span> AccrualStore(<span class="s">".data/accruals.sqlite"</span>),
 });
@@ -136,7 +136,7 @@ claude mcp add decarbonai \\
       <div class="rec-h"><span class="pill pill-mock">Recorded${NET.testnet ? "" : ` test call${batch.length > 1 ? "s" : ""}`} · ${fmt.dt(last.t)} · not live</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
       <ol>
         <li><span class="n">1</span><div><div class="t">${who} paid over x402</div><div class="s">${DC.TOKEN.name} on ${NET.short}, settled by the facilitator first</div></div><div class="v">payer ${DC.short(last.payer)}</div></li>
-        <li><span class="n">2</span><div><div class="t">Meter posted CarbonAccrued</div><div class="s">${batch.length} call${batch.length > 1 ? "s" : ""} in this meter batch</div></div><div class="v lime">+${(mg / 1000).toFixed(2)} g CO₂e</div></li>
+        <li><span class="n">2</span><div><div class="t">Meter recorded the carbon</div><div class="s">${batch.length} call${batch.length > 1 ? "s" : ""} in this meter batch</div></div><div class="v lime">+${(mg / 1000).toFixed(2)} g CO₂e</div></li>
         <li><span class="n">3</span><div><div class="t">Surcharge counted in the pool</div><div class="s">Pulled from the payTo wallet in batches</div></div><div class="v">${fmt.usd(sur, 5)} ${DC.TOKEN.symbol}</div></li>
         <li><span class="n">4</span><div><div class="t">${last.agent ? `Agent #${last.agent}'s account` : "Payer's account"}</div><div class="s">Next ${DC.UNBACKED ? "mock " : ""}receipt at ${fmt.mass(DC.THRESHOLD_MG)}</div></div><div class="v lime">${fmt.g(pend, 1)} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g</div></li>
       </ol>
@@ -172,7 +172,7 @@ claude mcp add decarbonai \\
         show(lines({ path: esc(b.path), mg: c.mg, sur: c.sur, price: c.price, tx: c.tx, agent: b.agentId, secs: (b.ms / 1000).toFixed(1), json: esc(JSON.stringify(b.body, null, 2)) }), [0, 250, 500, 750, 1000, 1150]);
         $("#surV").textContent = fmt.usd(c.sur, 5); $("#gV").textContent = `${(c.mg / 1000).toFixed(2)} g`;
         $("#price").textContent = fmt.usd(c.price, 3);
-        DC.toast("Paid on Fuji. The pool's CarbonAccrued lands with the next meter batch.");
+        DC.toast("Paid on Fuji. The carbon is recorded with the next meter batch.");
       }
     } catch (e) {
       $("#out").innerHTML = `<div class="l on"><span class="red">${esc(e instanceof TypeError || !e?.message ? "Payment could not be sent. Nothing was paid." : e.message)}</span></div>`;

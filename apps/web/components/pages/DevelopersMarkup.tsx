@@ -13,7 +13,7 @@ export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
     <div className="wrap">
       <span className="eyebrow">Developers · x402 middleware · MCP</span>
       <h1 className="display">Meter carbon on every x402 call</h1>
-      <p className="lead">One Hono middleware plus a meter we authorise. Each payment includes a carbon surcharge priced from declared token limits; {NETWORK.testnet ? `on ${NETWORK.short} ` : ""}the pool burns a {UNBACKED ? "mock" : "backed"} credit per 1 kg.</p>
+      <p className="lead">One Hono middleware plus a meter we authorise. Each payment includes a carbon surcharge based on the token limits you declare. {NETWORK.testnet ? `On ${NETWORK.short} the` : "The"} pool burns a {UNBACKED ? "mock" : "backed"} credit per 1 kg.</p>
       <div className="card install"><span className="dollar">$</span><code id="cmd">{INSTALL}</code><button type="button" className="btn btn-outline btn-sm copy" data-copy-text={INSTALL}>Copy</button></div>
       <p className="dim install-note">Install from GitHub. The packages are not on npm yet.</p>
     </div>
@@ -29,7 +29,7 @@ export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
         </div>
         <div className="card run bar-red">
           <div className="card-h"><h3>Response</h3><button type="button" className={demo ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm run-off"} id="run">{demo ? "Run" : "Run · off"}</button></div>
-          <div className="out" id="out"><div className="empty">Press Run. The agent receives a 402 with the carbon line in the quote, pays once in {TOKEN.name} ({NETWORK.testnet ? "our faucet token, " : ""}{short(DEPLOYMENT.paymentToken ?? "")}), and gets a simulated completion plus a Snowtrace link.</div></div>
+          <div className="out" id="out"><div className="empty">Press Run. The agent gets a 402 quote with the carbon price in it, pays once in {TOKEN.name} ({NETWORK.testnet ? "our faucet token, " : ""}{short(DEPLOYMENT.paymentToken ?? "")}) and gets a simulated answer and a Snowtrace link.</div></div>
           <div className="sur" id="sur"><div><div className="k2">{demo ? "Call price" : "Example price"}</div><div className="v2" id="price">$0.010</div></div><div><div className="k2">Carbon surcharge</div><div className="v2" id="surV" style={{ color: "var(--avax)" }}>{demo ? "$0" : "–"}</div></div><div><div className="k2">CO₂e</div><div className="v2" id="gV" style={{ color: "var(--mint)" }}>{demo ? "0 g" : "–"}</div></div></div>
         </div>
       </div>

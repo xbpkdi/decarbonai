@@ -39,7 +39,7 @@ export default function init(DC) {
   for (const h of mine) { const b = batches[batches.length - 1]; if (b && b.tx === h.tx) { b.n++; b.mg += h.mg; } else batches.push({ tx: h.tx, t: h.t, n: 1, mg: h.mg }); }
   if (batches.length) {
     const found = mine.length === r.calls ? fmt.count(r.calls) : `${fmt.count(mine.length)} of ${fmt.count(r.calls)}`;
-    $("#covSub").textContent = `${found} metered calls in ${batches.length} meter batch${batches.length === 1 ? "" : "es"} · agent #${r.agent} · ${DC.mock ? "simulated batches" : "each batch links to its CarbonAccrued tx"}`;
+    $("#covSub").textContent = `${found} metered calls in ${batches.length} meter batch${batches.length === 1 ? "" : "es"} · agent #${r.agent} · ${DC.mock ? "simulated batches" : "each batch links to its transaction"}`;
     $("#covBs").innerHTML = batches.map((b) => `<div class="cov-b"><div class="cov-dots" aria-hidden="true">${"<i></i>".repeat(b.n)}</div>
       <div class="cov-m"><b>${fmt.count(b.n)}</b> call${b.n === 1 ? "" : "s"} · ${fmt.g(b.mg, 1)} g</div>
       <div class="cov-m">${fmt.tm(b.t)}</div>
@@ -65,9 +65,9 @@ export default function init(DC) {
 
   // Verification: live reads the receipt back from the chain; the simulation ticks through the same steps, marked as simulated.
   const steps = [
-    { t: "The pool emitted Retired", d: `The event index lists <span class="mono">Retired</span> for receipt ${r.n} in ${DC.hashLink(r.tx, 10, 6)}, and CarbonReceipt holds its record.`, ok: (v) => v.exists, res: ["record found"] },
-    { t: "The receipt is soulbound", d: `CarbonReceipt ${DC.addrLink(CONTRACTS.CarbonReceipt)} returns <span class="mono">locked(${r.n}) = true</span> (ERC-5192).`, ok: (v) => v.locked, res: ["locked() = true", "not locked"] },
-    { t: "The grams follow a published method", d: `Expected methodology hash <span class="mono" style="word-break:break-all">${METHOD.hash}</span>, published as <a href="/methodology" style="color:var(--mint)">${METHOD.version}</a>.`, after: (v) => `This receipt stores methodology hash <span class="mono" style="word-break:break-all">${v.methodologyHash}</span>, ${v.methodologyActive ? "active" : "not active"} on the pool as <a href="/methodology" style="color:var(--mint)">${v.methodologyVersion}</a>${v.methodologyHash?.toLowerCase() === METHOD.hash.toLowerCase() ? ", the version this site publishes" : ""}.`, ok: (v) => v.methodologyActive, res: ["hash registered", "hash not active"] },
+    { t: "The pool minted this receipt", d: `The retirement is in ${DC.hashLink(r.tx, 10, 6)} and CarbonReceipt holds its record.`, ok: (v) => v.exists, res: ["record found"] },
+    { t: "The receipt is soulbound", d: `CarbonReceipt ${DC.addrLink(CONTRACTS.CarbonReceipt)} says receipt ${r.n} is locked (ERC-5192).`, ok: (v) => v.locked, res: ["locked", "not locked"] },
+    { t: "The grams follow a published method", d: `Expected methodology hash <span class="mono" style="word-break:break-all">${METHOD.hash}</span>, published as <a href="/methodology" style="color:var(--mint)">${METHOD.version}</a>.`, after: (v) => `This receipt stores methodology hash <span class="mono" style="word-break:break-all">${v.methodologyHash}</span>. It is ${v.methodologyActive ? "active" : "not active"} on the pool as <a href="/methodology" style="color:var(--mint)">${v.methodologyVersion}</a>${v.methodologyHash?.toLowerCase() === METHOD.hash.toLowerCase() ? ", the version this site publishes" : ""}.`, ok: (v) => v.methodologyActive, res: ["hash registered", "hash not active"] },
     DC.UNBACKED
       ? { t: "A credit lot was burned", d: `DCO2 lot ${r.lot} on ${DC.addrLink(CONTRACTS.DCO2)}. A <b style="color:var(--warn)">testnet mock credit</b>, not a real tonne. Mainnet lots are backed 1:1 by retired credits.`, ok: () => true, warn: true, res: ["mock credit"] }
       : { t: "A credit lot was burned", d: `DCO2 lot ${r.lot} on ${DC.addrLink(CONTRACTS.DCO2)}, minted 1:1 against a real retired credit${LOT ? `: ${LOT.creditId}, ${cert("retirement certificate")}` : ""}.`, ok: (v) => v.backed, res: ["backed lot", "lot not backed"] },

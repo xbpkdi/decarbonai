@@ -68,7 +68,7 @@ function build(base: {
   /** Fuji pays in our own faucet token, not Circle USDC. */
   const token = base.testnet ? { name: "TestUSDC", symbol: "tUSDC" } : { name: "USDC", symbol: "USDC" };
   const contractList = [
-    ["RetirementPool", D.retirementPool, "Takes the surcharge and emits CarbonAccrued. Each time a payer reaches 1 kg, burns 1 kg of DCO2 and mints a receipt."],
+    ["RetirementPool", D.retirementPool, "Takes the surcharge and records the carbon. Each time a payer reaches 1 kg, it burns 1 kg of DCO2 and mints a receipt."],
     ["CarbonReceipt", D.carbonReceipt, "ERC-721 + ERC-5192 soulbound receipts."],
     [D.dco2Backed ? "DCO2" : "DCO2 (mock)", D.dco2, "ERC-1155 credit lots, burned on retirement."],
     [token.name, D.paymentToken, base.testnet ? `Testnet payment token (${token.symbol}) with a faucet. Not Circle USDC.` : "Circle USDC."],
