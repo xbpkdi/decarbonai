@@ -20,6 +20,34 @@ export default function init(DC) {
     const haze = () => document.documentElement.style.setProperty("--haze", page === "index" ? Math.min(0.85, 0.32 + (DC.state.retiredMg / 1e6) * 0.06).toFixed(2) : "0.5");
     haze();
     DC.on("retired", haze);
+    // The aurora drifts at most ~8 px/s. As a CSS animation it made the compositor redraw the whole
+    // screen (and re-blur the nav over it) every display frame, on every page, forever. Stepping the same
+    // path 12 times a second moves each soft blob under a pixel per step and lets idle frames go.
+    const aur = [...document.querySelectorAll(".atmo .aur")];
+    if (reduced || aur.length !== 3) return;
+    // [period s, translate vw, translate vh, scale, reversed] = the drift1/drift2 keyframes in globals.css
+    const path = [[32, 8, 6, 1.12, false], [38, -10, 8, 0.92, false], [44, 8, 6, 1.12, true]];
+    const ease = (k) => {
+      // ease-in-out, cubic-bezier(0.42, 0, 0.58, 1): solve x(t) = k, return y(t)
+      const bz = (t, a, b) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3;
+      let lo = 0, hi = 1, t = k;
+      for (let i = 0; i < 18; i++) { t = (lo + hi) / 2; if (bz(t, 0.42, 0.58) < k) lo = t; else hi = t; }
+      return bz(t, 0, 1);
+    };
+    const step = () => {
+      if (document.hidden) return;
+      const s = performance.now() / 1000;
+      aur.forEach((el, i) => {
+        const [p, x, y, sc, rev] = path[i];
+        let k = (s / p) % 2;
+        if (k > 1) k = 2 - k; // alternate
+        const e = ease(rev ? 1 - k : k);
+        el.style.transform = `translate(${(x * e).toFixed(3)}vw, ${(y * e).toFixed(3)}vh) scale(${(1 + (sc - 1) * e).toFixed(4)})`;
+      });
+    };
+    step();
+    document.documentElement.classList.add("aur-js");
+    setInterval(step, 1000 / 12);
   }
 
   function tape() {
