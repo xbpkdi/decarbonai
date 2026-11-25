@@ -19,7 +19,7 @@ export function LiveMarkup({ net, status }: { net: Net; status: "LIVE" | "IDLE" 
     <section className="pool card bar-mint" aria-labelledby="h-pool">
       <div className="card-h"><h2 id="h-pool">Retirement pool</h2><span className="pill pill-smoke state-pill pill-dot" id="poolState">Filling</span></div>
       <div className="card-b">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}><span className="muted" style={{ fontSize: "14px" }} id="poolAgent" /><a className="btn-chain btn" href="/agent" id="poolAgentLink" style={{ fontSize: "13px" }}>Agent profile ↗</a></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "12px" }}><span className="muted" style={{ fontSize: "14px" }} id="poolAgent" /><a className="btn-chain btn" href="/agent" id="poolAgentLink" style={{ fontSize: "13px" }}>Agent profile →</a></div>
         <div className="togo"><span className="odo" id="togo"></span><span className="unit" style={{ fontSize: "16px" }}>g until the next receipt</span></div>
         <div id="scale"></div>
         <div className="scale-ticks" aria-hidden="true"><span style={{ left: "0" }}>0</span><span style={{ left: "20%" }}>200</span><span style={{ left: "40%" }}>400</span><span style={{ left: "60%" }}>600</span><span style={{ left: "80%" }}>800</span><span style={{ left: "100%" }}>1 kg</span></div>

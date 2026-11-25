@@ -40,7 +40,14 @@ export default function init(DC) {
       <div class="meta"><span class="no">${fmt.no(next)}</span><span class="d">not minted</span><span class="muted">${a.title}</span><span class="d">${fmt.count(Math.round((DC.THRESHOLD_MG - pend) / 1000))} g to go</span></div>`;
   }
   function paintChips() {
-    const opts = [["all", "All agents", DC.failed ? "–" : state.receipts.length], ...agentsWithReceipts().map((a) => [String(a.id), `#${a.id} ${a.name}`, state.receipts.filter((r) => r.agent === a.id).length])];
+    const agents = agentsWithReceipts();
+    // One agent: a filter could not change the wall, so the row is a plain label instead.
+    if (agents.length < 2) {
+      const [a] = agents, n = state.receipts.length;
+      $("#chips").innerHTML = a ? `<span class="chip-label">${a.name} #${a.id} <span class="dim">· ${fmt.count(n)} ${DC.NET.testnet ? "testnet " : ""}receipt${n === 1 ? "" : "s"}</span></span>` : "";
+      return;
+    }
+    const opts = [["all", "All agents", state.receipts.length], ...agents.map((a) => [String(a.id), `${a.name} #${a.id}`, state.receipts.filter((r) => r.agent === a.id).length])];
     $("#chips").innerHTML = opts.map(([v, l, n]) => `<button class="chip" aria-pressed="${filter === v}" data-v="${v}">${l}<span class="n">${n}</span></button>`).join("");
   }
   function applyFilter() { document.querySelectorAll(".spec").forEach((s) => s.classList.toggle("hidden", filter !== "all" && s.dataset.agent !== filter)); }

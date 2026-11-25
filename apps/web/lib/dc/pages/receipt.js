@@ -24,7 +24,7 @@ export default function init(DC) {
     <h1 class="display" id="rt">${fmt.no(r.n)}</h1>
     <dl>
       <dt>${DC.RETIRED}</dt><dd><b style="color:var(--mint);font-size:18px">${fmt.mass(r.mg)} CO₂e</b></dd>
-      <dt>Agent</dt><dd><a href="/agent/${a.id}" style="text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-2)">${a.name}</a> <span class="mono dim">ERC-8004 #${a.id}</span></dd>
+      <dt>Agent</dt><dd><a href="/agent/${a.id}" style="text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--line-2)">${a.name} #${a.id}</a> <span class="mono dim">ERC-8004</span></dd>
       <dt>Beneficiary</dt><dd>${DC.addrLink(r.payer || a.payer)}</dd>
       <dt>Calls covered</dt><dd class="tnum">${fmt.count(r.calls)} ${DC.mock ? "paid x402 calls" : NET.calls}</dd>
       <dt>Surcharge paid</dt><dd class="tnum">${fmt.usd(r.sur)} ${DC.TOKEN.symbol}${NET.testnet ? " (testnet)" : ""}</dd>

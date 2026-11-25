@@ -12,7 +12,10 @@ export default function init(DC) {
     state.history[a.id]?.length && `<div><dt>First paid call</dt><dd>${fmt.date(state.history[a.id][0].t)}</dd></div>`,
     a.model && `<div><dt>Model class</dt><dd>${DC.FACTORS.models[a.model].label}</dd></div>`,
   ].filter(Boolean).join("");
-  $("#tabs").innerHTML = AGENTS.filter((x) => x.id === a.id || state.history[x.id]?.length).map((x) => `<a href="/agent/${x.id}" aria-current="${x.id === a.id}">#${x.id} ${x.name}</a>`).join("");
+  // Only this agent to show: a tab that links to the page it is on does nothing, so there are none.
+  const tabs = AGENTS.filter((x) => x.id === a.id || state.history[x.id]?.length);
+  $("#tabs").hidden = tabs.length < 2;
+  $("#tabs").innerHTML = tabs.map((x) => `<a href="/agent/${x.id}" aria-current="${x.id === a.id}">${x.name} #${x.id}</a>`).join("");
 
   function paint() {
     if (DC.failed) {
