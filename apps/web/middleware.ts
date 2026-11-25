@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { DEFAULT_NET, NET_COOKIE, NET_HEADER, toNetId } from "@/lib/config";
+import { DEFAULT_NET, NET_COOKIE, NET_HEADER, toNetId } from "@/lib/net-id";
 
 /** Picks the network for this request: ?network=, else the cookie, else mainnet. A ?network= is remembered in the cookie. */
 export function middleware(req: NextRequest) {

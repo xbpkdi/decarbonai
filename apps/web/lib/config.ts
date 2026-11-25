@@ -2,18 +2,14 @@ import { avalanche, avalancheFuji } from "viem/chains";
 import mainnetDeployment from "../../../deployments/avalanche.json";
 import mainnetLot1 from "../../../deployments/avalanche-lot1.json";
 import fujiDeployment from "../../../deployments/fuji.json";
+import { DEFAULT_NET, type NetId, toNetId } from "./net-id";
 
 /**
  * Two networks, picked per request: Avalanche mainnet (default) or Fuji. The choice travels as
  * ?network=fuji, a cookie (middleware.ts) and localStorage (NetSwitch). Contract addresses come from
  * deployments/<avalanche|fuji>.json.
  */
-export type NetId = "mainnet" | "fuji";
-export const NET_IDS: NetId[] = ["mainnet", "fuji"];
-export const DEFAULT_NET: NetId = "mainnet";
-export const NET_COOKIE = "dc-network";
-export const NET_HEADER = "x-dc-network";
-export const toNetId = (v: string | null | undefined): NetId | null => (v === "mainnet" || v === "fuji" ? v : null);
+export * from "./net-id";
 
 type Hex = `0x${string}`;
 
