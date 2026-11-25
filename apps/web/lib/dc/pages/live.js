@@ -209,8 +209,6 @@ export default function init(DC) {
 
   let last = performance.now(), time = 0, calm = false;
   function frame(now) {
-    // At rest only the liquid surface sways (under 4 px/s): 30 fps is enough. Anything in flight runs every frame.
-    if (calm && now - last < 30) { requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
     ctx.clearRect(0, 0, W, H);
     const [A, B, P, S] = nodes;
@@ -306,7 +304,11 @@ export default function init(DC) {
     }
 
     calm = !particles.length && !rings.length && !crystals.length && !coins.length && !flash && sealFlash <= 0 && !bump && Math.abs(target - level) < 0.002;
-    if (onScreen) requestAnimationFrame(frame); else running = false;
+    // At rest only the liquid surface sways (under 4 px/s): about 30 fps, without asking for every display frame.
+    // Anything in flight draws every frame.
+    if (!onScreen) running = false;
+    else if (calm) setTimeout(() => requestAnimationFrame(frame), 25);
+    else requestAnimationFrame(frame);
   }
 
   // The scene only animates while it is on screen; scrolled away, the loop stops.
