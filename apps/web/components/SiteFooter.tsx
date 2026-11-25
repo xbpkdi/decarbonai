@@ -31,6 +31,23 @@ export function SiteFooter({ net }: { net: Net }) {
             </span>{" "}
             {TAIL}.
           </p>
+          {/* The featured agent's pool toward the next kg; extras.js fills the grid and shows it. At 1 kg it becomes the mark. */}
+          <div className="viz" aria-hidden="true" hidden>
+            <figure className="grams">
+              <div className="blk">
+                <i className="g" />
+                <div className="grid" />
+                <i className="m" />
+                <i className="r" />
+              </div>
+              <figcaption>
+                <span className="k">Pool · next kg</span>
+                <b className="gv">0 g</b>
+                <span className="s">1 square = 10 g CO₂e</span>
+                <span className="done" />
+              </figcaption>
+            </figure>
+          </div>
           <div className="acts">
             <a className="btn btn-primary" href="/">
               See {NETWORK.short} activity
