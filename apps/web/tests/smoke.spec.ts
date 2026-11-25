@@ -173,3 +173,26 @@ test("live feed and latest receipt side by side at 1440", async ({ page }) => {
   const [feed, latest] = await Promise.all([".feed", "#latest"].map((s) => page.locator(s).evaluate((e) => e.getBoundingClientRect().top)));
   expect(Math.abs(feed - latest)).toBeLessThan(2);
 });
+
+// Footer 4B: network words follow the view; Proof always points at mainnet; nothing overflows on phones.
+for (const [net, proof, chain] of [["mainnet", "Proof", "On-chain · Avalanche"], ["fuji", "Proof · Mainnet", "On-chain · Fuji"]]) {
+  test(`footer on ${net}`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`/methodology?network=${net}`);
+    const foot = page.locator("footer.foot");
+    await expect(foot.locator("h4")).toHaveText(["Product", "Developers", proof, chain]);
+    await expect(foot.locator(".addr")).toHaveCount(5);
+    await expect(foot.locator(".built")).toContainText(net === "fuji" ? "Built on Avalanche Fuji testnet" : "Built on Avalanche mainnet");
+    await expect(foot.getByText("Receipt No. 0001")).toHaveAttribute("href", "/receipt/1?network=mainnet");
+    await expect(foot.getByText("Retired credit")).toHaveAttribute("href", /carbonmark\.com\/retirements\//);
+    for (const h of ["ktsukixb", "101beere"]) await expect(foot.getByRole("link", { name: `@${h} on X` })).toHaveAttribute("href", `https://x.com/${h}`);
+    const right = (sel: string) => foot.locator(sel).last().evaluate((e) => e.getBoundingClientRect().right);
+    expect(Math.abs((await right(".addr")) - (await right(".foot-x a")))).toBeLessThan(1);
+    for (const width of [390, 320]) {
+      await page.setViewportSize({ width, height: 844 });
+      await expect(foot.locator(".built")).toBeHidden();
+      const gutter = await foot.locator(".foot-strip").evaluate((e) => e.getBoundingClientRect().right);
+      expect(await right(".foot-x a")).toBeLessThanOrEqual(gutter);
+    }
+  });
+}

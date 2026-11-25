@@ -213,7 +213,7 @@ a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
 .foot-cols a { color: var(--text-2); }
 .foot-cols a:hover { color: var(--text); }
 .foot-cols .addr { display: flex; justify-content: space-between; gap: 8px; }
-.foot-cols .arr { font-family: var(--f-mono); }
+.foot-cols .arr { font-family: var(--f-mono); line-height: 0; }
 .foot-strip { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-3); }
 .foot-id { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 16px; min-width: 0; }
 .foot-id .brand { gap: 11px; font-size: 20px; font-weight: 700; color: var(--text); }
@@ -246,6 +246,8 @@ body:has(.sim-banner) .toast { bottom: 72px; }
   .foot-id .built { display: none; }
   .page-head { padding: 36px 0 28px; }
 }
+
+@media (max-width: 340px) { .foot-x { gap: 8px; } .foot-x .btn { padding: 0 11px; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
