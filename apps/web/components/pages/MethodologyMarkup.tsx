@@ -2,7 +2,7 @@ import { MAINNET_PROOF, type Net } from "@/lib/config";
 
 /* Server-rendered markup for the Methodology page; lib/dc/pages/methodology.js fills and animates it. */
 export function MethodologyMarkup({ net }: { net: Net }) {
-  const { deployment: DEPLOYMENT, token: TOKEN } = net;
+  const { deployment: DEPLOYMENT } = net;
   const NETWORK = net;
   return (
     <>
@@ -55,20 +55,11 @@ export function MethodologyMarkup({ net }: { net: Net }) {
     </section>
 
     <section className="section">
-      <div className="warnbox" role="note">
-        <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>Limits (v0)</h2>
-        <ul>
-          <li>Factors are rough v0 estimates with one global grid average (400 g/kWh). EcoLogits factors are planned, under a new hash.</li>
-          <li>We run the meter, so you trust us on the grams it reports.</li>
-          {NETWORK.testnet ? (
-            <li>On {NETWORK.short}, DCO2 is a mock credit, payments use {TOKEN.name} and the API returns placeholder text.</li>
-          ) : (
-            <li>Each DCO2 lot is minted 1:1 against a real retired credit. You trust us to keep it 1:1. The lot stores the registry serial.</li>
-          )}
-        </ul>
-        <p className="mainnet" id="mainnet">
-          <b>Mainnet:</b> we retired 1 t of {MAINNET_PROOF.credit} for DecarbonAI (<a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer">certificate ↗</a>). It backs the <a href={MAINNET_PROOF.pool} target="_blank" rel="noreferrer">pool on Avalanche C-Chain ↗</a>, which has minted receipts <a href={MAINNET_PROOF.receiptTxs[0]} target="_blank" rel="noreferrer">No. 0001 ↗</a> and <a href={MAINNET_PROOF.receiptTxs[1]} target="_blank" rel="noreferrer">No. 0002 ↗</a>. Both wrote carbon-settled ERC-8004 feedback for agent #1855.
+      <div className="limits">
+        <p id="mainnet">
+          <b>Mainnet:</b> 1 t of {MAINNET_PROOF.credit} retired for DecarbonAI (<a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer">certificate ↗</a>). It backs our <a href={MAINNET_PROOF.pool} target="_blank" rel="noreferrer">pool on Avalanche C-Chain ↗</a>, which has minted receipts <a href={MAINNET_PROOF.receiptTxs[0]} target="_blank" rel="noreferrer">#1 ↗</a> and <a href={MAINNET_PROOF.receiptTxs[1]} target="_blank" rel="noreferrer">#2 ↗</a>.
         </p>
+        <p>The Fuji demo uses test USDC and a mock credit. Grams are estimates (400 g/kWh grid average).</p>
       </div>
     </section>
   </div>

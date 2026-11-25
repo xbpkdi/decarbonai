@@ -61,18 +61,37 @@ export default function init(DC) {
     const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} minted<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span>${day(r)}</span>`;
     DC.groupByTx(state.feed).slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
     const track = t.querySelector(".tape-track");
-    // A static row headed by the date of the newest event; it does not loop.
+    track.innerHTML = `<span class="tape-lbl"></span><div class="tape-run"><div class="tape-loop"></div></div>`;
+    const lbl = track.querySelector(".tape-lbl");
+    const run = track.querySelector(".tape-run");
+    const loop = track.querySelector(".tape-loop");
     const label = () => {
       if (DC.mock) return "Simulated events";
       const e = state.feed[0];
       if (!e) return `${DC.NET.short} events`;
       return `Last ${DC.NET.short} events · ${fmt.isToday(e.t) ? "today" : fmt.day(e.t)}`;
     };
+    // One half repeats the events until it is at least as wide as the strip; the second, identical half is
+    // aria-hidden, so sliding by -50% lands exactly where it started. The loop element is kept, so the scroll
+    // carries on through new events instead of jumping back.
     const render = (fresh) => {
-      const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>${DC.failed ? DC.READ_FAILED : `Waiting for the next paid call on ${DC.NET.name}`}</span>`;
-      track.innerHTML = `<span class="tape-lbl">${label()}</span>${html}`;
-      if (fresh && !reduced) track.querySelector(".tape-item")?.classList.add("fresh");
+      lbl.textContent = label();
+      if (!items.length) {
+        loop.classList.remove("on");
+        loop.innerHTML = `<span class="tape-item"><span class="rd"></span>${DC.failed ? DC.READ_FAILED : `Waiting for the next paid call on ${DC.NET.name}`}</span>`;
+        return;
+      }
+      const set = items.slice(0, 22).join("");
+      loop.innerHTML = set;
+      const w = loop.scrollWidth || 1;
+      const half = set.repeat(Math.max(1, Math.ceil(run.clientWidth / w)));
+      loop.innerHTML = `<span class="tape-half">${half}</span><span class="tape-half" aria-hidden="true">${half}</span>`;
+      loop.style.setProperty("--tape-dur", `${Math.round(loop.scrollWidth / 2 / 45)}s`);
+      loop.classList.add("on");
+      if (fresh && !reduced) loop.querySelector(".tape-item")?.classList.add("fresh");
     };
+    let rz, rw = innerWidth;
+    addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (innerWidth !== rw) { rw = innerWidth; render(false); } }, 250); });
     render(false);
     let last = null;
     // Replayed events are history, not news: the tape ignores them.

@@ -87,7 +87,7 @@ export function SiteFooter({ net }: { net: Net }) {
               DecarbonAI
             </span>
             <span>
-              Team1 Demo Day, Bangkok<span className="built"> · Built on {NETWORK.name}</span> · © 2026
+              Team1 Demo Day, Bangkok<span className="built"> · Live on Avalanche mainnet + Fuji testnet</span> · © 2026
             </span>
           </div>
           <div className="foot-x">
