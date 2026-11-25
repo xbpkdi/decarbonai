@@ -292,9 +292,15 @@ html { overflow-x: clip; }
 
 /* ---------- 2. carbon tape ---------- */
 .tape { display: none; }
-.fx-rich .tape { display: block; position: sticky; top: var(--nav-h); z-index: 45; height: var(--tape-h); overflow: hidden; border-bottom: 1px solid var(--line); background: var(--ink); font-family: var(--f-mono); font-size: 12.5px; mask-image: linear-gradient(90deg, #000 94%, transparent); }
-/* A static, dated row of the last events: it does not loop. A new event slides in once. */
-.tape-track { display: flex; width: max-content; height: 100%; align-items: center; }
+.fx-rich .tape { display: block; position: relative; height: var(--tape-h); overflow: hidden; border-bottom: 1px solid var(--line); background: var(--ink); font-family: var(--f-mono); font-size: 12.5px; mask-image: linear-gradient(90deg, #000 94%, transparent); }
+/* A dated label, then the last events scrolling left on a seamless loop (two identical halves). A new event slides in once. */
+.tape-track { display: flex; height: 100%; align-items: center; }
+.tape-run { flex: 1; min-width: 0; height: 100%; overflow: hidden; }
+.tape-loop { display: flex; width: max-content; height: 100%; align-items: center; }
+.tape-half { display: flex; height: 100%; align-items: center; }
+.tape-loop.on { animation: tape var(--tape-dur, 60s) linear infinite; }
+.tape:hover .tape-loop { animation-play-state: paused; }
+@keyframes tape { to { transform: translateX(-50%); } }
 .tape-lbl { flex: none; display: inline-flex; align-items: center; height: 100%; padding: 0 16px 0 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-3); border-right: 1px solid var(--line); white-space: nowrap; }
 .tape-item { display: inline-flex; align-items: center; gap: 10px; padding: 0 22px; white-space: nowrap; color: var(--text-2); border-right: 1px solid var(--line); }
 .tape-item .rd { width: 7px; height: 7px; border-radius: 50%; background: var(--avax); box-shadow: 0 0 8px var(--avax); }
@@ -366,8 +372,8 @@ html { overflow-x: clip; }
 .fx-rich .btn-outline::after { display: none; }
 .fx-rich .page-head::before { opacity: 0; }
 .fx-rich .nav { background: color-mix(in srgb, var(--ink) 94%, transparent); }
-/* Anchors and focus land below the sticky nav + tape. */
-html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
+/* Anchors and focus land below the sticky nav (the tape scrolls away with the page). */
+html { scroll-padding-top: calc(var(--nav-h) + 16px); }
 
 /* ---------- 6. reveal on scroll ---------- */
 .fx-rich .rv { opacity: 0; transform: translateY(18px); transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); transition-delay: var(--d, 0ms); }
@@ -384,7 +390,7 @@ html { scroll-padding-top: calc(var(--nav-h) + var(--tape-h) + 16px); }
   .fx-rich .mega.mega-live { font-size: 52px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .atmo .aur, .atmo .grain, .tape-track, .fx-rich .key::after { animation: none !important; }
+  .atmo .aur, .atmo .grain, .tape-loop, .fx-rich .key::after { animation: none !important; }
   .fx-rich .rv { opacity: 1; transform: none; transition: none; }
 }
 /* text inside a solid mint card is always dark ink */

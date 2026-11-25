@@ -13,7 +13,7 @@
   pre.code { margin: 0; padding: 18px 20px; font-family: var(--f-mono); font-size: 13.5px; line-height: 1.75; overflow-x: auto; color: var(--text); }
   .k { color: #9fb8ff; } .s { color: var(--mint); } .c { color: var(--text-3); } .n { color: var(--warn); } .f { color: var(--text); font-weight: 600; }
   .run { display: flex; flex-direction: column; }
-  .run .out { flex: 1; padding: 16px 20px; font-family: var(--f-mono); font-size: 13px; line-height: 1.8; min-height: 320px; }
+  .run .out { flex: 1; min-width: 0; padding: 16px 20px; font-family: var(--f-mono); font-size: 13px; line-height: 1.8; min-height: 320px; overflow-wrap: anywhere; }
   .run .out .l { opacity: 0; transform: translateY(4px); transition: opacity 0.3s, transform 0.3s var(--ease); }
   .run .out .l.on { opacity: 1; transform: none; }
   .run .empty { color: var(--text-3); font-family: var(--f-ui); font-size: 14px; display: grid; place-items: center; height: 100%; text-align: center; padding: 30px; }

@@ -174,7 +174,7 @@ test("live feed and latest receipt side by side at 1440", async ({ page }) => {
   expect(Math.abs(feed - latest)).toBeLessThan(2);
 });
 
-// Footer 4B: network words follow the view; Proof always points at mainnet; nothing overflows on phones.
+// Footer 4B: column heads follow the view, the strip names both networks; Proof always points at mainnet; nothing overflows on phones.
 for (const [net, proof, chain] of [["mainnet", "Proof", "On-chain · Avalanche"], ["fuji", "Proof · Mainnet", "On-chain · Fuji"]]) {
   test(`footer on ${net}`, async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -182,7 +182,7 @@ for (const [net, proof, chain] of [["mainnet", "Proof", "On-chain · Avalanche"]
     const foot = page.locator("footer.foot");
     await expect(foot.locator("h4")).toHaveText(["Product", "Developers", proof, chain]);
     await expect(foot.locator(".addr")).toHaveCount(5);
-    await expect(foot.locator(".built")).toContainText(net === "fuji" ? "Built on Avalanche Fuji testnet" : "Built on Avalanche mainnet");
+    await expect(foot.locator(".built")).toContainText("Live on Avalanche mainnet + Fuji testnet");
     await expect(foot.getByText("Receipt No. 0001")).toHaveAttribute("href", "/receipt/1?network=mainnet");
     await expect(foot.getByText("Retired credit")).toHaveAttribute("href", /carbonmark\.com\/retirements\//);
     for (const h of ["ktsukixb", "101beere"]) await expect(foot.getByRole("link", { name: `@${h} on X` })).toHaveAttribute("href", `https://x.com/${h}`);
