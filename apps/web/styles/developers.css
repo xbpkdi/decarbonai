@@ -46,3 +46,13 @@
 .rec-tx { font-family: var(--f-mono); font-size: 13px; color: var(--avax); }
 .run-off { color: var(--text-3) !important; box-shadow: none !important; }
 @media (max-width: 480px) { .rec li { grid-template-columns: 22px minmax(0, 1fr); } .rec .v { grid-column: 2; text-align: left; } }
+/* Contracts table on a phone: each row becomes a card (name + address on top, role below), no sideways scroll. */
+@media (max-width: 640px) {
+  .ct-tbl thead { display: none; }
+  .ct-tbl, .ct-tbl tbody { display: block; }
+  .ct-tbl tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 12px 16px; border-top: 1px solid var(--line); }
+  .ct-tbl tr:first-child { border-top: 0; }
+  .ct-tbl td, .ct-tbl td:first-child, .ct-tbl td:last-child { display: block; padding: 0; border: 0; }
+  .ct-tbl td:nth-child(2) { grid-column: 1 / -1; grid-row: 2; font-size: 13px; line-height: 1.5; }
+  .ct-tbl tr:hover td { background: none; }
+}

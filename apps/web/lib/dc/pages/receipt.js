@@ -28,7 +28,7 @@ export default function init(DC) {
       <dt>Beneficiary</dt><dd>${DC.addrLink(r.payer || a.payer)}</dd>
       <dt>Calls covered</dt><dd class="tnum">${fmt.count(r.calls)} ${DC.mock ? "paid x402 calls" : NET.calls}</dd>
       <dt>Surcharge paid</dt><dd class="tnum">${fmt.usd(r.sur)} ${DC.TOKEN.symbol}${NET.testnet ? " (testnet)" : ""}</dd>
-      <dt>Credit burned</dt><dd>DCO2 lot ${r.lot}${DC.UNBACKED ? ' <span class="pill pill-mock">testnet mock credit</span>' : ""}${LOT ? ` · backed by a real retired tonne (${LOT.project}) · ${cert("certificate")}` : ""}</dd>
+      <dt>Credit burned</dt><dd>DCO2 lot ${r.lot}${DC.UNBACKED ? ' <span class="pill pill-mock">testnet mock credit</span>' : ""}${LOT ? ` · backed by a real retired tonne (${LOT.creditId}) · ${cert("certificate")}` : ""}</dd>
       <dt>Minted at</dt><dd>${fmt.dt(r.t)}</dd>
     </dl>
     <div class="acts">${DC.mock ? "" : `<a class="btn btn-primary" href="${NET.explorer}/tx/${r.tx}" target="_blank" rel="noreferrer">View on Snowtrace ↗</a>`}${LOT ? `<a class="btn btn-outline" href="${LOT.certificate}" target="_blank" rel="noreferrer">Certificate ↗</a>` : ""}<a class="btn btn-outline" href="/receipts">All receipts</a><span class="pill pill-settled pill-dot">ERC-5192 locked</span></div>`;

@@ -1,12 +1,14 @@
-import { type Net, short } from "@/lib/config";
+import { NETS, type Net, short } from "@/lib/config";
 
 /* Server-rendered markup for the Developers page; lib/dc/pages/developers.js fills and animates it. */
 const INSTALL = "git clone https://github.com/xbpkdi/decarbonai && cd decarbonai && npm install";
 
 /** `demo`: live demo payments are configured on this deployment. */
 export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
-  const { deployment: DEPLOYMENT, token: TOKEN, unbacked: UNBACKED } = net;
+  const { deployment: DEPLOYMENT, unbacked: UNBACKED } = net;
   const NETWORK = net;
+  // Run always pays on Fuji, so name Fuji's token, not this network's.
+  const RUN = NETS.fuji;
   return (
     <>
       <header className="page-head">
@@ -29,7 +31,7 @@ export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
         </div>
         <div className="card run bar-red">
           <div className="card-h"><h3>Response</h3><button type="button" className={demo ? "btn btn-primary btn-sm" : "btn btn-outline btn-sm run-off"} id="run">{demo ? "Run" : "Run · off"}</button></div>
-          <div className="out" id="out"><div className="empty">Press Run. The agent gets a 402 quote with the carbon price in it, pays once in {TOKEN.name} ({NETWORK.testnet ? "our faucet token, " : ""}{short(DEPLOYMENT.paymentToken ?? "")}) and gets a simulated answer and a Snowtrace link.</div></div>
+          <div className="out" id="out"><div className="empty">Press Run. The agent gets a 402 quote with the carbon price in it, pays once in {RUN.token.name} ({NETWORK.testnet ? "" : "on Fuji, "}our faucet token, {short(RUN.deployment.paymentToken ?? "")}) and gets a simulated answer and a Snowtrace link.</div></div>
           <div className="sur" id="sur"><div><div className="k2">{demo ? "Call price" : "Example price"}</div><div className="v2" id="price">$0.010</div></div><div><div className="k2">Carbon surcharge</div><div className="v2" id="surV" style={{ color: "var(--avax)" }}>{demo ? "$0" : "–"}</div></div><div><div className="k2">CO₂e</div><div className="v2" id="gV" style={{ color: "var(--mint)" }}>{demo ? "0 g" : "–"}</div></div></div>
         </div>
       </div>
@@ -50,7 +52,7 @@ export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
 
     <section className="section" aria-labelledby="h-c">
       <div className="section-title"><h2 id="h-c">Contracts on {NETWORK.name}</h2><span className="dim mono" style={{ fontSize: "12px" }}>chain id {DEPLOYMENT.chainId}</span></div>
-      <div className="card" style={{ overflowX: "auto", position: "relative" }}><table className="tbl"><thead><tr><th>Contract</th><th>Role</th><th className="r">Address</th></tr></thead><tbody id="ct"></tbody></table></div>
+      <div className="card" style={{ overflowX: "auto", position: "relative" }}><table className="tbl ct-tbl"><thead><tr><th>Contract</th><th>Role</th><th className="r">Address</th></tr></thead><tbody id="ct"></tbody></table></div>
     </section>
   </div>
     </>
