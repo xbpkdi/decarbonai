@@ -18,7 +18,7 @@
   .run .out .l.on { opacity: 1; transform: none; }
   .run .empty { color: var(--text-3); font-family: var(--f-ui); font-size: 14px; display: grid; place-items: center; height: 100%; text-align: center; padding: 30px; }
   .st402 { color: var(--warn); } .st200 { color: var(--mint); } .red { color: var(--avax); }
-  .json { color: var(--text-2); white-space: pre; }
+  .json { color: var(--text-2); white-space: pre-wrap; }
   .sur { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); }
   .sur > div { padding: 14px 20px; border-left: 1px solid var(--line); }
   .sur > div:first-child { border-left: 0; }
