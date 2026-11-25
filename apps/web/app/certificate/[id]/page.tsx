@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { ChromeRuntime } from "@/components/ChromeRuntime";
 
 export const metadata: Metadata = { title: "v1 certificate", robots: { index: false } };
 
 /** Old shared links: v1 certificate ids are not v2 receipt numbers, so never map one to the other. */
 export default function OldCertificate() {
   return (
-    <main className="wrap" style={{ padding: "96px var(--gutter)" }}>
+    <main className="wrap" data-page="certificate" style={{ padding: "96px var(--gutter)" }}>
       <span className="eyebrow">v1 certificate</span>
       <h1 className="display" style={{ fontSize: "clamp(56px, 8vw, 120px)", marginTop: 12 }}>
         Not carried over.
@@ -18,6 +19,7 @@ export default function OldCertificate() {
           See v2 receipts
         </a>
       </p>
+      <ChromeRuntime />
     </main>
   );
 }
