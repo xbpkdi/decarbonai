@@ -82,7 +82,7 @@ function build(base: {
     token,
     contractList,
     /** Footer and receipts follow the network: Fuji burns a mock credit, mainnet burns backed lots. */
-    creditNote: D.dco2Backed ? "DCO2 lots are minted 1:1 against credits retired off-chain" : "DCO2 is a testnet mock credit",
+    creditNote: D.dco2Backed ? "DCO2 lots are minted 1:1 against real retired credits" : "DCO2 is a testnet mock credit",
   };
 }
 
