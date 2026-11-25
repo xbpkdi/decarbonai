@@ -207,8 +207,10 @@ export default function init(DC) {
     ctx.moveTo(0, -s * 1.3); ctx.lineTo(s, 0); ctx.lineTo(0, s * 1.3); ctx.lineTo(-s, 0); ctx.closePath(); ctx.fill(); ctx.restore();
   }
 
-  let last = performance.now(), time = 0;
+  let last = performance.now(), time = 0, calm = false;
   function frame(now) {
+    // At rest only the liquid surface sways (under 4 px/s): 30 fps is enough. Anything in flight runs every frame.
+    if (calm && now - last < 30) { requestAnimationFrame(frame); return; }
     const dt = Math.min(0.05, (now - last) / 1000); last = now; time += dt;
     ctx.clearRect(0, 0, W, H);
     const [A, B, P, S] = nodes;
@@ -303,11 +305,18 @@ export default function init(DC) {
       ctx.beginPath(); ctx.arc(x, y, 11, 0, 7); ctx.fill(); ctx.restore();
     }
 
-    requestAnimationFrame(frame);
+    calm = !particles.length && !rings.length && !crystals.length && !coins.length && !flash && sealFlash <= 0 && !bump && Math.abs(target - level) < 0.002;
+    if (onScreen) requestAnimationFrame(frame); else running = false;
   }
 
+  // The scene only animates while it is on screen; scrolled away, the loop stops.
+  let onScreen = true, running = true;
   readColors(); layout();
   new ResizeObserver(layout).observe(host);
+  new IntersectionObserver(([e]) => {
+    onScreen = e.isIntersecting;
+    if (onScreen && !running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
+  }).observe(host);
   requestAnimationFrame(frame);
 
   // ---------- events ----------
