@@ -144,7 +144,7 @@ test("receipt lists the calls it covers by meter batch", async ({ page }) => {
   await page.goto("/receipt/1");
   await expect(page.locator("#cov")).toBeVisible({ timeout: 15_000 });
   const calls = await page.locator("#covBs .cov-dots i").count();
-  await expect(page.locator("#info dd").nth(3)).toHaveText(`${calls} paid x402 calls`);
+  await expect(page.locator("#info dd").nth(3)).toHaveText(`${calls} scripted test calls`);
   await expect(page.locator('#covBs a[href*="/tx/0x"]')).toHaveCount(await page.locator("#covBs .cov-b").count());
 });
 

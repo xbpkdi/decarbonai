@@ -7,7 +7,8 @@ export default function init(DC) {
   const fa = agentById(F);
   if (!DC.failed) $("#poolAgent").innerHTML = `${fa.name} <span class="mono dim">#${fa.id}</span>`;
   $("#poolAgentLink").href = `/agent/${fa.id}`;
-  $("#lblAgent").textContent = fa.id ? `ERC-8004 #${fa.id}` : "x402 payer";
+  // The id shows once: in the title line for an unnamed agent ("Agent #1855"), else next to ERC-8004.
+  $("#lblAgent").textContent = !fa.id ? "x402 payer" : !DC.mock && fa.title === `Agent #${fa.id}` ? "ERC-8004" : `ERC-8004 #${fa.id}`;
   if (!DC.mock) {
     $("#lblVia").textContent = fa.title;
     $(".feed th.c-res").textContent = "Payer";
@@ -17,6 +18,8 @@ export default function init(DC) {
   // ---------- hero + pool ----------
   const big = DC.odometer($("#big"), { decimals: 1, value: DC.failed ? null : state.totalMg / 1000 });
   const togo = DC.odometer($("#togo"), { value: DC.failed ? null : Math.round((THRESHOLD_MG - pending()) / 1000) });
+  // The digits otherwise move only on a new call or a replay, so an idle network would never show it: roll once on load.
+  if (!DC.failed && !reduced) requestAnimationFrame(() => big.roll());
   let retiring = false;
 
   function paintHero() {
@@ -60,8 +63,7 @@ export default function init(DC) {
   const feed = $("#feed");
   let top = null; // the newest row's meter batch, so calls from one tx fold together
   const fillFeed = () => { feed.innerHTML = ""; top = null; DC.groupByTx(state.feed).slice(0, 14).forEach((c) => feed.appendChild(row(c, false))); };
-  const today = new Date().toDateString();
-  const when = (t) => (new Date(t).toDateString() === today ? fmt.time(t) : `${new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} ${fmt.time(t).slice(0, 5)}`);
+  const when = (t) => (fmt.isToday(t) ? fmt.time(t) : `${fmt.day(t)} ${fmt.time(t).slice(0, 5)}`);
   function row(c, fresh) {
     const a = agentById(c.agent);
     const batch = c.n > 1 ? ` <span class="batch" title="${c.n} calls recorded in one meter batch">×${c.n}</span>` : "";
@@ -98,8 +100,8 @@ export default function init(DC) {
     if (!r) {
       $("#latest").innerHTML = `<div class="coin-wrap" style="opacity:.35">${coinHTML({ n: 0, mg: THRESHOLD_MG }, { seal: false })}</div>
         <div style="min-width:0"><span class="eyebrow">Latest receipt · soulbound</span><h2 id="h-latest" style="margin-top:6px">${DC.failed ? "Receipts not read" : "No receipt yet"}</h2>
-        <p class="muted" style="margin-top:10px;font-size:14px">${DC.failed ? DC.READ_FAILED : `The first receipt is minted when an agent's pool reaches ${fmt.mass(THRESHOLD_MG)}.`}</p></div>`;
-      $("#lbl-seal").textContent = DC.failed ? "Not read" : "First seal at 1 kg";
+        <p class="muted" style="margin-top:10px;font-size:14px">${DC.failed ? DC.READ_FAILED : `The first receipt is minted when an agent's account reaches ${fmt.mass(THRESHOLD_MG)}.`}</p></div>`;
+      $("#lbl-seal").textContent = DC.failed ? "Not read" : "First receipt at 1 kg";
       return;
     }
     const a = agentById(r.agent);
@@ -362,9 +364,7 @@ export default function init(DC) {
 
   function setupReplay() {
     const bar = $("#replay"), note = $("#rpNote");
-    const utc = (t, o) => new Date(t).toLocaleString("en-GB", { timeZone: "UTC", ...o });
-    const day = (t) => utc(t, { day: "numeric", month: "short" });
-    const hm = (t) => new Date(t).toISOString().slice(11, 16);
+    const { day } = fmt;
     const first = evs[0].v.t, end = evs[evs.length - 1].v.t;
     const days = day(first) === day(end) ? day(first) : `${day(first)} – ${day(end)}`;
     const gaps = [];
@@ -385,7 +385,7 @@ export default function init(DC) {
         ${evs.filter((e) => e.k === 1).map((e) => `<b data-at="${e.at}" style="left:${pos(e.at)}" title="Receipt ${fmt.no(e.v.n)}"></b>`).join("")}
         ${gaps.map((g) => `<s style="left:${pos(g.at)}">⏩ ${idle(g.ms)} idle</s>`).join("")}
       </div>
-      <div class="rp-clk"><span id="rpClock">${utc(first, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</span> UTC · ${SPEED}×</div>`;
+      <div class="rp-clk"><span id="rpClock">${fmt.time(first)}</span> ICT · ${SPEED}×</div>`;
     bar.hidden = false;
     const btn = bar.querySelector(".rp-play"), fill = bar.querySelector(".fill"), clockEl = bar.querySelector("#rpClock");
     const marks = [...bar.querySelectorAll("[data-at]")];
@@ -394,7 +394,7 @@ export default function init(DC) {
     function play() {
       if (!DC.beginReplay()) return;
       try { sessionStorage.setItem("dc-replayed", "1"); } catch {}
-      replayLine = `Replaying ${fmt.count(calls)} real ${DC.NET.short} calls from ${days} · ${DC.isFresh() ? "new events wait until it ends" : `chain idle since ${day(end)} ${hm(end)} UTC`}`;
+      replayLine = `Replaying ${fmt.count(calls)} recorded ${DC.NET.short} calls, ${days} · ${DC.isFresh() ? "new calls wait until it ends" : `no new calls since ${day(end)}, ${fmt.tm(end, false)}`}`;
       note.hidden = false; btn.textContent = "■ Stop replay";
       marks.forEach((m) => m.classList.remove("on"));
       fillFeed(); big.set(0); paintHero(); paintPool(); paintLatest(null, false); paintPay(null); paintStatus();
@@ -405,7 +405,7 @@ export default function init(DC) {
         fill.style.width = pos(Math.min(now, total));
         while (i < evs.length && evs[i].at <= now) {
           const e = evs[i++];
-          clockEl.textContent = utc(e.v.t, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+          clockEl.textContent = fmt.time(e.v.t);
           marks.filter((m) => Number(m.dataset.at) === e.at).forEach((m) => m.classList.add("on"));
           if (e.k === 0) DC.replayAccrual(e.v);
           else DC.replayRetire(e.v, 900);

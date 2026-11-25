@@ -116,8 +116,8 @@ export default function init(DC) {
         [600, `<span class="br">⎿</span> <span class="warn">402 Payment Required</span>  $0.010 + <span class="red">${fmt.usd(sur, 5)} carbon</span> <span class="dim">(${(mg / 1000).toFixed(2)} g CO₂e)</span>`],
         [800, `<span class="br">⎿</span> signed x402 payment${agentId ? ` · agent #${agentId}` : ""} · ${DC.TOKEN.name}`],
         [1100, `<span class="br">⎿</span> settled via x402 facilitator on ${DC.NET.name}`],
-        [500, `<span class="br">⎿</span> <span class="dim">later, in a meter batch:</span> <span class="lime">CarbonAccrued +${(mg / 1000).toFixed(2)} g</span>${tx ? ` <span class="red">${DC.short(tx, 8, 6)}</span>` : ""} · pool ${fmt.count(Math.round(Math.min((DC.state.pending[agentId] || 0) + (last ? 0 : mg), DC.THRESHOLD_MG) / 1000))} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g`],
-        [700, `<span class="tool">⏺</span> [simulated completion] The demo API returns placeholder text: the server answers 402 with a price, the agent signs a ${DC.TOKEN.name} (EIP-3009) transfer, a facilitator settles it.`],
+        [500, `<span class="br">⎿</span> <span class="dim">later, in a meter batch:</span> <span class="lime">+${(mg / 1000).toFixed(2)} g recorded</span>${tx ? ` <span class="red">${DC.short(tx, 8, 6)}</span>` : ""} · pool ${fmt.count(Math.round(Math.min((DC.state.pending[agentId] || 0) + (last ? 0 : mg), DC.THRESHOLD_MG) / 1000))} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g`],
+        [700, `<span class="tool">⏺</span> [simulated completion] The server answers 402 with a price, the agent signs a ${DC.TOKEN.name} transfer (EIP-3009) and a facilitator settles it.`],
       ];
       for (const [ms, html] of out) {
         await wait(ms); if (!alive()) return;
@@ -190,8 +190,8 @@ export default function init(DC) {
       if (!DC.mock && !DC.NET.testnet) {
         // Mainnet has no pay button: point at the recorded call and receipt, and at Fuji for a live one.
         const last = DC.state.history[id]?.at(-1), rc = DC.state.receipts.find((r) => r.agent === id);
-        const rec = [last && `last call ${DC.hashLink(last.tx, 6, 4)}`, rc && `<a href="/receipt/${rc.n}" style="color:var(--mint)">${DC.fmt.no(rc.n)}</a>`].filter(Boolean).join(" · ");
-        title?.insertAdjacentHTML("beforeend", `<span class="demo-off">${rec ? `Recorded: ${rec}. ` : ""}Pay one call runs on <a href="/agent?network=fuji" style="color:var(--mint)">Fuji testnet</a> with test USDC.</span>`);
+        const rec = [last && `Last call ${DC.hashLink(last.tx, 6, 4)}`, rc && `latest receipt <a href="/receipt/${rc.n}" style="color:var(--mint)">${DC.fmt.no(rc.n)}</a>`].filter(Boolean).join(" · ");
+        title?.insertAdjacentHTML("beforeend", `<span class="demo-off">${rec ? `${rec}. ` : ""}To pay one call yourself, switch to <a href="/agent?network=fuji" style="color:var(--mint)">Fuji testnet</a> (test USDC).</span>`);
         return;
       }
       if (!DC.mock && !DC.demoReady) {
@@ -207,7 +207,7 @@ export default function init(DC) {
           const c = await DC.payOnce(id);
           DC.toast(c.simulated
             ? `Paid $${(c.price / 1e6).toFixed(3)} + ${DC.fmt.usd(c.sur, 5)} carbon · +${(c.mg / 1000).toFixed(2)} g`
-            : `Paid on ${DC.NET.short}: +${(c.mg / 1000).toFixed(2)} g. CarbonAccrued lands with the next meter batch.`);
+            : `Paid on ${DC.NET.short}: +${(c.mg / 1000).toFixed(2)} g. Recorded on-chain with the next meter batch.`);
         } catch (e) {
           // A server refusal carries its own message; anything else is a bug, never shown raw.
           DC.toast(e instanceof TypeError || !e?.message ? "Payment could not be sent. Nothing was paid." : e.message);

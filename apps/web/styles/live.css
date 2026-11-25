@@ -103,4 +103,12 @@
   .latest h2 { font-size: 26px; }
   .latest dl { gap: 6px 12px; font-size: 13px; }
   .feed tbody tr:nth-child(n + 7) { display: none; }
+  /* Room for the agent id and ×n, which the full cell padding clipped away. */
+  .feed .tbl { font-size: 13px; }
+  .feed .tbl th:not(:first-child), .feed .tbl td:not(:first-child) { padding-left: 6px; }
+  .feed .tbl th:not(:last-child), .feed .tbl td:not(:last-child) { padding-right: 6px; }
+  .feed .tick { margin-right: 6px; }
+}
+@media (min-width: 1200px) and (max-width: 1399px) {
+  .feed .c-price { display: none; }
 }

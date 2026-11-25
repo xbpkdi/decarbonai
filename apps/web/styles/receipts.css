@@ -12,7 +12,9 @@
   .chips { display: flex; gap: 8px; flex-wrap: wrap; }
   .chip { height: 34px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line); background: transparent; font-size: 13px; font-weight: 500; color: var(--text-2); display: inline-flex; align-items: center; gap: 8px; }
   .chip .n { font-family: var(--f-mono); font-size: 11px; color: var(--text-3); }
-  .chip[aria-pressed="true"] { border-color: var(--mint); color: var(--mint); background: color-mix(in srgb, var(--mint) 8%, transparent); }
+  .chip[aria-pressed="true"] { border-color: var(--mint); color: var(--mint-ink); background: var(--mint); }
+  .chip[aria-pressed="true"] .n { color: inherit; }
+  .chip-label { font-size: 14px; font-weight: 500; }
   .wall { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; }
   @media (min-width: 1024px) { .wall { grid-template-columns: repeat(4, minmax(0, 1fr)); } .spec .coin, .forming .gc { width: 180px; } }
   .spec { padding: 26px 22px 18px; display: flex; flex-direction: column; align-items: center; gap: 16px; transition: border-color 0.2s, transform 0.3s var(--ease); }

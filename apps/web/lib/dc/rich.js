@@ -56,10 +56,9 @@ export default function init(DC) {
     if (!t) return;
     const items = [];
     // Anything before today carries its date.
-    const today = new Date().toDateString();
-    const day = (e) => (new Date(e.t).toDateString() === today ? "" : `<span class="dim">${new Date(e.t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}</span>`);
+    const day = (e) => (fmt.isToday(e.t) ? "" : `<span class="dim">${fmt.day(e.t)}</span>`);
     const acc = (c) => `<span class="tape-item"><span class="rd"></span><span class="h">${short(c.tx, 6, 4)}</span><span class="g">+${(c.mg / 1000).toFixed(2)} g</span>${c.n > 1 ? `<span class="dim">${c.n} calls</span>` : ""}<span>${agentById(c.agent).title}</span>${day(c)}</span>`;
-    const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} sealed<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span>${day(r)}</span>`;
+    const ret = (r) => `<span class="tape-item ret"><span class="dm"></span>Receipt ${fmt.no(r.n)} minted<span class="dim">${fmt.mass(r.mg)} · ${agentById(r.agent).title}</span>${day(r)}</span>`;
     DC.groupByTx(state.feed).slice(0, 14).forEach((c, i) => { items.push(acc(c)); if (i === 4 && state.receipts[0]) items.push(ret(state.receipts[0])); if (i === 10 && state.receipts[1]) items.push(ret(state.receipts[1])); });
     const track = t.querySelector(".tape-track");
     // A static row headed by the date of the newest event; it does not loop.
@@ -67,7 +66,7 @@ export default function init(DC) {
       if (DC.mock) return "Simulated events";
       const e = state.feed[0];
       if (!e) return `${DC.NET.short} events`;
-      return `Last ${DC.NET.short} events · ${new Date(e.t).toDateString() === new Date().toDateString() ? "today" : new Date(e.t).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}`;
+      return `Last ${DC.NET.short} events · ${fmt.isToday(e.t) ? "today" : fmt.day(e.t)}`;
     };
     const render = (fresh) => {
       const html = items.length ? items.slice(0, 22).join("") : `<span class="tape-item"><span class="rd"></span>${DC.failed ? DC.READ_FAILED : `Waiting for the next paid call on ${DC.NET.name}`}</span>`;

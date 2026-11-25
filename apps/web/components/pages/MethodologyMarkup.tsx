@@ -10,20 +10,20 @@ export function MethodologyMarkup({ net }: { net: Net }) {
     <div className="wrap">
       <span className="eyebrow">Methodology · {DEPLOYMENT.methodologyVersion}</span>
       <h1 className="display">How a call becomes grams</h1>
-      <p className="lead">Every paid call is priced before it runs, from its model class, prompt length and declared max output. The factor set is versioned, its hash is stored on-chain, and each receipt stores the methodology hash of its last accrual.</p>
+      <p className="lead">Every paid call is priced before it runs, from its model class, prompt length and declared max output. The factors are versioned and their hash is on-chain. Each receipt stores the hash used for its last call.</p>
       <a className="hashbadge" id="hb" href={`${NETWORK.explorer}/address/${DEPLOYMENT.retirementPool}`} target="_blank" rel="noreferrer"><span className="dot-live"></span><span className="k">on-chain hash</span><span style={{ color: "var(--avax)" }} id="hbv"></span><span style={{ color: "var(--avax)" }}>↗</span></a>
     </div>
   </header>
 
   <div className="wrap">
     <section className="section chk-sec" aria-labelledby="h-chk" id="check" hidden>
-      <div className="section-title"><h2 id="h-chk">Check it against {NETWORK.short}</h2><span className="dim" style={{ fontSize: "13px" }}>Inputs are what our demo-burst script declares; the result must equal what the meter wrote on-chain</span></div>
+      <div className="section-title"><h2 id="h-chk">Check it against {NETWORK.short}</h2><span className="dim" style={{ fontSize: "13px" }}>Uses the inputs our demo script declares. The result should match what the meter wrote on-chain.</span></div>
       <div className="card bar-mint chk" id="chk"></div>
       <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }} id="chkNote"></p>
     </section>
 
     <section className="section" aria-labelledby="h-calc">
-      <div className="section-title"><h2 id="h-calc">Price a call</h2><span className="dim" style={{ fontSize: "13px" }}>Same formula as the middleware, which feeds it declared limits</span></div>
+      <div className="section-title"><h2 id="h-calc">Price a call</h2><span className="dim" style={{ fontSize: "13px" }}>Same formula as the middleware, which uses the declared token limits</span></div>
       <div className="card calc bar-mint">
         <div className="ctl">
           <div><div className="lbl">Model class</div>{/* biome-ignore lint/a11y/useSemanticElements: segmented control styled as a pill row */}
@@ -34,7 +34,7 @@ export function MethodologyMarkup({ net }: { net: Net }) {
         </div>
         <div className="res" aria-live="polite">
           <div><span className="eyebrow">Carbon per call</span><div className="bigout"><span className="v tnum" id="g"></span><span className="u">g CO₂e</span></div><div className="dim" style={{ fontSize: "13px", marginTop: "6px" }} id="range"></div></div>
-          <div><div className="gauge"><span className="mk" id="mk"></span></div><div className="gauge-l"><span>0.1 g · smoke</span><span>10 g</span><span>100 g · high</span></div></div>
+          <div><div className="gauge"><span className="mk" id="mk"></span></div><div className="gauge-l"><span>0.1 g · low</span><span>10 g</span><span>100 g · high</span></div></div>
           <div className="minis">
             <div className="mini"><div className="k">Surcharge / call</div><div className="v tnum" id="sur"></div></div>
             <div className="mini"><div className="k">Per day</div><div className="v tnum" id="day"></div></div>
@@ -58,16 +58,16 @@ export function MethodologyMarkup({ net }: { net: Net }) {
       <div className="warnbox" role="note">
         <h2><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>Limits (v0)</h2>
         <ul>
-          <li>Factors are rough v0 estimates with one global grid average (400 g/kWh). EcoLogits comes next, under a new hash.</li>
+          <li>Factors are rough v0 estimates with one global grid average (400 g/kWh). EcoLogits factors are planned, under a new hash.</li>
           <li>We run the meter, so you trust us on the grams it reports.</li>
           {NETWORK.testnet ? (
             <li>On {NETWORK.short}, DCO2 is a mock credit, payments use {TOKEN.name} and the API returns placeholder text.</li>
           ) : (
-            <li>Each DCO2 lot is minted 1:1 against a real retired credit. You trust us to keep it 1:1; the lot stores the registry serial.</li>
+            <li>Each DCO2 lot is minted 1:1 against a real retired credit. You trust us to keep it 1:1. The lot stores the registry serial.</li>
           )}
         </ul>
         <p className="mainnet" id="mainnet">
-          <b>Mainnet:</b> we retired 1 t of {MAINNET_PROOF.credit} for DecarbonAI (<a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer">certificate ↗</a>). It backs the <a href={MAINNET_PROOF.pool} target="_blank" rel="noreferrer">pool on Avalanche C-Chain ↗</a>, which has minted receipts <a href={MAINNET_PROOF.receiptTxs[0]} target="_blank" rel="noreferrer">#1 ↗</a> and <a href={MAINNET_PROOF.receiptTxs[1]} target="_blank" rel="noreferrer">#2 ↗</a> from it. Both wrote carbon-settled ERC-8004 feedback for agent #1855.
+          <b>Mainnet:</b> we retired 1 t of {MAINNET_PROOF.credit} for DecarbonAI (<a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer">certificate ↗</a>). It backs the <a href={MAINNET_PROOF.pool} target="_blank" rel="noreferrer">pool on Avalanche C-Chain ↗</a>, which has minted receipts <a href={MAINNET_PROOF.receiptTxs[0]} target="_blank" rel="noreferrer">No. 0001 ↗</a> and <a href={MAINNET_PROOF.receiptTxs[1]} target="_blank" rel="noreferrer">No. 0002 ↗</a>. Both wrote carbon-settled ERC-8004 feedback for agent #1855.
         </p>
       </div>
     </section>

@@ -13,6 +13,6 @@ export default function Image() {
   return ogImage({
     eyebrow: `x402 · ${NETWORK.name}`,
     title: `${HEADLINE}.`,
-    sub: `${NETWORK.testnet ? `${NETWORK.short} testnet demo: ` : ""}surcharge in each x402 payment, accruals batched on-chain, ${UNBACKED ? "mock credit" : "backed credit"} burned per 1 kg.`,
+    sub: `${NETWORK.testnet ? `${NETWORK.short} testnet demo: ` : ""}Each x402 payment includes a carbon surcharge. Every 1 kg burns a ${UNBACKED ? "mock" : "backed"} credit.`,
   });
 }

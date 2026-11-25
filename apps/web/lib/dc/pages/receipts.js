@@ -16,13 +16,13 @@ export default function init(DC) {
   const CALLS = DC.NET.calls[0].toUpperCase() + DC.NET.calls.slice(1);
   function paintTotals() {
     if (DC.failed) {
-      $("#totals").innerHTML = [CALLS, DC.RETIRED, "Receipts sealed", "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
+      $("#totals").innerHTML = [CALLS, DC.RETIRED, "Receipts minted", "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
       $("#wall").innerHTML = `<p class="muted">${DC.READ_FAILED}</p>`;
       return;
     }
     const kg = state.receipts.reduce((s, r) => s + r.mg, 0) / 1e6;
-    $("#totals").innerHTML = `<div><div class="v tnum">${fmt.count(state.calls)}</div><div class="k">${CALLS}</div></div><div><div class="v tnum lime">${fmt.count(kg)} kg</div><div class="k">${DC.RETIRED}</div></div><div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts sealed</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
-    if (!state.receipts.length && !$("#wall .spec")) $("#wall").insertAdjacentHTML("afterbegin", `<p class="muted">No receipts yet. The first one is minted when an agent's pool reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`);
+    $("#totals").innerHTML = `<div><div class="v tnum">${fmt.count(state.calls)}</div><div class="k">${CALLS}</div></div><div><div class="v tnum lime">${fmt.count(kg)} kg</div><div class="k">${DC.RETIRED}</div></div><div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts minted</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
+    if (!state.receipts.length && !$("#wall .spec")) $("#wall").insertAdjacentHTML("afterbegin", `<p class="muted">No receipts yet. The first one is minted when an agent's account reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`);
   }
 
   // The next coin, forming: the featured agent's real pending grams. Dashed and "not minted", so it never reads as a receipt.
@@ -40,7 +40,14 @@ export default function init(DC) {
       <div class="meta"><span class="no">${fmt.no(next)}</span><span class="d">not minted</span><span class="muted">${a.title}</span><span class="d">${fmt.count(Math.round((DC.THRESHOLD_MG - pend) / 1000))} g to go</span></div>`;
   }
   function paintChips() {
-    const opts = [["all", "All agents", DC.failed ? "–" : state.receipts.length], ...agentsWithReceipts().map((a) => [String(a.id), `#${a.id} ${a.name}`, state.receipts.filter((r) => r.agent === a.id).length])];
+    const agents = agentsWithReceipts();
+    // One agent: a filter could not change the wall, so the row is a plain label instead.
+    if (agents.length < 2) {
+      const [a] = agents, n = state.receipts.length;
+      $("#chips").innerHTML = a ? `<span class="chip-label">${a.name} #${a.id} <span class="dim">· ${fmt.count(n)} ${DC.NET.testnet ? "testnet " : ""}receipt${n === 1 ? "" : "s"}</span></span>` : "";
+      return;
+    }
+    const opts = [["all", "All agents", state.receipts.length], ...agents.map((a) => [String(a.id), `${a.name} #${a.id}`, state.receipts.filter((r) => r.agent === a.id).length])];
     $("#chips").innerHTML = opts.map(([v, l, n]) => `<button class="chip" aria-pressed="${filter === v}" data-v="${v}">${l}<span class="n">${n}</span></button>`).join("");
   }
   function applyFilter() { document.querySelectorAll(".spec").forEach((s) => s.classList.toggle("hidden", filter !== "all" && s.dataset.agent !== filter)); }
@@ -63,6 +70,6 @@ export default function init(DC) {
       gsap.from(el, { y: -60, opacity: 0, duration: 0.7, ease: "bounce.out" });
       gsap.fromTo(el.querySelector(".seal"), { scale: 2.6, rotate: -50, opacity: 0 }, { scale: 1, rotate: -12, opacity: 1, duration: 0.6, delay: 0.55, ease: "back.out(2.4)" });
     }
-    DC.toast(`${fmt.no(r.n)} minted and sealed`);
+    DC.toast(`${fmt.no(r.n)} minted`);
   });
 }

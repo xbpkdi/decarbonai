@@ -62,7 +62,7 @@ export function SiteFooter({ net }: { net: Net }) {
             <h4>Proof{NETWORK.testnet && " · Mainnet"}</h4>
             <ul>
               <li><a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer" title="Certificate of the retired credit on Carbonmark">Retired credit <Arrow /></a></li>
-              <li><a href={netHref("mainnet", "/receipt/1")} title={`Receipt on ${NETS.mainnet.name}`}>Receipt No. 0001</a></li>
+              <li><a href={netHref("mainnet", "/receipt/1")} title={`Receipt on ${NETS.mainnet.name}`}>Receipt No. 0001{NETWORK.testnet && " (switches to mainnet)"}</a></li>
             </ul>
           </div>
           <div className="full">
