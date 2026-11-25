@@ -1,0 +1,34 @@
+# Keeps the free Render demo API (and the Vercel site) warm so Demo Day judges
+# never hit a 30-60 s cold start. Exists for Demo Day (28 Nov 2026); disable or
+# remove it afterwards. Read-only GETs only: no secrets, no paid calls.
+name: Keep Render warm
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-render-warm
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping API /health (must be ok:true)
+        run: |
+          body=$(curl -fsS --max-time 20 --retry 3 --retry-delay 5 --retry-all-errors \
+            https://decarbonai-paid-api.onrender.com/health)
+          echo "$body"
+          echo "$body" | jq -e '.ok == true' > /dev/null || { echo "::error::/health is not ok:true"; exit 1; }
+
+      - name: Warm the web Developers page
+        # Only /health decides the job; a web hiccup shows as a step failure.
+        continue-on-error: true
+        run: |
+          curl -fsS -o /dev/null -w '%{http_code} in %{time_total}s\n' --max-time 20 --retry 3 --retry-delay 5 --retry-all-errors \
+            https://decarbonai.vercel.app/developers
