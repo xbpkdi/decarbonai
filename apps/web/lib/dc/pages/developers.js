@@ -24,7 +24,7 @@ app.use(<span class="s">"/v1/infer"</span>, <span class="f">carbonPayment</span>
   route: <span class="s">"GET /v1/infer"</span>,
   description: <span class="s">"Paid inference with a carbon surcharge"</span>,
   payTo: process.env.PAY_TO_ADDRESS, <span class="c">// merchant wallet the pool pulls surcharges from</span>
-  baseAmount: <span class="n">10_000n</span>,                <span class="c">// 0.01 ${DC.TOKEN.symbol} in base units</span>
+  baseAmount: <span class="n">10_000n</span>,                <span class="c">// 0.01 tUSDC in base units</span>
   meter,
 }));
 
@@ -70,7 +70,7 @@ claude mcp add decarbonai \\
     <span class="s">"decarbonai"</span>: {
       <span class="s">"command"</span>: <span class="s">"node"</span>,
       <span class="s">"args"</span>: [<span class="s">"${SERVER}"</span>],
-      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API_ENV}"</span> }
+      <span class="s">"env"</span>: { <span class="s">"AGENT_PRIVATE_KEY"</span>: <span class="s">"0x…"</span>, <span class="s">"AGENT_ID"</span>: <span class="s">"${AGENT}"</span>, <span class="s">"API_URL"</span>: <span class="s">"${API_ENV}"</span> }
     }
   }
 }`,
@@ -133,7 +133,7 @@ claude mcp add decarbonai \\
     const pend = DC.state.pending[last.agent] || 0;
     const who = last.agent ? `Agent #${last.agent}` : "An unregistered payer";
     return `<div class="rec">
-      <div class="rec-h"><span class="pill pill-mock">Recorded${NET.testnet ? "" : " test call"} · ${fmt.dt(last.t)} · not a live call</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
+      <div class="rec-h"><span class="pill pill-mock">Recorded${NET.testnet ? "" : ` test call${batch.length > 1 ? "s" : ""}`} · ${fmt.dt(last.t)} · not live</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
       <ol>
         <li><span class="n">1</span><div><div class="t">${who} paid over x402</div><div class="s">${DC.TOKEN.name} on ${NET.short}, settled by the facilitator first</div></div><div class="v">payer ${DC.short(last.payer)}</div></li>
         <li><span class="n">2</span><div><div class="t">Meter posted CarbonAccrued</div><div class="s">${batch.length} call${batch.length > 1 ? "s" : ""} in this meter batch</div></div><div class="v lime">+${(mg / 1000).toFixed(2)} g CO₂e</div></li>
@@ -166,7 +166,7 @@ claude mcp add decarbonai \\
           json: esc(JSON.stringify({ completion: "Avalanche x402 lets agents pay per call…", carbon: { gCO2e: +(c.mg / 1000).toFixed(3), surcharge: fmt.usd(c.sur, 5), methodology: DC.METHOD.version } }, null, 2)) }), [0, 450, 900, 1900, 2300, 2500]);
         $("#surV").textContent = fmt.usd(c.sur, 5); $("#gV").textContent = `${(c.mg / 1000).toFixed(2)} g`;
       } else {
-        $("#out").innerHTML = `<div class="l on"><span class="dim">→</span> paying the demo API on ${NET.name}…</div>`;
+        $("#out").innerHTML = `<div class="l on"><span class="dim">→</span> paying the demo API on ${NET.name}… The first call can take up to a minute.</div>`;
         const c = await DC.payOnce(DC.demoAgentId);
         const b = c.raw;
         show(lines({ path: esc(b.path), mg: c.mg, sur: c.sur, price: c.price, tx: c.tx, agent: b.agentId, secs: (b.ms / 1000).toFixed(1), json: esc(JSON.stringify(b.body, null, 2)) }), [0, 250, 500, 750, 1000, 1150]);

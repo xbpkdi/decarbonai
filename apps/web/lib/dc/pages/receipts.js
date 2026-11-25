@@ -16,12 +16,12 @@ export default function init(DC) {
   const CALLS = DC.NET.calls[0].toUpperCase() + DC.NET.calls.slice(1);
   function paintTotals() {
     if (DC.failed) {
-      $("#totals").innerHTML = [CALLS, DC.RETIRED, "Receipts sealed", "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
+      $("#totals").innerHTML = [CALLS, DC.RETIRED, "Receipts minted", "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
       $("#wall").innerHTML = `<p class="muted">${DC.READ_FAILED}</p>`;
       return;
     }
     const kg = state.receipts.reduce((s, r) => s + r.mg, 0) / 1e6;
-    $("#totals").innerHTML = `<div><div class="v tnum">${fmt.count(state.calls)}</div><div class="k">${CALLS}</div></div><div><div class="v tnum lime">${fmt.count(kg)} kg</div><div class="k">${DC.RETIRED}</div></div><div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts sealed</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
+    $("#totals").innerHTML = `<div><div class="v tnum">${fmt.count(state.calls)}</div><div class="k">${CALLS}</div></div><div><div class="v tnum lime">${fmt.count(kg)} kg</div><div class="k">${DC.RETIRED}</div></div><div><div class="v tnum">${state.receipts.length}</div><div class="k">Receipts minted</div></div><div><div class="v tnum">${AGENTS.length}</div><div class="k">Agents metered</div></div>`;
     if (!state.receipts.length && !$("#wall .spec")) $("#wall").insertAdjacentHTML("afterbegin", `<p class="muted">No receipts yet. The first one is minted when an agent's account reaches ${fmt.mass(DC.THRESHOLD_MG)}.</p>`);
   }
 
@@ -63,6 +63,6 @@ export default function init(DC) {
       gsap.from(el, { y: -60, opacity: 0, duration: 0.7, ease: "bounce.out" });
       gsap.fromTo(el.querySelector(".seal"), { scale: 2.6, rotate: -50, opacity: 0 }, { scale: 1, rotate: -12, opacity: 1, duration: 0.6, delay: 0.55, ease: "back.out(2.4)" });
     }
-    DC.toast(`${fmt.no(r.n)} minted and sealed`);
+    DC.toast(`${fmt.no(r.n)} minted`);
   });
 }

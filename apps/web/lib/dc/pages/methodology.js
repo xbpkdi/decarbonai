@@ -15,7 +15,7 @@ export default function init(DC) {
     const mg = Math.round(g * 1000);
     $("#tinO").textContent = fmt.count(tin); $("#toutO").textContent = fmt.count(tout); $("#callsO").textContent = fmt.count(calls);
     $("#g").textContent = g < 10 ? g.toFixed(2) : g.toFixed(1);
-    $("#range").textContent = `Range ${(g * 0.4).toFixed(2)} g to ${(g * 2.5).toFixed(2)} g. The pool accrues the mid value.`;
+    $("#range").textContent = `Range ${(g * 0.4).toFixed(2)} g to ${(g * 2.5).toFixed(2)} g. The meter records the mid value.`;
     $("#sur").textContent = fmt.usd(surchargeFor(mg), 5);
     const day = g * calls;
     $("#day").textContent = day >= 1000 ? (day / 1000).toFixed(2) + " kg" : day.toFixed(0) + " g";
@@ -47,7 +47,7 @@ export default function init(DC) {
       <div class="eq" aria-hidden="true">=</div>
       <div class="box"><div class="k">On-chain CarbonAccrued</div><div class="sub mono">${DC.hashLink(hit.tx, 8, 6)} · block ${fmt.count(hit.block)}</div><div class="v tnum">${fmt.count(hit.mg)}<small>mg</small></div></div>
       <div class="ok${ok ? "" : " no"}"><b aria-hidden="true">${ok ? "✓" : "✗"}</b><span class="mono dim">${ok ? "match" : "no match"}</span></div>`;
-    $("#chkNote").textContent = `${fmt.count(same.length)} of ${fmt.count(acc.length)} metered calls on ${NET.short} carry exactly ${fmt.count(mg)} mg. That proves the meter ran this formula, not that the tokens were used.`;
+    $("#chkNote").textContent = `${fmt.count(same.length)} of ${fmt.count(acc.length)} metered calls on ${NET.short} carry exactly ${fmt.count(mg)} mg. That shows the meter ran this formula, not that the tokens were used.`;
     $("#check").hidden = false;
   }
 }

@@ -6,7 +6,7 @@ function feedbackNote(net: Net, f: AgentFeedback | null) {
   if (!f) return "The ERC-8004 registry could not be read right now.";
   const rule = "The pool writes carbon-settled feedback only when a backed lot is burned.";
   const mock = net.unbacked ? ` ${net.short} burns a mock lot${f.current ? "" : ", so this pool has written none"}.` : "";
-  const old = f.superseded ? ` ${f.superseded} registry ${f.superseded === 1 ? "entry comes" : "entries come"} from a superseded adapter.` : "";
+  const old = f.superseded ? ` ${f.superseded} registry ${f.superseded === 1 ? "entry comes" : "entries come"} from an older adapter.` : "";
   return rule + mock + old;
 }
 
@@ -58,7 +58,7 @@ export function AgentMarkup({ net, feedback, yourAgents }: { net: Net; feedback:
       <div className="card">
         <div className="timeline" id="tl"><canvas id="tlc" aria-label="Every paid call as a dot over time. Ranges covered by a receipt are mint."></canvas><div className="tl-tip" id="tip"></div></div>
       </div>
-      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Each dot is a paid call. Calls covered by a receipt turn green. Hover a dot for its meter batch tx.</p>
+      <p className="dim" style={{ fontSize: "13px", marginTop: "10px" }}>Each dot is a paid call. Calls covered by a receipt turn green. Hover or tap a dot for its meter batch tx.</p>
     </section>
 
     <section className="section" id="secRc" aria-labelledby="h-rc">

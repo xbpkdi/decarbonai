@@ -19,7 +19,7 @@ const mono = localFont({ src: "./fonts/JetBrainsMono-Variable.woff2", weight: "4
 const thai = localFont({ src: "./fonts/NotoSansThai-Variable.woff2", weight: "100 900", variable: "--font-thai", display: "swap" });
 
 const describe = (net: Net) =>
-  `${net.testnet ? `Demo on ${net.name}` : `x402 carbon meter on ${net.name}`}. An x402 payment includes a carbon surcharge; a trusted meter records the estimated grams in batches, and each 1 kg burns a ${net.unbacked ? "mock credit" : "backed credit"} and mints a soulbound receipt.`;
+  `${net.testnet ? `Demo on ${net.name}` : `x402 carbon meter on ${net.name}`}. Each x402 payment includes a carbon surcharge. Our meter records the estimated grams in batches. Every 1 kg burns a ${net.unbacked ? "mock credit" : "backed credit"} and mints a soulbound receipt.`;
 
 export async function generateMetadata(): Promise<Metadata> {
   const description = describe(await getNet());

@@ -35,7 +35,7 @@ export default function init(DC) {
     $("#stats").innerHTML = [
       ["Paid calls", fmt.count(ac.calls), "", "reported by our meter", ""],
       ["Carbon metered", fmt.g(ac.mg, 1), "g", "CO₂e, mid estimate", ""],
-      [DC.RETIRED, fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipts`, "bar-mint"],
+      [DC.RETIRED, fmt.count(retiredMg / 1e6), "kg", `${rs.length} soulbound receipt${rs.length === 1 ? "" : "s"}`, "bar-mint"],
       ["Surcharge paid", fmt.usd(ac.sur, 3), "", `${DC.TOKEN.symbol}, pulled into the pool in batches`, ""],
     ].map(([k, v, u, n, c]) => `<div class="card stat ${c}"><div class="k">${k}</div><div class="v tnum">${v}${u ? `<span class="u">${u}</span>` : ""}</div><div class="n">${n}</div></div>`).join("");
     // Hero: the next receipt forming. Receipt numbers are global, so the next one is the highest minted + 1.
@@ -58,7 +58,7 @@ export default function init(DC) {
       : metered.length === 1 ? `The only agent metered so far is ${label(top)}: ${facts(top)}.`
       : `${metered.length} agents have been metered so far; the most active is ${label(top)}: ${facts(top)}.`;
     $("#emEb").textContent = `Agent #${a.id} · ${DC.NET.name}`;
-    $("#emNote").textContent = `This pool has recorded no x402 calls for agent #${a.id}, so there is no footprint, timeline or receipt to show. ${who}`;
+    $("#emNote").textContent = `This pool has recorded no x402 calls for agent #${a.id}, so there is nothing to show yet. ${who}`;
     $("#emActs").innerHTML = `${top ? `<a class="btn btn-primary" href="/agent/${top.id}">Open agent #${top.id}</a>` : ""}<a class="btn btn-outline" href="/developers">How an agent gets metered</a>`;
   }
   paint();

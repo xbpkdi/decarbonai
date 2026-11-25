@@ -117,7 +117,7 @@ export default function init(DC) {
         [800, `<span class="br">⎿</span> signed x402 payment${agentId ? ` · agent #${agentId}` : ""} · ${DC.TOKEN.name}`],
         [1100, `<span class="br">⎿</span> settled via x402 facilitator on ${DC.NET.name}`],
         [500, `<span class="br">⎿</span> <span class="dim">later, in a meter batch:</span> <span class="lime">CarbonAccrued +${(mg / 1000).toFixed(2)} g</span>${tx ? ` <span class="red">${DC.short(tx, 8, 6)}</span>` : ""} · pool ${fmt.count(Math.round(Math.min((DC.state.pending[agentId] || 0) + (last ? 0 : mg), DC.THRESHOLD_MG) / 1000))} / ${fmt.count(DC.THRESHOLD_MG / 1000)} g`],
-        [700, `<span class="tool">⏺</span> [simulated completion] The demo API returns placeholder text: the server answers 402 with a price, the agent signs a ${DC.TOKEN.name} (EIP-3009) transfer, a facilitator settles it.`],
+        [700, `<span class="tool">⏺</span> [simulated completion] The server answers 402 with a price, the agent signs a ${DC.TOKEN.name} transfer (EIP-3009) and a facilitator settles it.`],
       ];
       for (const [ms, html] of out) {
         await wait(ms); if (!alive()) return;

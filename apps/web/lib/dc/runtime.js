@@ -46,15 +46,18 @@ const MOCK_AGENTS = [
 ];
 
 // ---------- formatting ----------
+const TZ = { timeZone: "Asia/Bangkok" }; // every clock and date on the site is ICT, wherever the viewer is
 const fmt = {
   g: (mg, d = 1) => (mg / 1000).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }),
   mass(mg) { const g = mg / 1000; return g >= 1000 ? `${(g / 1000).toLocaleString("en-US", { maximumFractionDigits: 3 })} kg` : `${g.toLocaleString("en-US", { maximumFractionDigits: g < 10 ? 2 : 1 })} g`; },
   usd: (u, d = 4) => `$${(u / 1e6).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: d })}`,
-  time: (t) => new Date(t).toLocaleTimeString("en-GB", { hour12: false }),
-  date: (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+  time: (t) => new Date(t).toLocaleTimeString("en-GB", { hour12: false, ...TZ }),
+  day: (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", ...TZ }),
+  date: (t) => new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", ...TZ }),
+  isToday: (t) => fmt.date(t) === fmt.date(Date.now()),
   // Date and time apart: WebKit joins a combined en-GB date-time with "at", Chromium with a comma.
-  dt: (t) => `${new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Bangkok" })}, ${fmt.tm(t, false)}`,
-  tm: (t, sec = true) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", ...(sec && { second: "2-digit" }), hour12: false, timeZone: "Asia/Bangkok" }) + " ICT",
+  dt: (t) => `${fmt.date(t)}, ${fmt.tm(t, false)}`,
+  tm: (t, sec = true) => new Date(t).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", ...(sec && { second: "2-digit" }), hour12: false, ...TZ }) + " ICT",
   no: (n) => `No. ${String(n).padStart(4, "0")}`,
   count: (n) => n.toLocaleString("en-US"),
 };
@@ -430,7 +433,7 @@ export function bindChrome(DC) {
     const live = !DC.failed && DC.isFresh();
     document.documentElement.dataset.chain = live ? "live" : "idle";
     const last = state.feed[0];
-    document.querySelectorAll("[data-idle]").forEach((el) => (el.textContent = !live && last ? `idle ${DC.ago(last.t)}` : ""));
+    document.querySelectorAll("[data-idle]").forEach((el) => (el.textContent = !live && last ? `idle ${DC.ago(last.t).replace(" ago", "")}` : ""));
   };
   paintChain();
   on("accrual", paintChain); on("restore", paintChain);
@@ -465,6 +468,6 @@ export function bindChrome(DC) {
     e.preventDefault();
     navigator.clipboard?.writeText(h.dataset.copy).catch(() => {});
     h.classList.add("copied"); setTimeout(() => h.classList.remove("copied"), 900);
-    say("Copied tx hash. Cmd-click opens Snowtrace.");
+    say("Copied tx hash. Cmd/Ctrl-click opens Snowtrace.");
   });
 }
