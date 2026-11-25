@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ChromeRuntime } from "@/components/ChromeRuntime";
 
 export const metadata: Metadata = { title: "v1 certificate", robots: { index: false } };
 
@@ -18,6 +19,7 @@ export default function OldCertificate() {
           See v2 receipts
         </a>
       </p>
+      <ChromeRuntime />
     </main>
   );
 }
