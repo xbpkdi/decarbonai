@@ -18,6 +18,8 @@ export default function init(DC) {
   // ---------- hero + pool ----------
   const big = DC.odometer($("#big"), { decimals: 1, value: DC.failed ? null : state.totalMg / 1000 });
   const togo = DC.odometer($("#togo"), { value: DC.failed ? null : Math.round((THRESHOLD_MG - pending()) / 1000) });
+  // The digits otherwise move only on a new call or a replay, so an idle network would never show it: roll once on load.
+  if (!DC.failed && !reduced) requestAnimationFrame(() => big.roll());
   let retiring = false;
 
   function paintHero() {

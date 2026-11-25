@@ -91,8 +91,15 @@ function odometer(el, { decimals = 0, value = 0 } = {}) {
     el.setAttribute("aria-label", str);
     for (const d of el.querySelectorAll(".d")) d.setAttribute("aria-hidden", "true");
   }
+  // Every digit rolls up from 0 to where it is now.
+  function roll() {
+    const cols = [...el.querySelectorAll(".d > span")], to = cols.map((c) => c.style.transform);
+    cols.forEach((c) => { c.style.transition = "none"; c.style.transform = "translateY(0)"; });
+    void el.offsetHeight;
+    cols.forEach((c, i) => { c.style.transition = ""; c.style.transform = to[i]; });
+  }
   render(value);
-  return { set: render };
+  return { set: render, roll };
 }
 
 // ---------- icons ----------
