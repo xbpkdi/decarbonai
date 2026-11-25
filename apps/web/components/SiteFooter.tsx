@@ -1,11 +1,20 @@
-import { type Net, REPO_URL, short } from "@/lib/config";
+import { Mark, XIcon } from "@/components/Icons";
+import { MAINNET_PROOF, type Net, netHref, NETS, REPO_URL, short } from "@/lib/config";
 import { HEADLINE } from "@/lib/copy";
 
 // The Offset mark sits in front of the word "carbon".
 const [LEAD, TAIL = ""] = HEADLINE.split(/\s+(?=carbon\b)/i);
 
+const X_HANDLES = ["ktsukixb", "101beere"];
+
+const Arrow = () => (
+  <span className="arr" aria-hidden="true">
+    ↗
+  </span>
+);
+
 export function SiteFooter({ net }: { net: Net }) {
-  const { contractList: CONTRACT_LIST, creditNote: CREDIT_NOTE, deployment: DEPLOYMENT } = net;
+  const { contractList: CONTRACT_LIST } = net;
   const NETWORK = net;
   return (
     <footer className="foot">
@@ -44,11 +53,19 @@ export function SiteFooter({ net }: { net: Net }) {
             <h4>Developers</h4>
             <ul>
               <li><a href="/developers">Docs</a></li>
-              <li><a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a></li>
+              <li><a href={REPO_URL} target="_blank" rel="noreferrer">GitHub <Arrow /></a></li>
               <li><a href="/developers#mcp">MCP server</a></li>
             </ul>
           </div>
-          <div>
+          {/* Both proofs are on mainnet: the Fuji view says so and the receipt link names the network. */}
+          <div className="full">
+            <h4>Proof{NETWORK.testnet && " · Mainnet"}</h4>
+            <ul>
+              <li><a href={MAINNET_PROOF.certificate} target="_blank" rel="noreferrer" title="Certificate of the retired credit on Carbonmark">Retired credit <Arrow /></a></li>
+              <li><a href={netHref("mainnet", "/receipt/1")} title={`Receipt on ${NETS.mainnet.name}`}>Receipt No. 0001</a></li>
+            </ul>
+          </div>
+          <div className="full">
             <h4>On-chain · {NETWORK.short}</h4>
             <ul>
               {CONTRACT_LIST.map(([name, address]) => (
@@ -62,23 +79,25 @@ export function SiteFooter({ net }: { net: Net }) {
               ))}
             </ul>
           </div>
-          <div>
-            <h4>Project</h4>
-            <ul>
-              <li><a href={REPO_URL} target="_blank" rel="noreferrer">GitHub</a></li>
-              <li><span>Team1 Demo Day, Bangkok</span></li>
-              <li><a href={`${REPO_URL}/issues`} target="_blank" rel="noreferrer">Contact</a></li>
-            </ul>
-          </div>
         </div>
         <div className="foot-strip">
-          <span>
-            methodology {DEPLOYMENT.methodologyVersion} · hash {short(DEPLOYMENT.methodologyHash ?? "")} · {CREDIT_NOTE}
-          </span>
-          <span className="built">
-            <span className="dot-live" />
-            Built on {NETWORK.name} · © 2026 DecarbonAI
-          </span>
+          <div className="foot-id">
+            <span className="brand">
+              <Mark />
+              DecarbonAI
+            </span>
+            <span>
+              Team1 Demo Day, Bangkok<span className="built"> · Built on {NETWORK.name}</span> · © 2026
+            </span>
+          </div>
+          <div className="foot-x">
+            {X_HANDLES.map((h) => (
+              <a key={h} className="btn btn-outline" href={`https://x.com/${h}`} target="_blank" rel="noopener noreferrer" aria-label={`@${h} on X (opens in a new tab)`}>
+                <XIcon />@{h}
+                <Arrow />
+              </a>
+            ))}
+          </div>
         </div>
       </div>
     </footer>
