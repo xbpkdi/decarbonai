@@ -314,11 +314,13 @@ export default function init(DC) {
   }
 
   // The scene only animates while it is on screen; scrolled away, the loop stops.
-  let onScreen = true, running = true;
+  // Pulses otherwise run only on a new call, so an idle network would never show them: one pulse the first time it is seen.
+  let onScreen = true, running = true, introduced = false;
   readColors(); layout();
   new ResizeObserver(layout).observe(host);
   new IntersectionObserver(([e]) => {
     onScreen = e.isIntersecting;
+    if (onScreen && !introduced && !DC.failed) { introduced = true; emitCall(); }
     if (onScreen && !running) { running = true; last = performance.now(); requestAnimationFrame(frame); }
   }).observe(host);
   requestAnimationFrame(frame);
@@ -336,10 +338,12 @@ export default function init(DC) {
     const pill = $("#poolState"); pill.textContent = "Receipt minted"; pill.classList.add("retiring");
     $("#lbl-seal").innerHTML = `<span class="red">Burned ${fmt.mass(THRESHOLD_MG)} ${DC.UNBACKED ? "mock " : ""}DCO2</span>`;
   });
+  let sealT = null;
   on("retired", (r) => {
     if (r.agent !== F) return;
     sealSequence();
-    setTimeout(() => {
+    clearTimeout(sealT);
+    sealT = setTimeout(() => {
       retiring = false;
       const pill = $("#poolState"); pill.textContent = "Filling"; pill.classList.remove("retiring");
       paintLatest(r, true); big.set(state.totalMg / 1000); paintHero(); paintPool();
@@ -389,9 +393,12 @@ export default function init(DC) {
     bar.hidden = false;
     const btn = bar.querySelector(".rp-play"), fill = bar.querySelector(".fill"), clockEl = bar.querySelector("#rpClock");
     const marks = [...bar.querySelectorAll("[data-at]")];
-    let timer = null, holdT = null;
+    let timer = null, holdT = null, autoT = null, autoIO = null;
 
+    // A manual Replay or Stop cancels the pending auto-play, so Stop stays stopped until Replay is pressed again.
+    function cancelAuto() { clearTimeout(autoT); autoT = null; autoIO?.disconnect(); autoIO = null; }
     function play() {
+      cancelAuto();
       if (!DC.beginReplay()) return;
       try { sessionStorage.setItem("dc-replayed", "1"); } catch {}
       replayLine = `Replaying ${fmt.count(calls)} recorded ${DC.NET.short} calls, ${days} · ${DC.isFresh() ? "new calls wait until it ends" : `no new calls since ${day(end)}, ${fmt.tm(end, false)}`}`;
@@ -414,13 +421,14 @@ export default function init(DC) {
       }, 50);
     }
     function stop() {
+      cancelAuto();
       clearInterval(timer); clearTimeout(holdT); timer = holdT = null;
       if (!DC.replaying) return;
       DC.endReplay();
     }
     on("restore", () => {
       note.hidden = true; btn.textContent = label;
-      retiring = false;
+      retiring = false; clearTimeout(sealT); sealT = null;
       const sp = $("#poolState"); sp.textContent = "Filling"; sp.classList.remove("retiring");
       fill.style.width = "0"; marks.forEach((m) => m.classList.remove("on"));
       fillFeed(); big.set(state.totalMg / 1000); paintHero(); paintPool(); paintLatest(latestFor(), false); paintPay(state.feed[0]); paintStatus();
@@ -431,11 +439,12 @@ export default function init(DC) {
     let seen = false;
     try { seen = sessionStorage.getItem("dc-replayed") === "1"; } catch {}
     if (seen || reduced || DC.isFresh()) return;
-    new IntersectionObserver(([e], o) => {
+    autoIO = new IntersectionObserver(([e]) => {
       if (!e.isIntersecting) return;
-      o.disconnect();
-      setTimeout(() => { if (!DC.replaying && !DC.isFresh()) play(); }, 1500);
-    }, { threshold: 0.6 }).observe($(".scene"));
+      autoIO.disconnect(); autoIO = null;
+      autoT = setTimeout(() => { autoT = null; if (!DC.replaying && !DC.isFresh()) play(); }, 1500);
+    }, { threshold: 0.6 });
+    autoIO.observe($(".scene"));
   }
 
   // Rehearsal keys (simulated stream only)
