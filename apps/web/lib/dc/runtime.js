@@ -467,11 +467,11 @@ export function bindChrome(DC) {
   document.querySelectorAll("[data-close]").forEach((b) => b.addEventListener("click", closeSheet));
   document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeSheet(); });
 
-  // copy-on-click for hash chips (cmd/ctrl-click opens Snowtrace). Touch screens have no Cmd-click: a tap opens the link.
+  // copy-on-click for hash chips (cmd/ctrl-click opens Snowtrace). The ↗ always opens the explorer. Touch screens have no Cmd-click: a tap opens the link.
   const coarse = matchMedia("(pointer: coarse)").matches;
   document.addEventListener("click", (e) => {
     const h = e.target.closest?.(".hash[data-copy]");
-    if (!h || e.metaKey || e.ctrlKey || coarse) return;
+    if (!h || e.metaKey || e.ctrlKey || coarse || e.target.closest(".arr")) return;
     e.preventDefault();
     navigator.clipboard?.writeText(h.dataset.copy).catch(() => {});
     h.classList.add("copied"); setTimeout(() => h.classList.remove("copied"), 900);

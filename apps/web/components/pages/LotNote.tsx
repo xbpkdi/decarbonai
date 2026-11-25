@@ -5,7 +5,7 @@ export function LotNote({ net }: { net: Net }) {
   if (!net.lot) return null;
   return (
     <p className="lot-note">
-      Backed by a real retired tonne ({net.lot.project}) ·{" "}
+      Backed by a real retired tonne ({net.lot.creditId}) ·{" "}
       <a href={net.lot.certificate} target="_blank" rel="noreferrer">
         certificate ↗
       </a>

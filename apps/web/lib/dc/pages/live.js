@@ -113,7 +113,7 @@ export default function init(DC) {
           <dt>${DC.RETIRED}</dt><dd><b style="color:var(--mint)">${fmt.mass(r.mg)} CO₂e</b></dd>
           <dt>Agent</dt><dd>${a.name} <span class="mono dim">#${a.id}</span></dd>
           <dt>Calls covered</dt><dd class="tnum">${fmt.count(r.calls)} ${DC.mock ? "paid x402 calls" : DC.NET.calls}</dd>
-          <dt>Credit</dt><dd>DCO2 lot ${r.lot}${DC.UNBACKED ? ' <span class="pill pill-mock" style="height:20px;font-size:11px">mock</span>' : ""}${!DC.mock && DC.NET.lot?.id === r.lot ? ` · <a href="${DC.NET.lot.certificate}" target="_blank" rel="noreferrer" style="text-decoration:underline;text-underline-offset:3px">${DC.NET.lot.project} certificate ↗</a>` : ""}</dd>
+          <dt>Credit</dt><dd>DCO2 lot ${r.lot}${DC.UNBACKED ? ' <span class="pill pill-mock" style="height:20px;font-size:11px">mock</span>' : ""}${!DC.mock && DC.NET.lot?.id === r.lot ? ` · <a href="${DC.NET.lot.certificate}" target="_blank" rel="noreferrer" style="text-decoration:underline;text-underline-offset:3px">${DC.NET.lot.creditId} certificate ↗</a>` : ""}</dd>
           <dt>Tx</dt><dd>${hashLink(r.tx, 8, 6)}</dd>
         </dl>
         <div class="acts"><a class="btn btn-primary btn-sm" href="/receipt/${r.n}">Open receipt</a><a class="btn btn-outline btn-sm" href="/receipts">All receipts</a></div>
