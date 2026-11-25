@@ -176,7 +176,7 @@ a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
 .page-head h1 { font-size: clamp(44px, 6vw, 72px); margin-top: 12px; }
 .page-head .lead { margin-top: 14px; max-width: 62ch; font-size: 17px; line-height: 1.55; color: var(--text-2); }
 
-.section { padding: 48px 0 0; }
+.section { padding-top: 48px; }
 .section-title { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
 .section-title h2 { font-size: 20px; font-weight: 600; }
 
