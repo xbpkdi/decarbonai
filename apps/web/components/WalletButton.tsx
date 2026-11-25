@@ -2,10 +2,12 @@
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { WalletIcon } from "@/components/Icons";
-import { NETWORK, short } from "@/lib/config";
+import { useNet } from "@/components/Net";
+import { short } from "@/lib/config";
 
 /** RainbowKit connect button in the navbar's outline style (primary inside the mobile sheet). */
 export function WalletButton({ primary = false }: { primary?: boolean }) {
+  const net = useNet();
   const cls = primary ? "btn btn-primary wallet" : "btn btn-outline btn-sm wallet";
   return (
     <ConnectButton.Custom>
@@ -20,7 +22,7 @@ export function WalletButton({ primary = false }: { primary?: boolean }) {
         if (chain?.unsupported)
           return (
             <button type="button" className={cls} onClick={openChainModal}>
-              <span>Switch to {NETWORK.short}</span>
+              <span>Switch to {net.short}</span>
             </button>
           );
         return (

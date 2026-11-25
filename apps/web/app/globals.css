@@ -128,6 +128,19 @@ html[data-chain="idle"] .chip-net .dot-live, html[data-chain="idle"] .foot .dot-
 .batch { font-family: var(--f-mono); font-size: 11px; color: var(--text-2); border: 1px solid var(--line-2); border-radius: 999px; padding: 0 6px; margin-left: 6px; }
 .demo-off { font-size: 13px; color: var(--text-3); }
 a.chip-net:hover { border-color: var(--line-2); color: var(--text); }
+/* Mainnet: the retired credit behind the lot, with its certificate. */
+.lot-note { margin-top: 8px; font-size: 14px; color: var(--text-2); }
+.lot-note a { color: var(--mint); }
+.lot-note a:hover { text-decoration: underline; text-underline-offset: 3px; }
+/* Network toggle inside the chip: the shown network reads bright, the other one dim. */
+.net-switch { display: inline-flex; align-items: center; gap: 2px; }
+.net-switch a { padding: 3px 8px; border-radius: 999px; color: var(--text-3); transition: color 0.15s, background 0.15s; }
+.net-switch a:hover { color: var(--text); }
+.net-switch a[aria-current] { color: var(--text); background: var(--surface-2); }
+.net-switch .ns-short { display: none; }
+.chip-net { padding-left: 10px; padding-right: 4px; }
+.chip-net .blk:not(:empty) { margin-right: 6px; }
+.chip-net .blk:hover { color: var(--avax); }
 /* Simulated stream: a fixed banner with a one-click way back to chain data. */
 .sim-banner { position: fixed; z-index: 70; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-radius: 999px; background: var(--warn); color: #1a1204; font: 600 13px var(--f-ui); box-shadow: 0 10px 30px rgba(0,0,0,.45); white-space: nowrap; }
 .sim-banner.read-failed { padding-right: 16px; }
@@ -214,7 +227,10 @@ body:has(.sim-banner) .toast { bottom: 72px; }
   .menu-btn { display: grid; }
 }
 @media (max-width: 760px) {
-  .ticker, .chip-net { display: none; }
+  .ticker { display: none; }
+  .nav .chip-net .dot-live { display: none; }
+  .net-switch .ns-long { display: none; }
+  .net-switch .ns-short { display: inline; }
   .nav-right .wallet { display: none; }
   .foot-cols { grid-template-columns: 1fr 1fr; }
   .page-head { padding: 36px 0 28px; }

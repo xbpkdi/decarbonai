@@ -1,12 +1,13 @@
 import { ChromeRuntime } from "@/components/ChromeRuntime";
 import { MissingReceipt } from "@/components/pages/MissingReceipt";
-import { NETWORK } from "@/lib/config";
 import { getSnapshotSafe } from "@/lib/server/chain";
+import { getNet } from "@/lib/server/net";
 import "@/styles/receipt.css";
 
 /** /receipt/<n> with no such Retired event: what exists, and how far the next receipt is, read from the chain. */
 export default async function ReceiptNotFound() {
-  const snap = await getSnapshotSafe();
+  const net = await getNet();
+  const snap = await getSnapshotSafe(net);
   let next = null;
   if (snap) {
     // Receipt numbers are global: the next one goes to whichever account reaches the threshold first.
@@ -24,7 +25,7 @@ export default async function ReceiptNotFound() {
   }
   return (
     <main className="wrap missing" data-page="receipt-missing">
-      <MissingReceipt next={next} network={NETWORK.name} testnet={NETWORK.testnet} />
+      <MissingReceipt next={next} network={net.name} testnet={net.testnet} />
       <ChromeRuntime />
     </main>
   );

@@ -1,17 +1,17 @@
-import { NETWORK, UNBACKED } from "@/lib/config";
+import type { Net } from "@/lib/config";
 import type { AgentFeedback } from "@/lib/server/chain";
 
 /** Says only what the ERC-8004 registry holds from this deployment's adapter. */
-function feedbackNote(f: AgentFeedback | null) {
+function feedbackNote(net: Net, f: AgentFeedback | null) {
   if (!f) return "The ERC-8004 registry could not be read right now.";
   const rule = "The pool writes carbon-settled feedback only when a backed lot is burned.";
-  const mock = UNBACKED ? ` ${NETWORK.short} burns a mock lot${f.current ? "" : ", so this pool has written none"}.` : "";
+  const mock = net.unbacked ? ` ${net.short} burns a mock lot${f.current ? "" : ", so this pool has written none"}.` : "";
   const old = f.superseded ? ` ${f.superseded} registry ${f.superseded === 1 ? "entry comes" : "entries come"} from a superseded adapter.` : "";
   return rule + mock + old;
 }
 
 /* Server-rendered markup for the Agent page; lib/dc/pages/agent.js fills and animates it. */
-export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback | null; yourAgents: React.ReactNode }) {
+export function AgentMarkup({ net, feedback, yourAgents }: { net: Net; feedback: AgentFeedback | null; yourAgents: React.ReactNode }) {
   const settled = Boolean(feedback?.current);
   return (
     <>
@@ -48,13 +48,13 @@ export function AgentMarkup({ feedback, yourAgents }: { feedback: AgentFeedback 
       <div className="stats" id="stats"></div>
       <div className="rep">
         <span className={`pill pill-dot ${settled ? "pill-settled sparkle" : "pill-smoke"}`} id="settled">{settled ? "Carbon-settled" : feedback ? "No feedback yet" : "Not read"}</span>
-        <p><b id="h-rep">ERC-8004 reputation:</b> <span id="repN">{feedback ? feedback.current : "–"}</span> {feedback?.current === 1 ? "entry" : "entries"} from this pool. <span className="dim">{feedbackNote(feedback)}</span></p>
+        <p><b id="h-rep">ERC-8004 reputation:</b> <span id="repN">{feedback ? feedback.current : "–"}</span> {feedback?.current === 1 ? "entry" : "entries"} from this pool. <span className="dim">{feedbackNote(net, feedback)}</span></p>
       </div>
     </section>
 
     <section className="section" id="secTl" aria-labelledby="h-tl">
       <div className="section-title"><h2 id="h-tl">Footprint timeline</h2>
-        <div className="tl-legend"><span><i style={{ background: "var(--smoke)" }}></i>Metered, not yet covered</span><span><i style={{ background: "var(--mint)" }}></i>{UNBACKED ? "Covered by a mock-retirement receipt" : "Covered by a receipt"}</span><span className="hide-sm"><i style={{ background: "var(--avax)" }}></i>New call</span></div></div>
+        <div className="tl-legend"><span><i style={{ background: "var(--smoke)" }}></i>Metered, not yet covered</span><span><i style={{ background: "var(--mint)" }}></i>{net.unbacked ? "Covered by a mock-retirement receipt" : "Covered by a receipt"}</span><span className="hide-sm"><i style={{ background: "var(--avax)" }}></i>New call</span></div></div>
       <div className="card">
         <div className="timeline" id="tl"><canvas id="tlc" aria-label="Every paid call as a dot over time. Ranges covered by a receipt are mint."></canvas><div className="tl-tip" id="tip"></div></div>
       </div>

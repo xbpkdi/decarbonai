@@ -2,8 +2,8 @@
 
 import { usePathname } from "next/navigation";
 import { CloseIcon, Mark, MenuIcon } from "@/components/Icons";
+import { NetSwitch, useNet } from "@/components/Net";
 import { WalletButton } from "@/components/WalletButton";
-import { DEPLOYMENT, NETWORK } from "@/lib/config";
 
 const PAGES = [
   ["/", "Live"],
@@ -22,6 +22,7 @@ function current(path: string) {
 /** Sticky navbar + mobile sheet. Ticker and block number are filled by the runtime (bindChrome). */
 export function SiteHeader() {
   const cur = current(usePathname());
+  const net = useNet();
   // Plain anchors: each page boots its own live runtime.
   const links = PAGES.map(([href, label]) => (
     <a key={href} href={href} aria-current={href === cur ? "page" : undefined}>
@@ -41,12 +42,13 @@ export function SiteHeader() {
             <span className="nav-underline" aria-hidden="true" />
           </nav>
           <div className="nav-right">
-            <a className="chip-net" title="Open the RetirementPool on the explorer" href={`${NETWORK.explorer}/address/${DEPLOYMENT.retirementPool}`} target="_blank" rel="noreferrer">
+            <span className="chip-net">
               <span className="dot-live" />
-              {NETWORK.name}
-              <span className="blk tnum" data-block />
+              <NetSwitch />
+              {/* biome-ignore lint/a11y/useAnchorContent: the runtime writes the block number into it; aria-label covers the empty moment */}
+              <a className="blk tnum" data-block aria-label="Latest block; opens the RetirementPool on the explorer" title="Open the RetirementPool on the explorer" href={`${net.explorer}/address/${net.deployment.retirementPool}`} target="_blank" rel="noreferrer" />
               <span className="idle mono" data-idle />
-            </a>
+            </span>
             <span className="ticker" title="Total estimated CO₂e metered, all agents">
               <span className="odo" data-ticker />
               <span className="unit">g CO₂e metered</span>
@@ -78,7 +80,7 @@ export function SiteHeader() {
         </div>
         <span className="chip-net">
           <span className="dot-live" />
-          {NETWORK.name}
+          <NetSwitch />
           <span className="mono dim" style={{ fontSize: 12 }} data-block />
         </span>
         <nav>{links}</nav>

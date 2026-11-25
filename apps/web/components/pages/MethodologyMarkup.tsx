@@ -1,7 +1,9 @@
-import { NETWORK, DEPLOYMENT, MAINNET_PROOF, TOKEN } from "@/lib/config";
+import { MAINNET_PROOF, type Net } from "@/lib/config";
 
 /* Server-rendered markup for the Methodology page; lib/dc/pages/methodology.js fills and animates it. */
-export function MethodologyMarkup() {
+export function MethodologyMarkup({ net }: { net: Net }) {
+  const { deployment: DEPLOYMENT, token: TOKEN } = net;
+  const NETWORK = net;
   return (
     <>
       <header className="page-head">

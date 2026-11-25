@@ -105,7 +105,16 @@ claude mcp add decarbonai \\
   const runBtn = $("#run");
   runBtn.className = "btn btn-primary btn-sm";
   runBtn.innerHTML = `${I.play}<span>Run</span>`;
-  if (!DC.mock && !DC.demoReady) {
+  if (!DC.mock && !NET.testnet) {
+    // Mainnet: no live pay button. Run stays a Fuji demo; show the recorded mainnet call and receipts instead.
+    runBtn.disabled = true;
+    runBtn.title = "Runs on Fuji testnet with test USDC";
+    runBtn.className = "btn btn-outline btn-sm run-off";
+    runBtn.innerHTML = "<span>Run · Fuji only</span>";
+    const rs = DC.state.receipts.slice().sort((x, y) => x.n - y.n);
+    const links = rs.map((r) => `<a href="/receipt/${r.n}" style="color:var(--mint)">${fmt.no(r.n)}</a>`).join(" · ");
+    $("#out").innerHTML = `${recorded()}<p class="dim" style="font-size:13px;margin-top:12px">${links ? `Mainnet receipts: ${links}. ` : ""}Run works on <a href="/developers?network=fuji" style="color:var(--mint)">Fuji testnet</a> with test USDC.</p>`;
+  } else if (!DC.mock && !DC.demoReady) {
     // Not configured: say so up front instead of failing on click.
     runBtn.disabled = true;
     runBtn.title = "Live demo payments are switched off on this deployment";
@@ -124,7 +133,7 @@ claude mcp add decarbonai \\
     const pend = DC.state.pending[last.agent] || 0;
     const who = last.agent ? `Agent #${last.agent}` : "An unregistered payer";
     return `<div class="rec">
-      <div class="rec-h"><span class="pill pill-mock">Recorded · ${new Date(last.t).toISOString().slice(0, 16).replace("T", " ")} UTC · not a live call</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
+      <div class="rec-h"><span class="pill pill-mock">Recorded${NET.testnet ? "" : " test call"} · ${new Date(last.t).toISOString().slice(0, 16).replace("T", " ")} UTC · not a live call</span><span class="mono dim">block ${fmt.count(last.block)}</span></div>
       <ol>
         <li><span class="n">1</span><div><div class="t">${who} paid over x402</div><div class="s">${DC.TOKEN.name} on ${NET.short}, settled by the facilitator first</div></div><div class="v">payer ${DC.short(last.payer)}</div></li>
         <li><span class="n">2</span><div><div class="t">Meter posted CarbonAccrued</div><div class="s">${batch.length} call${batch.length > 1 ? "s" : ""} in this meter batch</div></div><div class="v lime">+${(mg / 1000).toFixed(2)} g CO₂e</div></li>

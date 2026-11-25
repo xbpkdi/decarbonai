@@ -187,6 +187,13 @@ export default function init(DC) {
       // Live: only the demo agent's page can pay, with the server-side test wallet. Mock: any agent.
       // Payments off: say so on every agent page, as Developers does, instead of leaving the control silently missing.
       const title = document.querySelector("#h-tl")?.parentElement;
+      if (!DC.mock && !DC.NET.testnet) {
+        // Mainnet has no pay button: point at the recorded call and receipt, and at Fuji for a live one.
+        const last = DC.state.history[id]?.at(-1), rc = DC.state.receipts.find((r) => r.agent === id);
+        const rec = [last && `last call ${DC.hashLink(last.tx, 6, 4)}`, rc && `<a href="/receipt/${rc.n}" style="color:var(--mint)">${DC.fmt.no(rc.n)}</a>`].filter(Boolean).join(" · ");
+        title?.insertAdjacentHTML("beforeend", `<span class="demo-off">${rec ? `Recorded: ${rec}. ` : ""}Pay one call runs on <a href="/agent?network=fuji" style="color:var(--mint)">Fuji testnet</a> with test USDC.</span>`);
+        return;
+      }
       if (!DC.mock && !DC.demoReady) {
         title?.insertAdjacentHTML("beforeend", `<span class="demo-off">Live payments from this page are switched off on this deployment.</span>`);
         return;

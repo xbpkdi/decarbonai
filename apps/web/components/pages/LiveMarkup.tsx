@@ -1,16 +1,19 @@
 /* Server-rendered markup for the Live page; lib/dc/pages/live.js fills and animates it. */
-import { NETWORK, TOKEN, UNBACKED } from "@/lib/config";
-
-const BURN = UNBACKED ? "Mock DCO2 burn" : "DCO2 burn";
+import type { Net } from "@/lib/config";
+import { LotNote } from "@/components/pages/LotNote";
 
 /** The status pill as of this read; the runtime keeps it current after boot. */
-export function LiveMarkup({ status }: { status: "LIVE" | "IDLE" | "NO DATA" }) {
+export function LiveMarkup({ net, status }: { net: Net; status: "LIVE" | "IDLE" | "NO DATA" }) {
+  const { token: TOKEN } = net;
+  const NETWORK = net;
+  const BURN = net.unbacked ? "Mock DCO2 burn" : "DCO2 burn";
   return (
     <>
     <section className="hero" aria-labelledby="h-metered">
       <div className="eyebrow-row"><span className={status === "LIVE" ? "pill pill-live" : "pill pill-smoke pill-idle"} id="status">{status}</span><span className="eyebrow" id="h-metered">x402 carbon meter · {NETWORK.testnet ? `${NETWORK.short} testnet` : NETWORK.name}</span></div>
       <h1 className="big"><span className="odo" id="big"></span><span className="unit">g CO₂e</span></h1>
       <p className="line" id="line"></p>
+      <LotNote net={net} />
     </section>
 
     <section className="pool card bar-mint" aria-labelledby="h-pool">

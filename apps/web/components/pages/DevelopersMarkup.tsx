@@ -1,10 +1,12 @@
-import { NETWORK, DEPLOYMENT, TOKEN, UNBACKED, short } from "@/lib/config";
+import { type Net, short } from "@/lib/config";
 
 /* Server-rendered markup for the Developers page; lib/dc/pages/developers.js fills and animates it. */
 const INSTALL = "git clone https://github.com/xbpkdi/decarbonai && cd decarbonai && npm install";
 
 /** `demo`: live demo payments are configured on this deployment. */
-export function DevelopersMarkup({ demo }: { demo: boolean }) {
+export function DevelopersMarkup({ net, demo }: { net: Net; demo: boolean }) {
+  const { deployment: DEPLOYMENT, token: TOKEN, unbacked: UNBACKED } = net;
+  const NETWORK = net;
   return (
     <>
       <header className="page-head">
@@ -19,7 +21,7 @@ export function DevelopersMarkup({ demo }: { demo: boolean }) {
 
   <div className="wrap">
     <section className="section" aria-labelledby="h-try">
-      <div className="section-title"><h2 id="h-try">Try it: pay for one call</h2><span className="dim" style={{ fontSize: "13px" }}>{demo ? `Run calls the paid demo API on ${NETWORK.short} with a test agent wallet` : "Live demo payments are off on this deployment"}</span></div>
+      <div className="section-title"><h2 id="h-try">Try it: pay for one call</h2><span className="dim" style={{ fontSize: "13px" }}>{!net.testnet ? "Runs on Fuji testnet with test USDC" : demo ? `Run calls the paid demo API on ${NETWORK.short} with a test agent wallet` : "Live demo payments are off on this deployment"}</span></div>
       <div className="two">
         <div className="card" style={{ overflow: "hidden" }}>
           <div className="tabs" role="tablist"><button type="button" className="tab" role="tab" aria-selected="true" data-code="server">server.ts</button><button type="button" className="tab" role="tab" aria-selected="false" data-code="agent">agent.ts</button><span className="sp"></span><button type="button" className="btn btn-outline btn-sm copy" id="copyCode">Copy</button></div>

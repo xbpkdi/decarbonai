@@ -1,6 +1,5 @@
 import { createPayingFetch, settlementFrom } from "@decarbonai/x402-carbon/client";
 import type { CarbonExtra } from "@decarbonai/x402-carbon";
-import { NETWORK } from "@/lib/config";
 import { demoConfig } from "@/lib/server/demo";
 
 /**
@@ -29,7 +28,6 @@ function limited(ip: string) {
 }
 
 export async function POST(req: Request) {
-  if (!NETWORK.testnet) return Response.json({ error: "Demo payments run on Fuji only." }, { status: 403 });
   const demo = demoConfig();
   if (!demo) return Response.json({ error: "Demo payments are not configured on this deployment." }, { status: 503 });
   const ip = (req.headers.get("x-forwarded-for") ?? "local").split(",")[0].trim();

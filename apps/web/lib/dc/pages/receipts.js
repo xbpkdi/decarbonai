@@ -13,7 +13,7 @@ export default function init(DC) {
     el.innerHTML = `${DC.coinHTML(r)}<div class="meta"><span class="no">${fmt.no(r.n)}</span><span class="d">${fmt.date(r.t)}</span><span class="muted">${a.title}</span><span class="d">${fmt.count(r.calls)} calls</span></div>`;
     return el;
   }
-  const CALLS = `Paid ${DC.NET.testnet ? "testnet" : "x402"} calls`;
+  const CALLS = DC.NET.calls[0].toUpperCase() + DC.NET.calls.slice(1);
   function paintTotals() {
     if (DC.failed) {
       $("#totals").innerHTML = [CALLS, DC.RETIRED, "Receipts sealed", "Agents metered"].map((k) => `<div><div class="v">–</div><div class="k">${k}</div></div>`).join("");
