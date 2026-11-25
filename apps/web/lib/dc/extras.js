@@ -1,90 +1,39 @@
-/* Interactions: fan lines, terminal proof on Developers, Methodology flow chain,
+/* Interactions: footer pool grid, terminal proof on Developers, Methodology flow chain,
    Agent "pay one call". Runs after rich.js. Nothing here loops: motion runs once or on a real event. */
 export default function init(DC) {
   const page = document.querySelector("main")?.dataset.page || "index";
   const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
-  // ---------- fan lines: many agent points converge on one pool point and turn green ----------
-  // Drawn still. Pulses travel the lines once per real accrual; the cursor bends them while it moves.
-  function fanLines(host, { onSolid = false, target = [0.86, 0.5], count = 64, seed = 3 } = {}) {
-    const c = document.createElement("canvas");
-    c.className = "fan";
-    c.setAttribute("aria-hidden", "true");
-    host.prepend(c);
-    const ctx = c.getContext("2d");
-    let W = 0, H = 0, mx = -1e4, my = -1e4, lines = [], pulses = [], visible = true, colA, colB, running = false;
-    let s = seed * 9301;
-    const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
-    function size() {
-      const r = host.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1);
-      W = r.width; H = r.height; c.width = W * dpr; c.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      s = seed * 9301;
-      lines = Array.from({ length: count }, () => {
-        const edge = rnd();
-        const x = edge < 0.55 ? rnd() * W * 0.55 : rnd() * W * 0.08;
-        const y = edge < 0.55 ? (rnd() < 0.5 ? -10 + rnd() * H * 0.2 : H * 0.8 + rnd() * H * 0.2) : rnd() * H;
-        return { x, y, bend: (rnd() - 0.5) * H * 0.5 };
-      });
-      colA = onSolid ? "rgba(20,26,6," : "rgba(125,133,128,";
-      colB = onSolid ? "rgba(20,26,6," : `rgba(${css("--mint-rgb")},`;
+  // ---------- footer band: the featured agent's pool fills a 1 kg grid (1 square = 1/100 kg) ----------
+  // Still until a real accrual lands: only then do the new squares pop in. At 1 kg the grid becomes the mark with its receipt.
+  function grams(viz) {
+    if (DC.failed) return;
+    const F = DC.FEATURED, per = DC.THRESHOLD_MG / 100;
+    const fig = viz.querySelector(".grams"), blk = viz.querySelector(".blk"), grid = viz.querySelector(".grid");
+    const label = viz.querySelector(".gv"), done = viz.querySelector(".done");
+    const cells = Array.from({ length: 100 }, () => grid.appendChild(document.createElement("i")));
+    let shown = 0, holding = false;
+    function paint(animate) {
+      const p = Math.min(DC.state.pending[F] || 0, DC.THRESHOLD_MG), on = Math.floor(p / per);
+      cells.forEach((c, i) => { c.classList.toggle("on", i < on); c.classList.toggle("new", animate && !reduced && i >= shown && i < on); });
+      shown = on;
+      label.textContent = `${DC.fmt.count(Math.round(p / 1000))} g`;
     }
-    const pt = (L, k) => {
-      const tx = W * target[0], ty = H * target[1];
-      let cx = (L.x + tx) / 2, cy = (L.y + ty) / 2 + L.bend;
-      // the cursor pulls each line's bend a little
-      const d = Math.hypot(cx - mx, cy - my), f = Math.max(0, 1 - d / 260) * 0.35;
-      cx += (mx - cx) * f; cy += (my - cy) * f;
-      const u = 1 - k;
-      return [u * u * L.x + 2 * u * k * cx + k * k * tx, u * u * L.y + 2 * u * k * cy + k * k * ty];
-    };
-    function draw(dt) {
-      ctx.clearRect(0, 0, W, H);
-      ctx.lineWidth = 1;
-      const seg = 4;
-      for (const L of lines) {
-        for (let b = 0; b < seg; b++) {
-          ctx.beginPath();
-          for (let j = 0; j <= 6; j++) { const k = (b + j / 6) / seg; const [x, y] = pt(L, k); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
-          const k = (b + 0.5) / seg;
-          ctx.strokeStyle = k < 0.55 ? colA + (onSolid ? 0.1 : 0.22) * (0.6 + k) + ")" : colB + (onSolid ? 0.28 : 0.55) * k + ")";
-          ctx.stroke();
-        }
-      }
-      // pulses travel toward the pool once, then disappear
-      pulses = pulses.filter((P) => (P.p += P.v * dt) <= 1);
-      for (const P of pulses) {
-        if (P.p < 0) continue;
-        const [x, y] = pt(lines[P.i], P.p);
-        ctx.fillStyle = P.p < 0.55 ? colA + "0.8)" : colB + "1)";
-        ctx.beginPath(); ctx.arc(x, y, P.p < 0.55 ? 1.6 : 2.4, 0, 7); ctx.fill();
-      }
-      // the pool point
-      const tx = W * target[0], ty = H * target[1];
-      ctx.fillStyle = colB + (onSolid ? "0.5)" : "0.9)");
-      ctx.beginPath(); ctx.arc(tx, ty, 5, 0, 7); ctx.fill();
-      ctx.strokeStyle = colB + "0.35)"; ctx.beginPath(); ctx.arc(tx, ty, 14, 0, 7); ctx.stroke();
+    function full(r) {
+      holding = true;
+      label.textContent = "1 kg";
+      done.innerHTML = `1 kg retired<br>→ Receipt ${DC.fmt.no(r.n)}`;
+      blk.classList.add("full"); fig.classList.add("full");
+      setTimeout(() => {
+        blk.classList.remove("full"); fig.classList.remove("full");
+        done.textContent = "";
+        holding = false; shown = 0; paint(false);
+      }, 4000);
     }
-    // Frames run only while pulses are in flight; otherwise one still frame per change.
-    let last = 0;
-    function loop(now) {
-      const dt = Math.min(0.05, (now - last) / 1000); last = now;
-      draw(dt);
-      running = pulses.length > 0 && visible;
-      if (running) requestAnimationFrame(loop);
-    }
-    const kick = () => { if (!running) { running = true; last = performance.now(); requestAnimationFrame(loop); } };
-    const still = () => requestAnimationFrame(() => draw(0));
-    size(); still();
-    new ResizeObserver(() => { size(); still(); }).observe(host);
-    new IntersectionObserver(([e]) => (visible = e.isIntersecting)).observe(host);
-    host.addEventListener("pointermove", (e) => { const r = host.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; if (!running) still(); });
-    host.addEventListener("pointerleave", () => { mx = my = -1e4; if (!running) still(); });
-    DC.on("accrual", () => {
-      if (reduced || DC.replaying || !visible || pulses.length) return;
-      pulses = Array.from({ length: 9 }, (_, k) => ({ i: Math.floor(Math.random() * lines.length), p: -k * 0.08, v: 0.35 + Math.random() * 0.2 }));
-      kick();
-    });
+    DC.on("accrual", (c) => { if (c.agent === F && !holding && !DC.replaying) paint(true); });
+    DC.on("retired", (r) => { if (r.agent === F && !holding && !DC.replaying) full(r); });
+    paint(false);
+    viz.hidden = false;
   }
 
   // ---------- Developers: Claude Code terminal proof in the hero (plays once on screen; Replay plays it again) ----------
@@ -158,15 +107,14 @@ export default function init(DC) {
   function start() {
     const foot = document.querySelector(".foot-band");
     if (foot) {
-      fanLines(foot, { onSolid: true, target: [0.58, 0.52], count: 48, seed: 7 });
+      const viz = foot.querySelector(".viz");
+      if (viz) grams(viz);
       // The logo mark assembles once when the band comes into view.
       new IntersectionObserver(([e], o) => { if (e.isIntersecting) { foot.classList.add("drawn"); o.disconnect(); } }, { threshold: 0.4 }).observe(foot);
     }
 
     if (page === "developers") {
       const head = document.querySelector(".page-head");
-      head.classList.add("has-fan", "dev-hero");
-      fanLines(head, { target: [0.97, 0.62], count: 70, seed: 3 });
       const wrap = head.querySelector(".wrap");
       const left = document.createElement("div");
       while (wrap.firstChild) left.appendChild(wrap.firstChild);

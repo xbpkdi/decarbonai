@@ -415,11 +415,44 @@ html { scroll-padding-top: calc(var(--nav-h) + 16px); }
 @keyframes mk-m { 0%, 30% { transform: translate(7px, 7px); opacity: 0; } 90%, 100% { transform: none; opacity: 1; } }
 @keyframes mk-r { 0%, 60% { transform: scale(0.2); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
-/* fan lines live behind the content of their host */
-.fan { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
-.fx-rich .foot-band > *:not(.fan) { position: relative; z-index: 1; }
-.fx-rich .has-fan { position: relative; }
-.fx-rich .has-fan > .wrap { position: relative; z-index: 1; }
+/* footer band: headline · pool grid · stacked buttons; the grid takes its own row below 1100 and the buttons go back to a row on phones */
+.fx-rich .foot-band { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 32px; }
+.fx-rich .foot-band > * { position: relative; z-index: 1; }
+.fx-rich .foot-band .acts { grid-column: -2; flex-direction: column; align-items: stretch; }
+.fx-rich .foot-band .viz { display: flex; justify-content: center; min-width: 0; }
+.fx-rich .foot-band .viz[hidden] { display: none; }
+@media (max-width: 1100px) {
+  .fx-rich .foot-band { grid-template-columns: minmax(0, 1fr) auto; }
+  .fx-rich .foot-band .viz { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; }
+}
+@media (max-width: 760px) {
+  .fx-rich .foot-band { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .fx-rich .foot-band .acts { grid-column: auto; flex-direction: row; flex-wrap: wrap; }
+}
+/* The block is the logo's ink square (14 units = 98 px, 1 unit = 7 px). Filled, it gains the grey square and the red seal. */
+.grams { margin: 0; display: flex; align-items: center; gap: 22px; }
+.grams .blk { position: relative; width: 140px; height: 140px; flex: none; }
+.grams .grid { position: absolute; left: 42px; top: 42px; width: 98px; height: 98px; display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; transition: opacity 0.3s 0.3s; }
+.grams .grid i { background: rgba(20, 26, 6, 0.12); border-radius: 1px; transition: background 0.25s; }
+.grams .grid i.on { background: var(--mint-ink); }
+.grams .grid i.new { animation: gr-pop 0.5s var(--ease); }
+@keyframes gr-pop { 0% { transform: scale(0.2); } 100% { transform: none; } }
+.grams .blk .g, .grams .blk .m, .grams .blk .r { position: absolute; opacity: 0; transition: opacity 0.4s, transform 0.7s var(--ease); }
+.grams .blk .g { left: 0; top: 0; width: 98px; height: 98px; border-radius: 14px; background: transparent; border: 1.5px dashed rgba(20, 26, 6, 0.28); opacity: 1; transition: background 0.5s, border-color 0.5s; }
+.grams .blk.full .g { background: #7d8580; border-color: #7d8580; }
+.grams .blk .m { left: 42px; top: 42px; width: 98px; height: 98px; border-radius: 14px; background: var(--mint-ink); }
+.grams .blk .r { left: 42px; top: 42px; width: 56px; height: 56px; background: var(--avax); transform: scale(0.2); transform-origin: 28px 28px; transition: opacity 0.3s 0.5s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s; }
+.grams .blk.full .g, .grams .blk.full .m, .grams .blk.full .r { opacity: 1; transform: none; }
+.grams .blk.full .m { transition-delay: 0.1s; }
+.grams .blk.full .grid { opacity: 0; }
+.grams figcaption { display: flex; flex-direction: column; gap: 4px; font: 500 12px var(--f-mono); letter-spacing: 0.04em; color: rgba(20, 26, 6, 0.62); white-space: nowrap; }
+.grams .k { text-transform: uppercase; letter-spacing: 0.12em; }
+.grams b { font: 400 34px/1 var(--f-display); color: var(--mint-ink); letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
+.grams .done { display: none; color: var(--mint-ink); font-weight: 600; }
+.grams.full .s { display: none; }
+.grams.full .done { display: block; }
+@media (max-width: 760px) { .grams { gap: 16px; } .grams figcaption { white-space: normal; } }
+@media (prefers-reduced-motion: reduce) { .grams .grid, .grams .grid i, .grams .blk .g, .grams .blk .m, .grams .blk .r { transition: none !important; animation: none !important; } }
 
 /* hero split: copy left, proof or chain right */
 .fx-rich .hero-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr); gap: 48px; align-items: center; }
