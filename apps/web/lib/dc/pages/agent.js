@@ -92,7 +92,6 @@ export default function init(DC) {
     ctx.strokeStyle = colors["--line"]; ctx.beginPath(); ctx.moveTo(20, H - 14); ctx.lineTo(W - 20, H - 14); ctx.stroke();
     if (!pts.length) {
       ctx.fillStyle = colors["--text-3"]; ctx.textAlign = "center"; ctx.fillText(DC.failed ? DC.READ_FAILED : "No paid calls from this agent yet", W / 2, H / 2);
-      requestAnimationFrame(draw);
       return;
     }
     ctx.fillStyle = colors["--text-3"]; ctx.textAlign = "left"; ctx.fillText(`first call · ${fmt.date(pts[0].c.t)}`, 20, H - 2); ctx.textAlign = "right"; ctx.fillText(`call ${fmt.count(pts.length)} · ${DC.isFresh() ? "now" : `last ${DC.ago(pts[pts.length - 1].c.t)}`}`, W - 20, H - 2);
@@ -109,12 +108,15 @@ export default function init(DC) {
       ctx.globalAlpha = 1;
     });
     if (hover) { ctx.strokeStyle = colors["--mint"]; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(hover.x, hover.y, 7, 0, 7); ctx.stroke(); }
-    requestAnimationFrame(draw);
   }
+  // The timeline is still between changes: draw once per change instead of every frame.
+  let queued = false;
+  const redraw = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; draw(); }); };
   function pick(e, reach) {
     const r = host.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     let best = null, bd = reach;
     for (const p of pts) { const d = Math.hypot(p.x - x, p.y - y); if (d < bd) { bd = d; best = p; } }
+    if (best !== hover) redraw();
     hover = best;
     if (best) {
       tip.innerHTML = `<div class="mono dim">${fmt.dt(best.c.t)}</div><div style="margin-top:3px"><b>${(best.c.mg / 1000).toFixed(2)} g</b> CO₂e · ${best.c.receipt ? `<span style="color:var(--mint)">covered by ${fmt.no(best.c.receipt)}</span>` : '<span class="dim">pending</span>'}</div><div class="mono" style="color:var(--avax);margin-top:3px">${DC.short(best.c.tx, 10, 6)} ↗</div>`;
@@ -130,15 +132,18 @@ export default function init(DC) {
     pick(e, 24);
     touchOpen = Boolean(prev && hover === prev);
   });
-  host.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { hover = null; tip.classList.remove("on"); } });
+  host.addEventListener("pointerleave", (e) => { if (e.pointerType === "mouse") { hover = null; tip.classList.remove("on"); redraw(); } });
   host.addEventListener("click", () => { if (hover && touchOpen && !DC.mock) window.open(`${DC.NET.explorer}/tx/${hover.c.tx}`, "_blank"); });
-  readColors(); build(); requestAnimationFrame(draw);
-  new ResizeObserver(build).observe(host);
+  readColors(); build(); redraw();
+  new ResizeObserver(() => { build(); redraw(); }).observe(host);
+  // Labels switch to the mono web font once it loads; the "last … ago" label ages.
+  document.fonts?.ready.then(redraw);
+  setInterval(redraw, 30_000);
 
-  on("accrual", (c) => { if (c.agent !== a.id) return; fresh.set(c.tx, performance.now()); build(); paint(); });
+  on("accrual", (c) => { if (c.agent !== a.id) return; fresh.set(c.tx, performance.now()); build(); paint(); redraw(); setTimeout(redraw, 2450); });
   on("retired", (r) => {
     if (r.agent !== a.id) return;
-    build(); paint();
+    build(); paint(); redraw();
     const s = $("#settled"); if (s.classList.contains("sparkle")) { s.classList.remove("go"); void s.offsetWidth; s.classList.add("go"); }
     DC.toast(`${DC.mock ? "Simulated: receipt" : "Receipt"} ${fmt.no(r.n)} minted${DC.UNBACKED ? " (mock lot, no ERC-8004 feedback)" : ""}`);
   });
